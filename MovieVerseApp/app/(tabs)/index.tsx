@@ -4,10 +4,18 @@ import { Search, ArrowRight, User, ChevronRight } from 'lucide-react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {styles} from '@/styles/home'
 import ScreenWrapper from '@/components/ScreenWrapper'
+import { useRouter } from 'expo-router'
 const Index = () => {
   const [isOpenOther,setOpenOther] = useState(false);
   const [customMood, setCustomMood] = useState('')
   
+  const router = useRouter()
+  const goToProfile = () => {
+    console.log('Navigating to ProfilePage')
+    router.push('/pages/ProfilePage')
+  }
+
+
   return (
     <ScreenWrapper>
     <SafeAreaView style={styles.container}>
@@ -18,7 +26,7 @@ const Index = () => {
             <Text style={styles.username}>FoxPotato</Text>
           </View>
           <TouchableOpacity style={styles.profileButton}>
-            <User size={24} color="#fff" />
+            <User size={24} color="#fff" onPress={goToProfile} />
           </TouchableOpacity>
         </View>
         <View style={styles.searchContainer}>
