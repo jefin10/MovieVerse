@@ -1,0 +1,17 @@
+pip install virtualenv
+
+virtualenv -p python env
+
+.\env\Scripts\activate # For Windows
+
+pip install django
+pip install djangorestframework
+
+django-admin startproject backend
+cd backend
+
+python manage.py startapp api
+
+python manage.py migrate
+
+python manage.py runserver
