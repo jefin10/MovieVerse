@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
+import joblib
 
 mood_data = {
     "mood_text": [
@@ -128,6 +129,8 @@ vectorizer=CountVectorizer()
 X=vectorizer.fit_transform(df_mood['mood_text'])
 model=MultinomialNB()
 model.fit(X, df_mood['genre'])
+joblib.dump(model, 'mood_genre_model.pkl')
+joblib.dump(vectorizer, 'vectorizer.pkl')
 movies=pd.read_csv("movies.csv")
 user_mood=input("How are you feeling today? → ")
 moidelip = vectorizer.transform([user_mood])
