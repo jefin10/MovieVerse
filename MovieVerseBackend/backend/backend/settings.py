@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'api',
     'ai',
-    #'django_bcrypt'
 ]
 
 MIDDLEWARE = [
