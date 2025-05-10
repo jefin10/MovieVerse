@@ -12,7 +12,7 @@ const Index = () => {
   const router = useRouter()
   const goToProfile = () => {
     console.log('Navigating to ProfilePage')
-    router.push('/pages/ProfilePage')
+    router.push('/pages/LoginPage')
   }
 
 
@@ -118,10 +118,10 @@ const Index = () => {
             <ArrowRight size={20} color="#fff" />
           </View>
         </View>
-        <View style={styles.socialBanner}>
+        <TouchableOpacity style={styles.socialBanner} onPress={() => {router.push('/pages/TestPage')}}>
           <Text style={styles.socialText}>Find people who have the same taste as you....</Text>
           <ArrowRight size={20} color="#fff" />
-        </View>
+        </TouchableOpacity>
         <View style={styles.tabBarSpacer} />
       </ScrollView>
     </SafeAreaView>
