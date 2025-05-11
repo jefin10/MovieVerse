@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import environ
 from pathlib import Path
 # Add these at the top of your settings.py
 import os
@@ -84,6 +84,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))    
 
 DATABASES = {
     'default': {

@@ -4,7 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
-class User(AbstractUser):
+class UserProfile(models.Model):
     username = models.CharField(max_length=150, unique=True, db_index=True)
     password = models.CharField(max_length=255)  # Will be stored as a hashed password
     email = models.CharField(max_length=255)
@@ -22,7 +22,7 @@ class Movie(models.Model):
         return self.title
 
 class Watchlist(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)  
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     added_on = models.DateTimeField(auto_now_add=True)
 
@@ -35,7 +35,7 @@ class Watchlist(models.Model):
         return f"{self.user.username} - {self.movie.title}"
 
 class Ratings(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     rating = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     created_at = models.DateTimeField(auto_now_add=True)
@@ -51,7 +51,7 @@ class Ratings(models.Model):
         return f"{self.user.username} rated {self.movie.title} {self.rating}/5"
 
 class RecommendedMovies(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)  
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE) 
     recommended_on = models.DateTimeField(auto_now_add=True)  
 
