@@ -3,7 +3,8 @@ import React, { useRef, useState, useEffect } from 'react'
 import styles from '@/styles/tinder'
 import { ArrowRight, CheckCircle } from 'lucide-react-native'
 import Swiper from 'react-native-deck-swiper'
-import tinderMovieCard from '../components/tinderMovieCard.tsx'
+import tinderMovieCard from '../components/tinderMovieCard'
+import ProtectedRoute from '../auth/protectedRoute';
 
 const tinder = () => {
   const swiperRef = useRef(null);
@@ -73,6 +74,7 @@ const tinder = () => {
   };
 
   return (
+    <ProtectedRoute>
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.label}>Feel a Match?</Text>
@@ -161,6 +163,7 @@ const tinder = () => {
         </Animated.View>
       )}
     </View>
+    </ProtectedRoute>
   )
 }
 

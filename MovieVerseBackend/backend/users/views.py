@@ -3,15 +3,25 @@ from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.forms import UserCreationForm
+from django.views.decorators.csrf import csrf_exempt
 from users.models import CustomUser
 import logging
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 logger = logging.getLogger(__name__)
 # Registration View
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    print("CSRF token requested")
+    csrf_token = request.META.get('CSRF_COOKIE')
+    print("CSRF token:", csrf_token)
+    return JsonResponse({"message": "CSRF cookie set"})
+
 class RegisterUser(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -28,28 +38,36 @@ class RegisterUser(APIView):
 
 
 # Login View
-class LoginUser(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        logger.info(f"Attempting to authenticate: {username}")
 
-        print(username, password)
-        user = authenticate(request,username=username, password=password)
-        
-        if user is not None:
-            login(request, user)
-            return Response({"message": "Login successful"}, status=status.HTTP_200_OK)
-        else:
-            logger.warning(f"Failed login attempt: {username}")
-            return Response({"error": "Invalid credentials!"}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def login_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    logger.info(f"Attempting to authenticate: {username}")
+
+    print(username, password)
+    user = authenticate(request, username=username, password=password)
+    
+    if user is not None:
+        login(request, user)
+        return Response({"message": "Login successful"}, status=status.HTTP_200_OK)
+    else:
+        logger.warning(f"Failed login attempt: {username}")
+        return Response({"error": "Invalid credentials!"}, status=status.HTTP_400_BAD_REQUEST)
 
 # Logout View
 @api_view(['POST'])
+@authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def logout_user(request):
     from django.contrib.auth import logout
     logout(request)
+    response = Response({'message': 'Logged out successfully'}, status=status.HTTP_200_OK)  
+    response.delete_cookie('sessionid')
+    response.delete_cookie('csrftoken')
     return Response({"message": "Logout successful!"}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])

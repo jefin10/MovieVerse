@@ -8,12 +8,17 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import ScreenWrapper from '@/components/ScreenWrapper';
+import { enableScreens } from 'react-native-screens';
+
+
+enableScreens();
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <Tabs
+ 
+       <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
@@ -61,6 +66,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Smile color={color} size={size} />,
         }}
       />
-    </Tabs>
+     </Tabs>
+
+   
   );
 }
