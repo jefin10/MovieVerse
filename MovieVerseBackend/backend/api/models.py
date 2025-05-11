@@ -81,4 +81,3 @@ class Director(models.Model):
     
     def __str__(self):
         return self.name
->>>>>>>>> Temporary merge branch 2
