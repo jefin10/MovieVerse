@@ -1,22 +1,35 @@
 import { ScrollView, StyleSheet, Text, View, TextInput, Image, TouchableOpacity, StatusBar } from 'react-native'
 import React, { useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native';
 import { Search, ArrowRight, User, ChevronRight } from 'lucide-react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {styles} from '@/styles/home'
 import ScreenWrapper from '@/components/ScreenWrapper'
 import { useRouter } from 'expo-router'
+import ProtectedRoute from '../auth/protectedRoute';
+import {useAuth} from '../auth/AuthContext'
 const Index = () => {
   const [isOpenOther,setOpenOther] = useState(false);
   const [customMood, setCustomMood] = useState('')
   
+  const { authenticated } = useAuth();
   const router = useRouter()
   const goToProfile = () => {
     console.log('Navigating to ProfilePage')
-    router.push('/pages/ProfilePage')
+    router.push('/pages/LoginPage')
   }
-
+  //   useFocusEffect(
+  //   React.useCallback(() => {
+  //     if (!authenticated) {
+  //       router.replace('/pages/LoginPage'); // or navigation.replace('Login') if using navigation
+  //     }
+  //   }, [authenticated])
+  // );
 
   return (
+    <ProtectedRoute>
+   
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
     <ScreenWrapper>
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -118,14 +131,16 @@ const Index = () => {
             <ArrowRight size={20} color="#fff" />
           </View>
         </View>
-        <View style={styles.socialBanner}>
+        <TouchableOpacity style={styles.socialBanner} onPress={() => {router.push('/pages/TestPage')}}>
           <Text style={styles.socialText}>Find people who have the same taste as you....</Text>
           <ArrowRight size={20} color="#fff" />
-        </View>
+        </TouchableOpacity>
         <View style={styles.tabBarSpacer} />
       </ScrollView>
     </SafeAreaView>
     </ScreenWrapper>
+       
+    </ProtectedRoute>
   )
 }
 

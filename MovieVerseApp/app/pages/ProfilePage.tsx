@@ -2,6 +2,7 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity } from 'react-nativ
 import React, { useState } from 'react'
 import { UserRound, Edit2 } from 'lucide-react-native'
 import styles from '@/styles/profilePage'
+import ProtectedRoute from '../auth/protectedRoute';
 
 const ProfilePage = () => {
     const [username, setUsername] = useState('FoxPotato')
@@ -14,6 +15,7 @@ const ProfilePage = () => {
     }
 
     return (
+        <ProtectedRoute>
         <ScrollView style={styles.container}>
             <Text style={styles.headerText}>Profile</Text>
             
@@ -94,6 +96,7 @@ const ProfilePage = () => {
                 )}
             </View>
         </ScrollView>
+        </ProtectedRoute>
     )
 }
 
