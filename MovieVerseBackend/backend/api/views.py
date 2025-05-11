@@ -97,3 +97,4 @@ def search_movie(request, query):
     movies = Movie.objects.filter(title__icontains=query)
     serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
+
