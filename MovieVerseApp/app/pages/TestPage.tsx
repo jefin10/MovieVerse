@@ -9,9 +9,11 @@ import {
 } from 'react-native';
 import api, { getCSRFToken } from '../auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useRouter } from 'expo-router';
 
 const RouteTestScreen = ({ navigation }) => {
   // Function to navigate to the first route
+  const router = useRouter();
   const navigateToFirstRoute = async() => {
     // Replace 'FirstRoute' with your actual route name
     const sessionid = await AsyncStorage.getItem('sessionid');
@@ -37,7 +39,8 @@ const RouteTestScreen = ({ navigation }) => {
   // Function to navigate to the second route
   const navigateToSecondRoute = () => {
     // Replace 'SecondRoute' with your actual route name
-    navigation.navigate('SecondRoute');
+    router.push('/pages/LogoutPage')
+    //navigation.navigate('SecondRoute');
     console.log('Navigating to Second Route');
   };
 

@@ -5,6 +5,7 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import {styles} from "@/styles//watchlist"
+import ProtectedRoute from '../auth/protectedRoute';
 const WatchList = () => {
   const [watchlistItems, setWatchlistItems] = useState([
     {
@@ -97,6 +98,7 @@ const WatchList = () => {
     </View>
   );
   return (
+    <ProtectedRoute>
     <ScreenWrapper>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -123,6 +125,7 @@ const WatchList = () => {
         />
       </SafeAreaView>
     </ScreenWrapper>
+    </ProtectedRoute>
   );
 };
 

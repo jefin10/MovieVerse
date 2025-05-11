@@ -1,9 +1,10 @@
-import { Text, View, TouchableOpacity, TextInput, ScrollView, Image } from 'react-native'
+import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar } from 'react-native'
 import React, { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { ChevronRight } from 'lucide-react-native'
 import { moodStyles } from '@/styles/mood'
 import MovieGrid from '@/components/MovieGrid'
+import ProtectedRoute from '../auth/protectedRoute';
 
 const Mood = () => {
   const router = useRouter();
@@ -25,6 +26,10 @@ const Mood = () => {
   };
 
   return (
+    <ProtectedRoute>
+
+
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
     <View style={moodStyles.container}>
       <ScrollView contentContainerStyle={moodStyles.scrollContent}>
         {moodAvailable ? (
@@ -127,6 +132,7 @@ const Mood = () => {
         )}
       </ScrollView>
     </View>
+    </ProtectedRoute>
   )
 }
 

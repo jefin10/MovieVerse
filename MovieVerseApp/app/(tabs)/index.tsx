@@ -1,22 +1,35 @@
 import { ScrollView, StyleSheet, Text, View, TextInput, Image, TouchableOpacity, StatusBar } from 'react-native'
 import React, { useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native';
 import { Search, ArrowRight, User, ChevronRight } from 'lucide-react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {styles} from '@/styles/home'
 import ScreenWrapper from '@/components/ScreenWrapper'
 import { useRouter } from 'expo-router'
+import ProtectedRoute from '../auth/protectedRoute';
+import {useAuth} from '../auth/AuthContext'
 const Index = () => {
   const [isOpenOther,setOpenOther] = useState(false);
   const [customMood, setCustomMood] = useState('')
   
+  const { authenticated } = useAuth();
   const router = useRouter()
   const goToProfile = () => {
     console.log('Navigating to ProfilePage')
     router.push('/pages/LoginPage')
   }
-
+  //   useFocusEffect(
+  //   React.useCallback(() => {
+  //     if (!authenticated) {
+  //       router.replace('/pages/LoginPage'); // or navigation.replace('Login') if using navigation
+  //     }
+  //   }, [authenticated])
+  // );
 
   return (
+    <ProtectedRoute>
+   
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
     <ScreenWrapper>
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -126,6 +139,8 @@ const Index = () => {
       </ScrollView>
     </SafeAreaView>
     </ScreenWrapper>
+       
+    </ProtectedRoute>
   )
 }
 

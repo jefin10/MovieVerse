@@ -13,12 +13,14 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { getCSRFToken,storeSessionCookie  } from '../auth/api'; // Adjust the import path as necessary
-
+import { useAuth } from '../auth/AuthContext';
+import { useRouter } from 'expo-router'; // Adjust the import path as necessary
 const LoginScreen = () => {
   const [username, setUsername] = useState('foxie@email.com');
   const [password, setPassword] = useState('password123');
   const [isLoading, setIsLoading] = useState(false);
-
+  const { setAuthenticated } = useAuth(); // Use the AuthContext to manage authentication state
+  const router = useRouter(); 
    useEffect(() => {
     // Get CSRF token when component mounts
     console.log('Fetching CSRF token...');
@@ -45,6 +47,8 @@ const LoginScreen = () => {
     await storeSessionCookie(setCookie);
 
     Alert.alert('Success', 'Logged in and session stored');
+    setAuthenticated(true);
+    router.push('/(tabs)'); 
 
   } catch (err:any) {
     console.log('Login error:', err.response?.data || err.message);
