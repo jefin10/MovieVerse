@@ -18,4 +18,3 @@ urlpatterns = [
     path('TinderMovies/', tinder_movies, name='tinder_movies'),
     path('searchMovie/<str:query>/', search_movie, name='search_movie'),
     #END OF ROUTES
-]

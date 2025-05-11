@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth.hashers import make_password
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-
 class UserProfile(models.Model):
     username = models.CharField(max_length=150, unique=True, db_index=True)
     password = models.CharField(max_length=255)  # Will be stored as a hashed password
@@ -82,3 +81,4 @@ class Director(models.Model):
     
     def __str__(self):
         return self.name
+

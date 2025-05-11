@@ -1,3 +1,4 @@
+import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password,check_password
@@ -96,3 +97,4 @@ def search_movie(request, query):
     movies = Movie.objects.filter(title__icontains=query)
     serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
+
