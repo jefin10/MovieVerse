@@ -1,4 +1,6 @@
 import json
+import os
+import requests
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password,check_password
@@ -6,6 +8,7 @@ from rest_framework.decorators import api_view
 from .models import Movie, Watchlist
 from .serializers import MovieSerializer, WatchlistSerializer
 from django.shortcuts import get_object_or_404
+from rest_framework import status
 import random
 
 @api_view(['GET'])
@@ -92,9 +95,64 @@ def tinder_movies(request):
     serializer = MovieSerializer(movies[:10], many=True)  # Return 10 random movies
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 def search_movie(request, query):
     movies = Movie.objects.filter(title__icontains=query)
     serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
 
+
+
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+TMDB_BASE_URL = "https://api.themoviedb.org/3"
+TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
+TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
+
+@api_view(['GET'])
+def fetch_movie_info(request, tmdb_id):
+    if not tmdb_id:
+        return Response({"error": "TMDB movie ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    headers = {
+        "Authorization": f"Bearer {TMDB_BEARER_TOKEN}"
+    }
+
+    try:
+        tmdb_movie_url = f"{TMDB_BASE_URL}/movie/{tmdb_id}?append_to_response=videos,images"
+        tmdb_response = requests.get(tmdb_movie_url, headers=headers)
+        tmdb_response.raise_for_status()  # Raise an exception for bad status codes
+        tmdb_data = tmdb_response.json()
+
+        # returning the JSON data from TMDB
+        return Response(tmdb_data, status=status.HTTP_200_OK)
+
+    except requests.exceptions.RequestException as e:
+        return Response({"error": f"Error communicating with TMDB: {e}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+def get_movie_poster(request, tmdb_id):
+    if not tmdb_id:
+        return Response({"error": "TMDB movie ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    headers = {
+        "Authorization": f"Bearer {TMDB_BEARER_TOKEN}"
+    }
+
+    try:
+        tmdb_movie_url = f"{TMDB_BASE_URL}/movie/{tmdb_id}"
+        tmdb_response = requests.get(tmdb_movie_url, headers=headers)
+        tmdb_response.raise_for_status()
+        tmdb_data = tmdb_response.json()
+
+        if 'poster_path' in tmdb_data and tmdb_data['poster_path']:
+            poster_url = f"{TMDB_IMAGE_BASE_URL}{tmdb_data['poster_path']}"
+            return Response({"poster_url": poster_url}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Poster not found for this movie on TMDB"}, status=status.HTTP_404_NOT_FOUND)
+
+    except requests.exceptions.RequestException as e:
+        return Response({"error": f"Error communicating with TMDB: {e}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
