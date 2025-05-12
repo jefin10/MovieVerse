@@ -16,7 +16,8 @@ class Movie(models.Model):
     title = models.CharField(max_length=255, db_index=True)
     genre = models.CharField(max_length=100)
     release_date = models.DateField()
-    tmdb_id = models.IntegerField(unique=True, null=True, blank=True)  # Added tmdb_id field
+    poster_url = models.URLField(max_length=500, null=True, blank=True)
+    movie_info = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.title

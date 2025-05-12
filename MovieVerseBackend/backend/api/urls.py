@@ -17,7 +17,7 @@ urlpatterns = [
     path('removeMoviefromWatchlist/<int:pk>/', remove_movie_from_watchlist, name='remove_from_watchlist'),
     path('TinderMovies/', tinder_movies, name='tinder_movies'),
     path('searchMovie/<str:query>/', search_movie, name='search_movie'),
-    path('fetchMovieInfo/<int:tmdb_id>/', views.fetch_movie_info, name='fetch_movie_info'),
-    path('getMoviePoster/<int:tmdb_id>/', views.get_movie_poster, name='get_movie_poster')
+    path('fetchMovieInfo/<str:query>/', views.fetch_movie_info, name='fetch_movie_info'),
+    path('getMoviePoster/<str:query>/', views.get_movie_poster, name='get_movie_poster')
     #END OF ROUTES
 ]
