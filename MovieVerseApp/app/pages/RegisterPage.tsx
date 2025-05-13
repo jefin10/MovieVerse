@@ -17,6 +17,7 @@ import api, { getCSRFToken } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useRouter } from 'expo-router';
 import debounce from 'lodash.debounce';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RegisterScreen = () => {
   const [email, setEmail] = useState('');
@@ -28,6 +29,11 @@ const RegisterScreen = () => {
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
+  
+  // Add validation states for each field
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [doPasswordsMatch, setDoPasswordsMatch] = useState(false);
 
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -40,6 +46,22 @@ const RegisterScreen = () => {
     getCSRFToken();
   }, []);
 
+  // Validate email format
+  useEffect(() => {
+    if (!email) {
+      setIsEmailValid(false);
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setIsEmailValid(emailRegex.test(email));
+  }, [email]);
+  
+  // Validate password (min 6 chars)
+  useEffect(() => {
+    setIsPasswordValid(password.length >= 6);
+    setDoPasswordsMatch(password === confirmPassword && password !== '');
+  }, [password, confirmPassword]);
+
   // Debounced username check
   const checkUsernameAvailability = debounce(async (username) => {
     if (!username.trim()) return;
@@ -47,7 +69,7 @@ const RegisterScreen = () => {
     try {
       setCheckingUsername(true);
       const response = await api.get(`api/auth/check-username/?username=${username}`);
-      setUsernameAvailable(!response.data.is_taken);
+      setUsernameAvailable(response.data.available);
     } catch (error) {
       console.log('Username check failed:', error.message);
       setUsernameAvailable(null);
@@ -65,6 +87,11 @@ const RegisterScreen = () => {
   const handleRegister = async () => {
     if (!email || !username || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!isEmailValid) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -86,9 +113,9 @@ const RegisterScreen = () => {
         email,
         username, 
         password,
-        password_confirmation: confirmPassword 
       });
       Alert.alert('Success', 'Account created successfully!');
+      await AsyncStorage.setItem('username', username);
       router.push('/pages/LoginPage');
     } catch (err) {
       console.log('Registration error:', err.response?.data || err.message);
@@ -118,6 +145,35 @@ const RegisterScreen = () => {
     color: confirmPasswordFocused || confirmPassword ? '#FFFFFF' : '#888888',
   };
 
+  // Get appropriate border style based on field state
+  const getEmailBorderStyle = () => {
+    if (emailFocused) return styles.inputContainerFocused;
+    if (email && isEmailValid) return styles.inputContainerValid;
+    if (email && !isEmailValid) return styles.inputContainerInvalid;
+    return null;
+  };
+
+  const getUsernameBorderStyle = () => {
+    if (usernameFocused) return styles.inputContainerFocused;
+    if (username && usernameAvailable === true) return styles.inputContainerValid;
+    if (username && usernameAvailable === false) return styles.inputContainerInvalid;
+    return null;
+  };
+
+  const getPasswordBorderStyle = () => {
+    if (passwordFocused) return styles.inputContainerFocused;
+    if (password && isPasswordValid) return styles.inputContainerValid;
+    if (password && !isPasswordValid) return styles.inputContainerInvalid;
+    return null;
+  };
+
+  const getConfirmPasswordBorderStyle = () => {
+    if (confirmPasswordFocused) return styles.inputContainerFocused;
+    if (confirmPassword && doPasswordsMatch) return styles.inputContainerValid;
+    if (confirmPassword && !doPasswordsMatch) return styles.inputContainerInvalid;
+    return null;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -132,7 +188,7 @@ const RegisterScreen = () => {
                 <Text style={emailLabelStyle}>Email</Text>
                 <View style={[
                   styles.inputContainer,
-                  emailFocused && styles.inputContainerFocused
+                  getEmailBorderStyle()
                 ]}>
                   <TextInput
                     style={styles.input}
@@ -146,11 +202,14 @@ const RegisterScreen = () => {
                     onBlur={() => setEmailFocused(false)}
                   />
                 </View>
+                {email && !isEmailValid && !emailFocused && (
+                  <Text style={styles.invalidMessage}>Please enter a valid email address</Text>
+                )}
 
                 <Text style={usernameLabelStyle}>Username</Text>
                 <View style={[
                   styles.inputContainer,
-                  usernameFocused && styles.inputContainerFocused
+                  getUsernameBorderStyle()
                 ]}>
                   <TextInput
                     style={styles.input}
@@ -174,7 +233,7 @@ const RegisterScreen = () => {
                 <Text style={passwordLabelStyle}>Password</Text>
                 <View style={[
                   styles.inputContainer,
-                  passwordFocused && styles.inputContainerFocused
+                  getPasswordBorderStyle()
                 ]}>
                   <TextInput
                     style={styles.input}
@@ -187,11 +246,14 @@ const RegisterScreen = () => {
                     onBlur={() => setPasswordFocused(false)}
                   />
                 </View>
+                {password && !isPasswordValid && !passwordFocused && (
+                  <Text style={styles.invalidMessage}>Password must be at least 6 characters</Text>
+                )}
 
                 <Text style={confirmPasswordLabelStyle}>Confirm Password</Text>
                 <View style={[
                   styles.inputContainer,
-                  confirmPasswordFocused && styles.inputContainerFocused
+                  getConfirmPasswordBorderStyle()
                 ]}>
                   <TextInput
                     style={styles.input}
@@ -204,6 +266,9 @@ const RegisterScreen = () => {
                     onBlur={() => setConfirmPasswordFocused(false)}
                   />
                 </View>
+                {confirmPassword && !doPasswordsMatch && !confirmPasswordFocused && (
+                  <Text style={styles.invalidMessage}>Passwords do not match</Text>
+                )}
 
                 <TouchableOpacity 
                   style={[
@@ -264,6 +329,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 40,
+    fontVariant: ['small-caps'],
+    fontFamily: 'Poppins_700Bold',
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 10,
   },
   form: {
     backgroundColor: '#000',
@@ -288,6 +358,14 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     borderWidth: 2,
   },
+  inputContainerValid: {
+    borderColor: '#00cc66', // Green color for valid input
+    borderWidth: 2,
+  },
+  inputContainerInvalid: {
+    borderColor: '#ff3333', // Red color for invalid input
+    borderWidth: 2,
+  },
   input: {
     height: 70,
     paddingHorizontal: 19,
@@ -310,7 +388,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   available: {
-    color: '#00ff00',
+    color: '#00cc66', // Match the green border color
     fontSize: 14,
     marginLeft: 20,
     marginBottom: 10,
@@ -325,6 +403,13 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     marginLeft: 20,
+    marginBottom: 10,
+  },
+  invalidMessage: {
+    color: '#ff4d4d',
+    fontSize: 14,
+    marginLeft: 20,
+    marginTop: -10,
     marginBottom: 10,
   },
 });
