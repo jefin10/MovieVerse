@@ -23,17 +23,20 @@ def get_csrf_token(request):
     print("CSRF token:", csrf_token)
     return JsonResponse({"message": "CSRF cookie set"})
 
-class RegisterUser(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        email = request.data.get('email')
-        password = request.data.get('password')
+@ensure_csrf_cookie
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def register_user(request):
+    username = request.data.get('username')
+    email = request.data.get('email')
+    password = request.data.get('password')
     
-        # Create a user using the CustomUser model
-        user = CustomUser.objects.create_user(username=username, email=email, password=password)
-        user.save()
-        
-        return Response({"message": "User created successfully!"}, status=status.HTTP_201_CREATED)
+    # Create a user using the CustomUser model
+    user = CustomUser.objects.create_user(username=username, email=email, password=password)
+    user.save()
+    
+    return Response({"message": "User created successfully!"}, status=status.HTTP_201_CREATED)
 
 
 # Login View

@@ -19,6 +19,7 @@ import api, { getCSRFToken, storeSessionCookie } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useRouter } from 'expo-router';
 
+
 const LoginScreen = () => {
   const [username, setUsername] = useState('foxie@email.com');
   const [password, setPassword] = useState('password123');
@@ -50,7 +51,7 @@ const LoginScreen = () => {
       const setCookie = res.headers['set-cookie'] || res.headers['Set-Cookie'];
       console.log('Set-Cookie:', setCookie);
       await storeSessionCookie(setCookie);
-
+      await AsyncStorage.setItem('username', username);
       Alert.alert('Success', 'Logged in and session stored');
       setAuthenticated(true);
       router.push('/(tabs)'); 
