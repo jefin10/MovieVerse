@@ -35,9 +35,11 @@ SECRET_KEY = 'django-insecure-_tma*jp=&t#ayy=a=vtv71ua555-^=^11z!$&ix+6l%qw&!m6+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.2', 'localhost', '127.0.0.1', 'your-domain.com']
+ALLOWED_HOSTS = ['*']
 
+TMDB_ACCESS="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2ZmYxYjQxOGZmNzViN2NlZDlmOWE5ODViNjMyMWEzMCIsIm5iZiI6MTc0Njk5NTM3Mi4zMTcsInN1YiI6IjY4MjEwOGFjMzQxOTRkNDBkMDRiNDJlMSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.BQeIxpy0b0tr0rZ-dwfMNcWiyxkdfjHh5CB_ilvx-7c"\
 
+TMDB_KEY="6ff1b418ff75b7ced9f9a985b6321a30"
 # Application definition
 
 INSTALLED_APPS = [
