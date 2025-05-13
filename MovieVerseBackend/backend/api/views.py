@@ -1,4 +1,6 @@
 import json
+import os
+import requests
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password,check_password
@@ -97,6 +99,7 @@ def tinder_movies(request):
     serializer = MovieSerializer(movies[:10], many=True)  # Return 10 random movies
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 def search_movie(request, query):
     movies = Movie.objects.filter(title__icontains=query)
@@ -166,3 +169,119 @@ def get_user_recommendations(request, user_id=None):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+TMDB_BASE_URL = "https://api.themoviedb.org/3"
+TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
+TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
+
+@api_view(['GET'])
+def fetch_movie_info(request, query):
+    if not query:
+        return Response({"error": "Movie name (query) is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    headers = {
+        "Authorization": f"Bearer {TMDB_BEARER_TOKEN}"
+    }
+
+    local_movie = None
+    try:
+        local_movie = Movie.objects.filter(title__iexact=query).first()
+        if local_movie and local_movie.movie_info:
+            return Response({"movie_info": local_movie.movie_info}, status=status.HTTP_200_OK)
+    except Exception as e:
+        print(f"Error checking local database: {e}")
+        pass
+
+    try:
+        tmdb_search_url = f"{TMDB_BASE_URL}/search/movie?query={query}"
+        tmdb_response = requests.get(tmdb_search_url, headers=headers)
+        tmdb_response.raise_for_status()
+        tmdb_search_data = tmdb_response.json()
+
+        if tmdb_search_data.get('results'):
+            first_result = tmdb_search_data['results'][0]
+            tmdb_id = first_result.get('id')
+
+            if tmdb_id:
+                tmdb_movie_url = f"{TMDB_BASE_URL}/movie/{tmdb_id}"
+                tmdb_movie_response = requests.get(tmdb_movie_url, headers=headers)
+                tmdb_movie_response.raise_for_status()
+                tmdb_movie_data = tmdb_movie_response.json()
+
+                overview = tmdb_movie_data.get('overview')
+                if overview:
+                    if local_movie:
+                        local_movie.movie_info = overview
+                        local_movie.save()
+                    return Response({"movie_info": overview}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"error": "Overview not found for this movie on TMDB"}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({"error": "Movie found on TMDB but no ID"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": f"Movie '{query}' not found on TMDB"}, status=status.HTTP_404_NOT_FOUND)
+
+    except requests.exceptions.RequestException as e:
+        return Response({"error": f"Error communicating with TMDB: {e}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # return Response({"error": f"Could not retrieve movie info for '{query}'"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def get_movie_poster(request, query):
+    if not query:
+        return Response({"error": "Movie name (query) is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    headers = {
+        "Authorization": f"Bearer {TMDB_BEARER_TOKEN}"
+    }
+
+    try:
+        local_movie = None
+        try:
+            local_movie = Movie.objects.get(title__iexact=query)
+            if local_movie.poster_url:
+                return Response({"poster_url": local_movie.poster_url}, status=status.HTTP_200_OK)
+        except Movie.DoesNotExist:
+            pass  # Movie not found locally
+
+        # If movie not found locally OR poster_url is missing, search TMDB
+        tmdb_search_url = f"{TMDB_BASE_URL}/search/movie?query={query}"
+        print(tmdb_search_url)
+        tmdb_response = requests.get(tmdb_search_url, headers=headers)
+        tmdb_response.raise_for_status()
+        tmdb_search_data = tmdb_response.json()
+
+        if tmdb_search_data.get('results'):
+            first_result = tmdb_search_data['results'][0]
+            tmdb_id = first_result.get('id')
+
+            if tmdb_id:
+                # Fetch movie details from TMDB to get the poster path
+                tmdb_movie_url = f"{TMDB_BASE_URL}/movie/{tmdb_id}"
+                print(tmdb_movie_url)
+                tmdb_movie_response = requests.get(tmdb_movie_url, headers=headers)
+                tmdb_movie_response.raise_for_status()
+                tmdb_movie_data = tmdb_movie_response.json()
+
+                poster_path = tmdb_movie_data.get('poster_path')
+                if poster_path:
+                    poster_url = f"{TMDB_IMAGE_BASE_URL}{poster_path}"
+                    # Update local database if movie exists
+                    if local_movie:
+                        local_movie.poster_url = poster_url
+                        local_movie.save()
+                    return Response({"poster_url": poster_url}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"error": "Poster not found for this movie on TMDB"}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({"error": "Movie found on TMDB but no ID"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": f"Movie '{query}' not found on TMDB"}, status=status.HTTP_404_NOT_FOUND)
+
+    except requests.exceptions.RequestException as e:
+        return Response({"error": f"Error communicating with TMDB: {e}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        return Response({"error he": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
