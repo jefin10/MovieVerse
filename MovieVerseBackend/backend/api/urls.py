@@ -17,4 +17,7 @@ urlpatterns = [
     path('removeMoviefromWatchlist/<int:pk>/', remove_movie_from_watchlist, name='remove_from_watchlist'),
     path('TinderMovies/', tinder_movies, name='tinder_movies'),
     path('searchMovie/<str:query>/', search_movie, name='search_movie'),
+    path('fetchMovieInfo/<str:query>/', views.fetch_movie_info, name='fetch_movie_info'),
+    path('getMoviePoster/<str:query>/', views.get_movie_poster, name='get_movie_poster')
     #END OF ROUTES
+]
