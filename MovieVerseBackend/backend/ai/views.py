@@ -25,7 +25,6 @@ movies_df = pd.read_csv(csv_path)
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
-@ensure_csrf_cookie
 def predict_genre_and_recommend(request):
     user_mood = request.data.get("mood")
 
