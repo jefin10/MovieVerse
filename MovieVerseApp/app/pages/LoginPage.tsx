@@ -11,12 +11,14 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { getCSRFToken, storeSessionCookie } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useRouter } from 'expo-router';
+
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('foxie@email.com');
@@ -34,7 +36,32 @@ const LoginScreen = () => {
   }, []);
 
   const handleLogin = async () => {
-    // Your existing login logic
+    console.log('Login button pressed');
+    if (!username || !password) {
+      Alert.alert('Error', 'Please enter both username and password');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      await getCSRFToken();
+
+      const res = await api.post('api/auth/login/', { username, password });
+      const setCookie = res.headers['set-cookie'] || res.headers['Set-Cookie'];
+      console.log('Set-Cookie:', setCookie);
+      await storeSessionCookie(setCookie);
+      await AsyncStorage.setItem('username', username);
+      Alert.alert('Success', 'Logged in and session stored');
+      setAuthenticated(true);
+      router.push('/(tabs)'); 
+
+    } catch (err) {
+      console.log('Login error:', err.response?.data || err.message);
+      Alert.alert('Login Failed', err.response?.data?.error || 'Error logging in');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Determine label colors based on input state
@@ -64,43 +91,60 @@ const LoginScreen = () => {
                   resizeMode="contain"
                 />
               </View>
-              
             </View>
             <Text style={styles.title}>Login</Text>
             <View style={styles.bottomSection}>
               <View style={styles.form}>
                 <Text style={emailLabelStyle}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your username"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  placeholderTextColor="#999"
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                />
+                <View style={[
+                  styles.inputContainer,
+                  emailFocused && styles.inputContainerFocused
+                ]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your username"
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                    placeholderTextColor="#999"
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                  />
+                </View>
                 
                 <Text style={passwordLabelStyle}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  placeholderTextColor="#999"
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                />
+                <View style={[
+                  styles.inputContainer,
+                  passwordFocused && styles.inputContainerFocused
+                ]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    placeholderTextColor="#999"
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                  />
+                </View>
                 
                 <TouchableOpacity 
-                  style={styles.button}
+                  style={[
+                    styles.button,
+                    isLoading && styles.buttonLoading
+                  ]}
                   onPress={handleLogin}
                   disabled={isLoading}
                 >
-                  <Text style={styles.buttonText}>
-                    {isLoading ? 'Logging in...' : 'Login'}
-                  </Text>
+                  {isLoading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color="#000" />
+                      <Text style={[styles.buttonText, {marginLeft: 10}]}>Logging in...</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.buttonText}>Login</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -134,6 +178,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     padding: 20,
   },
+  buttonLoading: {
+    backgroundColor: '#f0f0f0',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
   topSection: {
     flex: 1,
     justifyContent: 'center', 
@@ -149,7 +202,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
     fontVariant: ['small-caps'],
-    fontFamily:'Poppins_700Bold',
+    fontFamily: 'Poppins_700Bold',
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 10,
@@ -173,19 +226,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 6,
     marginLeft: 19,
-    
-    // Default color is set dynamically
+  },
+  inputContainer: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 40,
+    marginBottom: 15,
+    backgroundColor: '#111',
+  },
+  inputContainerFocused: {
+    borderColor: '#FFFFFF',
+    borderWidth: 2,
   },
   input: {
     height: 70,
-    borderWidth: 1,
-    borderColor: '#333', 
-    borderRadius: 40,
-    marginBottom: 15,
     paddingHorizontal: 19,
-    backgroundColor: '#111', 
     fontSize: 20,
-    color: '#fff', 
+    color: '#fff',
   },
   button: {
     backgroundColor: '#fff',

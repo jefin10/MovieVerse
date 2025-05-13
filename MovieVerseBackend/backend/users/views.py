@@ -12,9 +12,10 @@ from users.models import CustomUser
 import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
-# Registration View
+
 @ensure_csrf_cookie
 def get_csrf_token(request):
     print("CSRF token requested")
@@ -22,19 +23,20 @@ def get_csrf_token(request):
     print("CSRF token:", csrf_token)
     return JsonResponse({"message": "CSRF cookie set"})
 
-class RegisterUser(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        email = request.data.get('email')
-        password = request.data.get('password')
-        dob = request.data.get('dob') 
-        phNo=request.data.get('phNo')
-        
-        # Create a user using the CustomUser model
-        user = CustomUser.objects.create_user(username=username, email=email, password=password,dob=dob, phNo=phNo)
-        user.save()
-        
-        return Response({"message": "User created successfully!"}, status=status.HTTP_201_CREATED)
+@ensure_csrf_cookie
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def register_user(request):
+    username = request.data.get('username')
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    # Create a user using the CustomUser model
+    user = CustomUser.objects.create_user(username=username, email=email, password=password)
+    user.save()
+    
+    return Response({"message": "User created successfully!"}, status=status.HTTP_201_CREATED)
 
 
 # Login View
@@ -74,3 +76,14 @@ def logout_user(request):
 @permission_classes([IsAuthenticated])  # Ensures only authenticated users can access
 def test(request):
     return Response({"message": "This is a protected resource"})
+
+User = get_user_model()
+
+@api_view(['GET'])
+def check_username_availability(request):
+    username = request.GET.get('username')
+    if not username:
+        return JsonResponse({'error': 'Username not provided'}, status=400)
+
+    exists = User.objects.filter(username=username).exists()
+    return JsonResponse({'available': not exists})
