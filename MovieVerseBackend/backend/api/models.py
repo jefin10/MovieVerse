@@ -12,15 +12,30 @@ class UserProfile(models.Model):
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
 
+# Update your Movie model as follows
+
 class Movie(models.Model):
     title = models.CharField(max_length=255, db_index=True)
-    genre = models.CharField(max_length=100)
-    release_date = models.DateField()
+    # genre handled through Genre model
+    director = models.CharField(max_length=255, null=True, blank=True)
+    star1 = models.CharField(max_length=255, null=True, blank=True)
+    star2 = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
     poster_url = models.URLField(max_length=500, null=True, blank=True)
-    movie_info = models.TextField(null=True, blank=True)
+    release_date = models.DateField(null=True, blank=True)  # Kept from your original model
 
     def __str__(self):
         return self.title
+
+class Genre(models.Model):
+    movie = models.ForeignKey(Movie, related_name='genres', on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ('movie', 'name')
+
+    def __str__(self):
+        return f"{self.movie.title} - {self.name}"
 
 class Watchlist(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)  
@@ -66,11 +81,6 @@ class RecommendedMovies(models.Model):
     def __str__(self):
         return f"{self.user.username} recommended {self.movie.title}"
     
-class Genre(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.name
 
 class Actor(models.Model):
     name = models.CharField(max_length=255)

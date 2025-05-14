@@ -21,7 +21,7 @@ import { useRouter } from 'expo-router';
 
 
 const LoginScreen = () => {
-  const [username, setUsername] = useState('foxie@email.com');
+  const [username, setUsername] = useState('foxpotato71');
   const [password, setPassword] = useState('password123');
   const [isLoading, setIsLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);

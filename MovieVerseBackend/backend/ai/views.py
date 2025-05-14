@@ -79,3 +79,57 @@ def get_recommendations(request):
     recs = unseen.sort_values(by='sim', ascending=False).head(10)
 
     return Response(recs[['Series_Title', 'sim']].to_dict(orient='records'))
+
+from api.models import Movie
+from api.models import Genre
+@csrf_exempt
+def import_movies_from_csv(request):
+    """One-time function to import movies from CSV file"""
+    if request.method != 'POST':
+        return JsonResponse({"error": "Only POST method allowed"}, status=405)
+    
+    
+    try:
+        # Path to CSV file
+        csv_path = os.path.join(settings.BASE_DIR, 'ai', 'model', 'movies.csv')
+        
+        # Read CSV file using pandas
+        df = pd.read_csv(csv_path)
+        
+        # Counter for success and failures
+        success_count = 0
+        failure_count = 0
+        
+        # Process each row in the CSV
+        for index, row in df.iterrows():
+            try:
+                # Create Movie record
+                movie = Movie.objects.create(
+                    title=row['Series_Title'],
+                    director=row['Director'] if 'Director' in row else None,
+                    star1=row['Star1'] if 'Star1' in row else None,
+                    star2=row['Star2'] if 'Star2' in row else None,
+                    description="",  # No description in CSV
+                    poster_url=None,  # No poster URL in CSV
+                )
+                
+                # Split genres and create Genre records
+                genres = row['Genre'].split(',') if 'Genre' in row and isinstance(row['Genre'], str) else []
+                for genre_name in genres:
+                    genre_name = genre_name.strip()
+                    if genre_name:
+                        Genre.objects.create(movie=movie, name=genre_name)
+                
+                success_count += 1
+            except Exception as e:
+                print(f"Error importing movie {row.get('Series_Title', 'Unknown')}: {e}")
+                failure_count += 1
+        
+        return JsonResponse({
+            "success": True,
+            "imported_count": success_count,
+            "failed_count": failure_count
+        })
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
