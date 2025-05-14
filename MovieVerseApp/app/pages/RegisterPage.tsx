@@ -174,6 +174,10 @@ const RegisterScreen = () => {
     return null;
   };
 
+  const goToLogin = ()=>{
+
+    router.replace('/pages/LoginPage');
+  }
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -251,6 +255,7 @@ const RegisterScreen = () => {
                 )}
 
                 <Text style={confirmPasswordLabelStyle}>Confirm Password</Text>
+              
                 <View style={[
                   styles.inputContainer,
                   getConfirmPasswordBorderStyle()
@@ -269,6 +274,12 @@ const RegisterScreen = () => {
                 {confirmPassword && !doPasswordsMatch && !confirmPasswordFocused && (
                   <Text style={styles.invalidMessage}>Passwords do not match</Text>
                 )}
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>Already have an account? </Text>
+                  <TouchableOpacity onPress={goToLogin}>
+                    <Text style={styles.loginLink}>Login</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity 
                   style={[
@@ -346,6 +357,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 6,
     marginLeft: 19,
+  },
+  loginContainer: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginTop: 10,
+  marginBottom: 10,
+  },
+  loginText: {
+    color: '#fff',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  loginLink: {
+    color: '#4F7FFA',  // Light blue color
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   inputContainer: {
     borderWidth: 1,

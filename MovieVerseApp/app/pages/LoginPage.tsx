@@ -75,6 +75,10 @@ const LoginScreen = () => {
     color: passwordFocused || password ? '#FFFFFF' : '#888888',
   };
 
+  const goToRegister = () => {
+  router.push('/pages/RegisterPage');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -128,7 +132,15 @@ const LoginScreen = () => {
                     onBlur={() => setPasswordFocused(false)}
                   />
                 </View>
-                
+                <TouchableOpacity>
+                  <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+                </TouchableOpacity>
+                <View style={styles.signupContainer}>
+                  <Text style={styles.signupText}>Don't have an account? </Text>
+                  <TouchableOpacity onPress={goToRegister}>
+                    <Text style={styles.signupLink}>Sign Up</Text>
+                  </TouchableOpacity>
+                </View>
                 <TouchableOpacity 
                   style={[
                     styles.button,
@@ -192,6 +204,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     paddingTop: 120,
     marginTop: 0,
+  },
+  signupContainer: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginTop: 15,
+  marginBottom: 10,
+  },
+  signupText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  signupLink: {
+    color: '#4F7FFA',  // Light blue color
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  forgotPasswordLink: {
+    color: '#4F7FFA',  // Light blue color
+    fontSize: 16,
+    alignSelf: 'flex-end',
+    marginTop: 5,
+    marginBottom: 15,
   },
   bottomSection: {
     marginBottom: 30, 
