@@ -87,3 +87,71 @@ def check_username_availability(request):
 
     exists = User.objects.filter(username=username).exists()
     return JsonResponse({'available': not exists})
+
+from django.utils.crypto import get_random_string
+import json
+from django.core.mail import send_mail
+
+User = get_user_model()
+otp_storage = {}
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def forgot_password(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    try:
+        user = User.objects.get(username=username)
+        otp = get_random_string(6, allowed_chars='0123456789')
+        otp_storage[user.email] = otp
+        send_mail(
+            'Your OTP for Password Reset',
+            f'Your OTP is: {otp}',
+            'no-reply@example.com',
+            [user.email],
+            fail_silently=False,
+        )
+        return JsonResponse({'message': 'OTP sent to email'})
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not registered'}, status=400)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def verify_otp(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    user = User.objects.get(username=username)
+    otp = data.get('otp')
+    if otp_storage.get(user.email) == otp:
+        return JsonResponse({'message': 'OTP verified'})
+    return JsonResponse({'error': 'Invalid OTP'}, status=400)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def reset_password(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    new_password = data.get('password')
+    user = User.objects.get(username=username)
+    try:
+        user.set_password(new_password)
+        user.save()
+        del otp_storage[user.email]
+        return JsonResponse({'message': 'Password updated'})
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def get_email(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    try:
+        user = User.objects.get(username=username)
+        return JsonResponse({'email': user.email})
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=400)
