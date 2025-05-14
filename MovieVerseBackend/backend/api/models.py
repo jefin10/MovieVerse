@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.auth.hashers import make_password
 from django.core.validators import MinValueValidator, MaxValueValidator
+from users.models import CustomUser
 
 class UserProfile(models.Model):
     username = models.CharField(max_length=150, unique=True, db_index=True)
@@ -22,7 +23,7 @@ class Movie(models.Model):
     star2 = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     poster_url = models.URLField(max_length=500, null=True, blank=True)
-    release_date = models.DateField(null=True, blank=True)  # Kept from your original model
+    release_date = models.DateField(null=True, blank=True)  
 
     def __str__(self):
         return self.title
@@ -38,9 +39,9 @@ class Genre(models.Model):
         return f"{self.movie.title} - {self.name}"
 
 class Watchlist(models.Model):
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)  
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     added_on = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  # Changed from UserProfile
 
     class Meta:
         indexes = [
@@ -51,7 +52,7 @@ class Watchlist(models.Model):
         return f"{self.user.username} - {self.movie.title}"
 
 class Ratings(models.Model):
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     rating = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(5.0)])
     created_at = models.DateTimeField(auto_now_add=True)
