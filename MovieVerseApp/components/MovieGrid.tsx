@@ -3,10 +3,10 @@ import React from 'react'
 import { moodStyles } from '@/styles/mood'
 import { useRouter } from 'expo-router'
 
-const MovieGrid = ({ mood }) => {
+const MovieGrid = ({ movies = [], mood }) => {
   const router = useRouter();
 
-  // Movie data object organized by mood
+  // Movie data object organized by mood (fallback if API returns no results)
   const moviesByMood = {
     Happy: [
       { id: 1, title: 'The Intouchables', image: require('@/assets/placeholder-movie.png') },
@@ -59,19 +59,37 @@ const MovieGrid = ({ mood }) => {
     ]
   };
 
-  // Get movies for the selected mood, fall back to default if not found
-  const moviesToShow = moviesByMood[mood] || moviesByMood.default;
+  // Determine which movies to show - use API data if available, otherwise use static data
+  const moviesToShow = movies.length > 0 
+    ? movies.map(movie => ({
+        id: movie.id || movie.movie_id,
+        title: movie.title || movie.Series_Title,
+        image: require('@/assets/placeholder-movie.png'), // Keep using placeholder image
+        overview: movie.overview,
+        genre: movie.Genre || movie.genre,
+        rating: movie.IMDB_Rating || movie.rating
+      }))
+    : (moviesByMood[mood] || moviesByMood.default);
 
   const handleMoviePress = (movie) => {
-    // Navigate to movie details page
-    router.push(`/pages/MovieDetails?id=${movie.id}&title=${movie.title}`);
+    // Navigate to movie details page with all available movie data
+    router.push({
+      pathname: '/pages/MovieDetails',
+      params: { 
+        id: movie.id,
+        title: encodeURIComponent(movie.title),
+        ...(movie.overview && { overview: encodeURIComponent(movie.overview) }),
+        ...(movie.genre && { genre: encodeURIComponent(movie.genre) }),
+        ...(movie.rating && { rating: movie.rating })
+      }
+    });
   };
 
   return (
     <View style={moodStyles.movieGrid}>
-      {moviesToShow.map((movie) => (
+      {moviesToShow.map((movie, index) => (
         <TouchableOpacity 
-          key={movie.id} 
+          key={`${movie.id}-${index}`}
           style={moodStyles.movieGridItem}
           onPress={() => handleMoviePress(movie)}
         >

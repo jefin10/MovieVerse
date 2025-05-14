@@ -25,7 +25,13 @@ const Index = () => {
   //     }
   //   }, [authenticated])
   // );
-
+  const handleMoodSelection = (mood) => {
+  console.log('Selected mood:', mood);
+  router.push({
+    pathname: '/(tabs)/mood',
+    params: { selectedMood: mood }
+  });
+}
   return (
     <ProtectedRoute>
    
@@ -57,23 +63,38 @@ const Index = () => {
           <Text style={styles.moodSubtitle}>Get movies personalized for your mood</Text>
           
           <View style={styles.moodButtonsRow}>
-            <TouchableOpacity style={styles.moodButton}>
+            <TouchableOpacity 
+              style={styles.moodButton}
+              onPress={() => handleMoodSelection('Happy')}
+            >
               <Text style={styles.moodButtonText}>I'm feeling Happy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.moodButton, styles.moodButtonLight]}>
+            <TouchableOpacity 
+              style={[styles.moodButton, styles.moodButtonLight]}
+              onPress={() => handleMoodSelection('Sad')}
+            >
               <Text style={[styles.moodButtonText, styles.moodButtonTextDark]}>I'm feeling Sad</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.moodButtonsRow}>
-            <TouchableOpacity style={styles.moodButton}>
-              <Text style={styles.moodButtonText}>I'm feeling Romantic</Text>
+            <TouchableOpacity 
+              style={[styles.moodButton, styles.moodButtonLight]}
+              onPress={() => handleMoodSelection('Romantic')}
+            >
+              <Text style={styles.moodButtonTextDark}>I'm feeling Romantic</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.moodButton}>
+            <TouchableOpacity 
+              style={styles.moodButton}
+              onPress={() => handleMoodSelection('Empty')}
+            >
               <Text style={styles.moodButtonText}>I'm feeling Empty</Text>
             </TouchableOpacity>
           </View>
-          {isOpenOther ?<View style={styles.customMoodContainer}>
+
+          {/* Update the custom mood section */}
+          {isOpenOther ? (
+            <View style={styles.customMoodContainer}>
               <TextInput
                 style={styles.customMoodInput}
                 placeholder="Enter your mood..."
@@ -84,7 +105,9 @@ const Index = () => {
               <TouchableOpacity 
                 style={styles.goButton}
                 onPress={() => {
-                  console.log('Custom mood:', customMood);
+                  if (customMood.trim()) {
+                    handleMoodSelection(customMood);
+                  }
                   setOpenOther(false);
                 }}
               >
@@ -92,6 +115,7 @@ const Index = () => {
                 <ChevronRight size={16} color="#fff" />
               </TouchableOpacity>
             </View>
+          ) 
           : <View style={styles.moodButtonsRow}>
           <TouchableOpacity style={styles.moodButton} onPress={() => {
             setOpenOther(true)

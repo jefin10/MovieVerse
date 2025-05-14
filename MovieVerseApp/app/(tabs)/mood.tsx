@@ -1,137 +1,192 @@
-import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar } from 'react-native'
+import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { ChevronRight } from 'lucide-react-native'
 import { moodStyles } from '@/styles/mood'
 import MovieGrid from '@/components/MovieGrid'
-import ProtectedRoute from '../auth/protectedRoute';
+import ProtectedRoute from '../auth/protectedRoute'
+import api, { getCSRFToken } from '../auth/api';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useLocalSearchParams } from 'expo-router';
 
 const Mood = () => {
-  const router = useRouter();
-  const [moodAvailable, setMoodAvailable] = useState(false);
-  const [selectedMood, setSelectedMood] = useState('');
-  const [isOpenOther, setOpenOther] = useState(false);
-  const [customMood, setCustomMood] = useState('');
+
+  const params = useLocalSearchParams();
+  const initialMood = params.selectedMood as string;
+
+  const router = useRouter()
+  const [moodAvailable, setMoodAvailable] = useState(false)
+  const [selectedMood, setSelectedMood] = useState('')
+  const [isOpenOther, setOpenOther] = useState(false)
+  const [customMood, setCustomMood] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [recommendedMovies, setRecommendedMovies] = useState([])
+  const [error, setError] = useState('')
+  React.useEffect(() => {
+    if (initialMood) {
+      getMoodRecommendations(initialMood);
+    }
+  }, [initialMood]);
+  
+  const getMoodRecommendations = async (mood) => {
+    setLoading(true)
+    setError('')
+    const sessionid = await AsyncStorage.getItem('sessionid');
+    const csrftoken = await AsyncStorage.getItem('csrftoken');
+    
+    
+    try {
+      // Call the Django backend API endpoint for mood-based recommendations
+      const response = await api.post('http://10.0.2.2:8000/ai/recommend/', {
+        mood: mood
+      },
+      {
+        headers: {
+          'X-CSRFToken': csrftoken,
+          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
+        },
+      });
+      
+      setRecommendedMovies(response.data.recommendations || [])
+      setMoodAvailable(true)
+    } catch (err) {
+      console.error('Failed to get mood recommendations:', err)
+      setError('Failed to get recommendations. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const selectMood = (mood) => {
-    setSelectedMood(mood);
-    setMoodAvailable(true);
-  };
+    setSelectedMood(mood)
+    getMoodRecommendations(mood)
+  }
 
   const handleCustomMood = () => {
     if (customMood.trim()) {
-      selectMood(customMood);
+      selectMood(customMood)
     }
-    setOpenOther(false);
-  };
+    setOpenOther(false)
+  }
 
   return (
     <ProtectedRoute>
-
-
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-    <View style={moodStyles.container}>
-      <ScrollView contentContainerStyle={moodStyles.scrollContent}>
-        {moodAvailable ? (
-          <View style={moodStyles.moodResultContainer}>
-            <Text style={moodStyles.moodResultTitle}>You are currently in the mood for {selectedMood}</Text>
-            <Text style={moodStyles.moodResultSubtitle}>Here are our suggestions</Text>
-
-            <MovieGrid mood={selectedMood} />
-
-            <TouchableOpacity 
-              style={moodStyles.changeMoodButton}
-              onPress={() => setMoodAvailable(false)}
-            >
-              <Text style={moodStyles.changeMoodButtonText}>Change Mood</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={moodStyles.moodSelector}>
-            <Text style={moodStyles.moodTitle}>How are you feeling today?</Text>
-            <Text style={moodStyles.moodSubtitle}>Get movies personalized for your mood</Text>
-            
-            <View style={moodStyles.moodButtonsRow}>
-              <TouchableOpacity 
-                style={moodStyles.moodButton}
-                onPress={() => selectMood('Happy')}
-              >
-                <Text style={moodStyles.moodButtonText}>I'm feeling Happy</Text>
-              </TouchableOpacity>
+      <View style={moodStyles.container}>
+        <ScrollView contentContainerStyle={moodStyles.scrollContent}>
+          {loading ? (
+            <View style={moodStyles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FF5500" />
+              <Text style={moodStyles.loadingText}>Finding movies for your mood...</Text>
+            </View>
+          ) : moodAvailable ? (
+            <View style={moodStyles.moodResultContainer}>
+              <Text style={moodStyles.moodResultTitle}>You are currently in the mood for {selectedMood}</Text>
+              <Text style={moodStyles.moodResultSubtitle}>Here are our suggestions</Text>
               
-            </View>
-            <View style={moodStyles.moodButtonsRow}>
-            <TouchableOpacity 
-                style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
-                onPress={() => selectMood('Sad')}
-              >
-                <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Sad</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={moodStyles.moodButtonsRow}>
-            <TouchableOpacity 
-                style={moodStyles.moodButton}
-                onPress={() => selectMood('Romantic')}
-              >
-                <Text style={moodStyles.moodButtonText}>I'm feeling Romantic</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={moodStyles.moodButtonsRow}>
-            <TouchableOpacity 
-                style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
-                onPress={() => selectMood('Sad')}
-              >
-                <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Lonely</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={moodStyles.moodButtonsRow}>
-              
+              {error ? (
+                <Text style={moodStyles.errorText}>{error}</Text>
+              ) : (
+                <MovieGrid movies={recommendedMovies} mood={selectedMood} />
+              )}
+
               <TouchableOpacity 
-                style={moodStyles.moodButton}
-                onPress={() => selectMood('Horror')}
+                style={moodStyles.changeMoodButton}
+                onPress={() => setMoodAvailable(false)}
               >
-                <Text style={moodStyles.moodButtonText}>I'm feeling Adventurous</Text>
+                <Text style={moodStyles.changeMoodButtonText}>Change Mood</Text>
               </TouchableOpacity>
             </View>
-            <View style={moodStyles.moodButtonsRow}>
-            <TouchableOpacity 
-                style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
-                onPress={() => selectMood('Sad')}
-              >
-                <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Bad</Text>
-              </TouchableOpacity>
-            </View>
-            {isOpenOther ? (
-              <View style={moodStyles.customMoodContainer}>
-                <TextInput
-                  style={moodStyles.customMoodInput}
-                  placeholder="Enter your mood..."
-                  placeholderTextColor="#8a8a8a"
-                  value={customMood}
-                  onChangeText={setCustomMood}
-                />
-                <TouchableOpacity 
-                  style={moodStyles.goButton}
-                  onPress={handleCustomMood}
-                >
-                  <Text style={moodStyles.goButtonText}>Go</Text>
-                  <ChevronRight size={16} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ) : (
+          ) : (
+            <View style={moodStyles.moodSelector}>
+              <Text style={moodStyles.moodTitle}>How are you feeling today?</Text>
+              <Text style={moodStyles.moodSubtitle}>Get movies personalized for your mood</Text>
+              
               <View style={moodStyles.moodButtonsRow}>
                 <TouchableOpacity 
-                  style={moodStyles.moodButton} 
-                  onPress={() => setOpenOther(true)}
+                  style={moodStyles.moodButton}
+                  onPress={() => selectMood('Happy')}
                 >
-                  <Text style={moodStyles.moodButtonText}>Other/Custom</Text>
+                  <Text style={moodStyles.moodButtonText}>I'm feeling Happy</Text>
                 </TouchableOpacity>
               </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+              
+              <View style={moodStyles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
+                  onPress={() => selectMood('Sad')}
+                >
+                  <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Sad</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={moodStyles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={moodStyles.moodButton}
+                  onPress={() => selectMood('Romantic')}
+                >
+                  <Text style={moodStyles.moodButtonText}>I'm feeling Romantic</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={moodStyles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
+                  onPress={() => selectMood('Lonely')}
+                >
+                  <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Lonely</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={moodStyles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={moodStyles.moodButton}
+                  onPress={() => selectMood('Adventurous')}
+                >
+                  <Text style={moodStyles.moodButtonText}>I'm feeling Adventurous</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={moodStyles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
+                  onPress={() => selectMood('Bad')}
+                >
+                  <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Bad</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {isOpenOther ? (
+                <View style={moodStyles.customMoodContainer}>
+                  <TextInput
+                    style={moodStyles.customMoodInput}
+                    placeholder="Enter your mood..."
+                    placeholderTextColor="#8a8a8a"
+                    value={customMood}
+                    onChangeText={setCustomMood}
+                  />
+                  <TouchableOpacity 
+                    style={moodStyles.goButton}
+                    onPress={handleCustomMood}
+                  >
+                    <Text style={moodStyles.goButtonText}>Go</Text>
+                    <ChevronRight size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={moodStyles.moodButtonsRow}>
+                  <TouchableOpacity 
+                    style={moodStyles.moodButton} 
+                    onPress={() => setOpenOther(true)}
+                  >
+                    <Text style={moodStyles.moodButtonText}>Other/Custom</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </ProtectedRoute>
   )
 }
