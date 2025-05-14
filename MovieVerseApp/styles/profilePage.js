@@ -5,19 +5,20 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#000',
         paddingHorizontal: 20,
+        paddingTop: 20,
     },
     headerText: {
-        fontSize: 28,
+        fontSize: 34,
         fontWeight: 'bold',
         color: '#FFFFFF',
         marginTop: 60,
-        marginBottom: 24,
+        marginBottom: 34,
     },
     profileCard: {
         backgroundColor: '#111',
         borderRadius: 16,
         padding: 24,
-        marginBottom: 24,
+        marginBottom: 34,
         alignItems: 'center',
     },
     profileImageContainer: {
@@ -42,7 +43,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#111',
         borderRadius: 16,
         padding: 20,
-        marginBottom: 30,
+        marginBottom: 34,
     },
     sectionHeaderRow: {
         flexDirection: 'row',
@@ -50,8 +51,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
+    changePasswordButton: {
+        backgroundColor: '#fff', // Blue to match your app's color scheme
+        padding: 18,
+        borderRadius: 40,
+        height: 60,
+        alignItems: 'center',
+        marginVertical: 10,
+        marginHorizontal: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    changePasswordButtonText: {
+        color: '#000',
+        fontSize: 19,
+        fontWeight: '600',
+    },
     heading: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: '600',
         color: '#FFFFFF',
     },
@@ -61,14 +81,14 @@ const styles = StyleSheet.create({
     },
     editButtonText: {
         color: '#4F7FFA',
-        fontSize: 16,
+        fontSize: 20,
         marginLeft: 5,
     },
     formGroup: {
         marginBottom: 20,
     },
     label: {
-        fontSize: 16,
+        fontSize: 18,
         color: '#AAAAAA',
         marginBottom: 8,
     },

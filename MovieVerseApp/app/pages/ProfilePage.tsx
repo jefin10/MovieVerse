@@ -31,15 +31,7 @@ const ProfilePage = () => {
             <View style={styles.editInfoContainer}>
                 <View style={styles.sectionHeaderRow}>
                     <Text style={styles.heading}>Personal Information</Text>
-                    <TouchableOpacity 
-                        style={styles.editButton} 
-                        onPress={() => setEditing(!editing)}
-                    >
-                        <Edit2 size={18} color="#4F7FFA" />
-                        <Text style={styles.editButtonText}>
-                            {editing ? 'Cancel' : 'Edit'}
-                        </Text>
-                    </TouchableOpacity>
+                    
                 </View>
                 
                 <View style={styles.formGroup}>
@@ -71,30 +63,14 @@ const ProfilePage = () => {
                     )}
                 </View>
                 
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>Phone Number</Text>
-                    {editing ? (
-                        <TextInput
-                            style={styles.textInput}
-                            value={phone}
-                            onChangeText={setPhone}
-                            keyboardType="phone-pad"
-                            placeholderTextColor="#999"
-                        />
-                    ) : (
-                        <Text style={styles.infoText}>{phone}</Text>
-                    )}
-                </View>
                 
-                {editing && (
-                    <TouchableOpacity 
-                        style={styles.saveButton} 
-                        onPress={handleSave}
-                    >
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
-                    </TouchableOpacity>
-                )}
+             
             </View>
+
+            <TouchableOpacity style={styles.changePasswordButton}>
+                <Text style={styles.changePasswordButtonText}>Change Password</Text>
+            </TouchableOpacity>
+            
         </ScrollView>
         </ProtectedRoute>
     )

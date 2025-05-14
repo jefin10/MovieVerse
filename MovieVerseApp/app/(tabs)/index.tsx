@@ -16,7 +16,7 @@ const Index = () => {
   const router = useRouter()
   const goToProfile = () => {
     console.log('Navigating to ProfilePage')
-    router.push('/pages/RegisterPage')
+    router.push('/pages/ProfilePage')
   }
   //   useFocusEffect(
   //   React.useCallback(() => {
