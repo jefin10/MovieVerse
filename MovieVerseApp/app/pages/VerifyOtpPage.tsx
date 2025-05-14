@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import api from '../auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import styles from '@/styles/VerifyOtp';
 
 const VerifyOtpPage = () => {
   const router = useRouter();
@@ -204,117 +205,6 @@ const VerifyOtpPage = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  inner: {
-    flex: 1,
-    backgroundColor: '#000000',
-    padding: 20,
-    paddingTop: 60,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 0,
-    marginTop: '65%',
-    fontVariant: ['small-caps'],
-    fontFamily: 'Poppins_700Bold',
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
-  },
-  form: {
-    backgroundColor: '#000',
-    borderRadius: 10,
-    padding: 20,
-    color: '#fff',
-    marginBottom: 20,
-  },
-  instructions: {
-    fontSize: 16,
-    color: '#CCCCCC',
-    textAlign: 'center',
-    marginBottom: 10,
-    lineHeight: 22,
-  },
-  emailDisplay: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 25,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
-  },
-  otpInput: {
-    width: 45,
-    height: 55,
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    backgroundColor: '#111',
-  },
-  button: {
-    backgroundColor: '#fff',
-    height: 65,
-    padding: 15,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  buttonLoading: {
-    backgroundColor: '#f0f0f0',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  buttonText: {
-    color: '#000',
-    fontSize: 26,
-    fontWeight: 'bold',
-  },
-  resendContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  resendText: {
-    color: '#CCCCCC',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  resendLink: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textDecorationLine: '',
-  },
-});
+
 
 export default VerifyOtpPage;

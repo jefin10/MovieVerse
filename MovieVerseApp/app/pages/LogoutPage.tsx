@@ -34,8 +34,7 @@ const LogoutScreen = () => {
         Alert.alert('Success', 'You have been logged out.');
         setAuthenticated(false);
 
-        // Redirect using router
-        router.replace('/pages/LoginPage'); // Make sure /login exists in your app structure
+        router.replace('/pages/LoginPage'); 
 
       } catch (error) {
         console.error(error);

@@ -122,6 +122,15 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    changePasswordButtonDisabled: {
+        backgroundColor: '#335599', 
+        opacity: 0.8,
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });
 
 export default styles;
