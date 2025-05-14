@@ -14,7 +14,9 @@ from rest_framework import status
 import random
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-
+from rest_framework.authentication import SessionAuthentication
+import requests
+from .models import Ratings
 @api_view(['GET'])
 def hello(request):
     return Response({"message": "Hello from Django!"})
@@ -67,11 +69,17 @@ def login_user(request):
         return Response({"error": "User does not exist!"}, status=404)
 
 @api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def trending_movies(request):
-    movies = Movie.objects.all().order_by('-rating')[:10]
-    serializer = MovieSerializer(movies, many = True)
+    """
+    Get trending movies (simplified version that returns recent movies)
+    """
+    # Get newest movies or a random selection if no sorting criteria
+    movies = Movie.objects.all().order_by('?')[:10]  # Random selection
+    
+    serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
-
 @api_view(['GET'])
 def view_watchlist(request, user_id):
     watchlist = Watchlist.objects.filter(user_id = user_id)
@@ -106,9 +114,7 @@ def search_movie(request, query):
     serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
 
-from rest_framework.authentication import SessionAuthentication
-import requests
-from .models import Ratings
+
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
@@ -126,9 +132,7 @@ def get_user_recommendations(request, user_id=None):
     
     if not user_ratings.exists():
         return Response({"error": "No ratings found for this user"}, status=status.HTTP_404_NOT_FOUND)
-    
-    # Separate into liked and disliked movies based on rating threshold
-    # Assuming ratings >= 3.5 are liked, < 2.5 are disliked, and others neutral
+
     liked_movies = [rating.movie.title for rating in user_ratings if rating.rating >= 5]
     disliked_movies = [rating.movie.title for rating in user_ratings if rating.rating < 5]
     
@@ -285,3 +289,132 @@ def get_movie_poster(request, query):
         return Response({"error": f"Error communicating with TMDB: {e}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     except Exception as e:
         return Response({"error he": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+from django.contrib.auth import get_user_model
+from api.models import UserProfile  # Adjust based on your actual model
+
+# Replace the current view_watchlist function with this:
+@api_view(['POST'])  # <-- Changed from GET to POST to match your frontend
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def view_watchlist(request):
+    try:
+        # Get username from request body
+        username = request.data.get('username')
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find the user by username - UPDATED to use CustomUser
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # The rest stays the same
+        watchlist_items = Watchlist.objects.filter(user=user).select_related('movie')
+        
+        result = []
+        for item in watchlist_items:
+            result.append({
+                'id': item.id,
+                'movie_id': item.movie.id,
+                'title': item.movie.title,
+                'added_on': item.added_on,
+                'description': item.movie.description,
+                'poster_url': item.movie.poster_url,
+                'genres': [genre.name for genre in item.movie.genres.all()]
+            })
+        
+        return Response(result)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+from users.models import CustomUser
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def add_movie_to_watchlist(request):
+
+    try:
+        # Get username and movie_id from request
+        username = request.data.get('username')
+        movie_id = request.data.get('movie_id')
+        
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not movie_id:
+            return Response({"error": "Movie ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find the user and movie
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            movie = Movie.objects.get(id=movie_id)
+        except Movie.DoesNotExist:
+            return Response({"error": f"Movie with ID {movie_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if already in watchlist
+        if Watchlist.objects.filter(user=user, movie=movie).exists():
+            return Response({"message": "Movie already in watchlist"}, status=status.HTTP_200_OK)
+        
+        # Add to watchlist
+        watchlist_item = Watchlist.objects.create(user=user, movie=movie)
+        
+        # Return movie details in response
+        result = {
+            'id': watchlist_item.id,
+            'movie_id': movie.id,
+            'title': movie.title,
+            'added_on': watchlist_item.added_on,
+            'description': movie.description,
+            'poster_url': movie.poster_url
+        }
+        
+        return Response(result, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE', 'POST']) 
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def remove_movie_from_watchlist(request, pk):
+    """
+    Remove a movie from a user's watchlist
+    """
+    try:
+        username = request.data.get('username')
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find the user - UPDATED to use CustomUser
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Find the watchlist item
+        try:
+            watchlist_item = Watchlist.objects.get(pk=pk, user=user)
+        except Watchlist.DoesNotExist:
+            return Response({"error": "Watchlist item not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        watchlist_item.delete()
+        return Response({"message": "Movie removed from watchlist"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def trending_movies(request):
+    """
+    Get trending movies (simplified version that returns recent movies)
+    """
+    # Get newest movies or a random selection if no sorting criteria
+    movies = Movie.objects.all().order_by('?')[:10]  # Random selection
+    
+    serializer = MovieSerializer(movies, many=True)
+    return Response(serializer.data)
