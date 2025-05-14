@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle } from 'lucide-react-native'
 import Swiper from 'react-native-deck-swiper'
 import tinderMovieCard from '../components/tinderMovieCard'
 import ProtectedRoute from '../auth/protectedRoute';
+import api from '../auth/api'
 
 const tinder = () => {
   const swiperRef = useRef(null);
@@ -12,7 +13,7 @@ const tinder = () => {
   const [currentMovie, setCurrentMovie] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const movies = [
+  const [movies,setMovies] = useState([
     {
       title: 'The Dark Knight',
       description: 'The Dark Knight was the first comic book movie to win an Oscar for acting—thanks to Heath Ledger\'s Joker.',
@@ -37,7 +38,23 @@ const tinder = () => {
       ourRating: '9.2',
       genre: 'Adventure, Drama, Science Fiction'
     }
-  ];
+  ]);
+
+  const getMovies = async () => {
+    try{
+      const response = await api.get('api/TinderMovies/');
+      
+      //console.log('Movies:', response.data);
+      setMovies(response.data);
+    }
+    catch (error) {
+      console.log('Error fetching movies:', error);
+      console.error('Error fetching movies:', error);
+    }
+  }
+  useEffect(() => {
+    getMovies();
+  }, []);
 
   // Handler for when a card is swiped
   const handleSwiped = (cardIndex, direction) => {

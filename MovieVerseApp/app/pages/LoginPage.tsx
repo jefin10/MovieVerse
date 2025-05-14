@@ -79,6 +79,10 @@ const LoginScreen = () => {
   router.push('/pages/RegisterPage');
   };
 
+  const goToForgotPassword = () => {
+    router.push('/pages/ForgotPassUsername');
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -132,7 +136,7 @@ const LoginScreen = () => {
                     onBlur={() => setPasswordFocused(false)}
                   />
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={goToForgotPassword}>
                   <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
                 </TouchableOpacity>
                 <View style={styles.signupContainer}>
@@ -217,12 +221,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   signupLink: {
-    color: '#4F7FFA',  // Light blue color
+    color: '#4F7FFA',  
     fontSize: 16,
     fontWeight: 'bold',
   },
   forgotPasswordLink: {
-    color: '#4F7FFA',  // Light blue color
+    color: '#4F7FFA',  
     fontSize: 16,
     alignSelf: 'flex-end',
     marginTop: 5,

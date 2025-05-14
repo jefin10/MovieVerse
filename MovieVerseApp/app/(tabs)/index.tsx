@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View, TextInput, Image, TouchableOpacity, StatusBar } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
 import { Search, ArrowRight, User, ChevronRight } from 'lucide-react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -8,6 +8,8 @@ import ScreenWrapper from '@/components/ScreenWrapper'
 import { useRouter } from 'expo-router'
 import ProtectedRoute from '../auth/protectedRoute';
 import {useAuth} from '../auth/AuthContext'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const Index = () => {
   const [isOpenOther,setOpenOther] = useState(false);
   const [customMood, setCustomMood] = useState('')
@@ -18,6 +20,13 @@ const Index = () => {
     console.log('Navigating to ProfilePage')
     router.push('/pages/ProfilePage')
   }
+  useEffect(() => {
+    const getUser = async () => {
+      const user = await AsyncStorage.getItem('username')
+      console.log(user)
+    }
+    getUser()
+  },[])
   //   useFocusEffect(
   //   React.useCallback(() => {
   //     if (!authenticated) {
