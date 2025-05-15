@@ -26,6 +26,8 @@ def hello(request):
 def get_movies(request):
     return Response({"movies": ["Movie 1", "Movie 2", "Movie 3"]})
 
+
+
 @api_view(['POST'])
 def register_user(request):
     # Logic to register a user
