@@ -16,24 +16,26 @@ class UserProfile(models.Model):
 # Update your Movie model as follows
 
 class Genre(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
 
+
 class Movie(models.Model):
-    title = models.CharField(max_length=255, db_index=True)
-    genres = models.ManyToManyField(Genre, related_name='movies')
-    director = models.CharField(max_length=255, null=True, blank=True)
-    star1 = models.CharField(max_length=255, null=True, blank=True)
-    star2 = models.CharField(max_length=255, null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
-    poster_url = models.URLField(max_length=500, null=True, blank=True)
-    release_date = models.DateField(null=True, blank=True)
-    imdbRating = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
-    ourRating= models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
-    
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True,default="")
+    director = models.CharField(max_length=255, blank=True,default="")
+    star1 = models.CharField(max_length=255, blank=True,default="")
+    star2 = models.CharField(max_length=255, blank=True,default="")
+    poster_url = models.URLField(blank=True,default="")
+    release_date = models.DateField(null=True, blank=True,default=None)
+    imdb_rating = models.FloatField(default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
+    our_rating = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(10)])
+    genres = models.ManyToManyField(Genre)
+
     def __str__(self):
         return self.title
 
