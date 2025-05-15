@@ -15,28 +15,28 @@ class UserProfile(models.Model):
 
 # Update your Movie model as follows
 
+class Genre(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Movie(models.Model):
     title = models.CharField(max_length=255, db_index=True)
-    # genre handled through Genre model
+    genres = models.ManyToManyField(Genre, related_name='movies')
     director = models.CharField(max_length=255, null=True, blank=True)
     star1 = models.CharField(max_length=255, null=True, blank=True)
     star2 = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     poster_url = models.URLField(max_length=500, null=True, blank=True)
-    release_date = models.DateField(null=True, blank=True)  
-
+    release_date = models.DateField(null=True, blank=True)
+    imdbRating = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
+    ourRating= models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
+    
     def __str__(self):
         return self.title
 
-class Genre(models.Model):
-    movie = models.ForeignKey(Movie, related_name='genres', on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=100)
-
-    class Meta:
-        unique_together = ('movie', 'name')
-
-    def __str__(self):
-        return f"{self.movie.title} - {self.name}"
 
 class Watchlist(models.Model):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
