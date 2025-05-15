@@ -70,7 +70,7 @@ class Ratings(models.Model):
         return f"{self.user.username} rated {self.movie.title} {self.rating}/5"
 
 class RecommendedMovies(models.Model):
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)  
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE) 
     recommended_on = models.DateTimeField(auto_now_add=True)  
 
