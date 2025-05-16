@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 from .views import (
    trending_movies, view_watchlist, add_movie_to_watchlist,
-    remove_movie_from_watchlist, tinder_movies, search_movie, view_watchlist, add_movie_to_watchlist, remove_movie_from_watchlist
+    remove_movie_from_watchlist,add_temp_recommendations,get_user_recommendations, tinder_movies, search_movie, view_watchlist, add_movie_to_watchlist, remove_movie_from_watchlist
 )
 
 urlpatterns = [
@@ -20,5 +20,8 @@ urlpatterns = [
     path('watchlist/', view_watchlist, name='view_watchlist'),
     path('watchlist/add/', add_movie_to_watchlist, name='add_to_watchlist'),
     path('watchlist/remove/<int:pk>/', remove_movie_from_watchlist, name='remove_from_watchlist'),
+    path('recommendations/temp-add/', add_temp_recommendations, name='temp_add_recommendations'),
+    path('recommendations/', get_user_recommendations, name='get_user_recommendations'),  # Add this line
+
     #END OF ROUTES
 ]

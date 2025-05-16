@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password,check_password
 from rest_framework.decorators import api_view
-from .models import Movie, Watchlist
+from .models import Movie, Watchlist, Genre
 from .serializers import MovieSerializer, WatchlistSerializer
 from django.shortcuts import get_object_or_404
 import requests
@@ -16,7 +16,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import SessionAuthentication
 import requests
-from .models import Ratings
+from .models import Ratings,RecommendedMovies
 @api_view(['GET'])
 def hello(request):
     return Response({"message": "Hello from Django!"})
@@ -203,59 +203,6 @@ TMDB_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
 
-@api_view(['GET'])
-def fetch_movie_info(request, query):
-    if not query:
-        return Response({"error": "Movie name (query) is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    headers = {
-        "Authorization": f"Bearer {TMDB_BEARER_TOKEN}"
-    }
-
-    local_movie = None
-    try:
-        local_movie = Movie.objects.filter(title__iexact=query).first()
-        if local_movie and local_movie.movie_info:
-            return Response({"movie_info": local_movie.movie_info}, status=status.HTTP_200_OK)
-    except Exception as e:
-        print(f"Error checking local database: {e}")
-        pass
-
-    try:
-        tmdb_search_url = f"{TMDB_BASE_URL}/search/movie?query={query}"
-        tmdb_response = requests.get(tmdb_search_url, headers=headers)
-        tmdb_response.raise_for_status()
-        tmdb_search_data = tmdb_response.json()
-
-        if tmdb_search_data.get('results'):
-            first_result = tmdb_search_data['results'][0]
-            tmdb_id = first_result.get('id')
-
-            if tmdb_id:
-                tmdb_movie_url = f"{TMDB_BASE_URL}/movie/{tmdb_id}"
-                tmdb_movie_response = requests.get(tmdb_movie_url, headers=headers)
-                tmdb_movie_response.raise_for_status()
-                tmdb_movie_data = tmdb_movie_response.json()
-
-                overview = tmdb_movie_data.get('overview')
-                if overview:
-                    if local_movie:
-                        local_movie.movie_info = overview
-                        local_movie.save()
-                    return Response({"movie_info": overview}, status=status.HTTP_200_OK)
-                else:
-                    return Response({"error": "Overview not found for this movie on TMDB"}, status=status.HTTP_404_NOT_FOUND)
-            else:
-                return Response({"error": "Movie found on TMDB but no ID"}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            return Response({"error": f"Movie '{query}' not found on TMDB"}, status=status.HTTP_404_NOT_FOUND)
-
-    except requests.exceptions.RequestException as e:
-        return Response({"error": f"Error communicating with TMDB: {e}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # return Response({"error": f"Could not retrieve movie info for '{query}'"}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])
@@ -443,3 +390,332 @@ def trending_movies(request):
     
     serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def add_temp_recommendations(request):
+    """
+    Temporary route to add first 5 movies in the database to a user's recommendations
+    """
+    try:
+        # Get username from request
+        username = request.data.get('username')
+        
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find the user
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get first 5 movies
+        movies = Movie.objects.all()[:5]
+        
+        if not movies:
+            return Response({"error": "No movies found in database"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Add movies to recommendations
+        added_movies = []
+        for movie in movies:
+            # Check if recommendation already exists
+            rec, created = RecommendedMovies.objects.get_or_create(user=user, movie=movie)
+            if created:
+                added_movies.append({
+                    'id': movie.id,
+                    'title': movie.title,
+                    'description': movie.description,
+                    'poster_url': movie.poster_url
+                })
+            else:
+                added_movies.append({
+                    'id': movie.id,
+                    'title': movie.title,
+                    'status': 'already exists'
+                })
+        
+        return Response({
+            "message": f"Added {len(added_movies)} movies to recommendations",
+            "movies": added_movies
+        })
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_user_recommendations(request):
+    """
+    Get recommended movies for a user
+    """
+    try:
+        # Get username from request
+        username = request.data.get('username')
+        
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find the user
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get user's recommended movies
+        recommended = RecommendedMovies.objects.filter(user=user).select_related('movie').order_by('-recommended_on')
+        
+        # If no recommendations, add some temporary ones
+        if not recommended.exists():
+            movies = Movie.objects.all().order_by('?')[:5]
+            for movie in movies:
+                RecommendedMovies.objects.create(user=user, movie=movie)
+            
+            # Get the newly created recommendations
+            recommended = RecommendedMovies.objects.filter(user=user).select_related('movie')
+        
+        # Format the response
+        result = []
+        for rec in recommended:
+            movie = rec.movie
+            result.append({
+                'id': movie.id,
+                'title': movie.title,
+                'description': movie.description,
+                'poster_url': "https://image.tmdb.org/t/p/original" + movie.poster_url or '',
+                'recommended_on': rec.recommended_on,
+                'genres': [genre.name for genre in movie.genres.all()]
+            })
+        
+        return Response(result)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def fetch_movie_info(request, query):
+    """
+    Fetch detailed information about a specific movie by ID or title
+    """
+    try:
+        # Check if query is a movie ID
+        try:
+            movie_id = int(query)
+            is_id_query = True
+        except ValueError:
+            is_id_query = False
+            
+        if is_id_query:
+            # Try to get the movie from our database by ID
+            try:
+                movie = Movie.objects.get(id=movie_id)
+                
+                # Prepare response data
+                response_data = {
+                    'id': movie.id,
+                    'title': movie.title,
+                    'movie_info': movie.description,
+                    'director': movie.director,
+                    'star1': movie.star1,
+                    'star2': movie.star2,
+                    'poster_url': "https://image.tmdb.org/t/p/original/" + movie.poster_url,
+                    'release_date': movie.release_date,
+                    'imdb_rating': movie.imdb_rating,
+                    'our_rating': movie.our_rating,
+                    'genres': [genre.name for genre in movie.genres.all()]
+                }
+                
+                return Response(response_data)
+                
+            except Movie.DoesNotExist:
+                # If not in our DB, try TMDB API
+                TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+                TMDB_BASE_URL = "https://api.themoviedb.org/3"
+                TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
+                
+                headers = {
+                    "Authorization": f"Bearer {TMDB_BEARER_TOKEN}",
+                    "accept": "application/json"
+                }
+                
+                # Get movie details from TMDB
+                movie_url = f"{TMDB_BASE_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}"
+                movie_response = requests.get(movie_url, headers=headers)
+                
+                if movie_response.status_code != 200:
+                    return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+                    
+                movie_data = movie_response.json()
+                
+                # Get credits to find director and actors
+                credits_url = f"{TMDB_BASE_URL}/movie/{movie_id}/credits?api_key={TMDB_API_KEY}"
+                credits_response = requests.get(credits_url, headers=headers)
+                credits_data = credits_response.json() if credits_response.status_code == 200 else {"crew": [], "cast": []}
+                
+                # Find director
+                director = next((person["name"] for person in credits_data.get("crew", []) 
+                               if person.get("job", "").lower() == "director"), "Unknown")
+                
+                # Get top actors
+                cast = credits_data.get("cast", [])
+                star1 = cast[0]["name"] if len(cast) > 0 else "Unknown"
+                star2 = cast[1]["name"] if len(cast) > 1 else "Unknown"
+                
+                # Get poster URL
+                poster_path = movie_data.get("poster_path")
+                poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
+                
+                # Get genres
+                genres = [genre["name"] for genre in movie_data.get("genres", [])]
+                
+                # Create a new Movie object in our database
+                new_movie = Movie(
+                    id=movie_id,
+                    title=movie_data.get("title", "Unknown"),
+                    description=movie_data.get("overview", ""),
+                    director=director,
+                    star1=star1,
+                    star2=star2,
+                    poster_url=poster_url,
+                    release_date=movie_data.get("release_date"),
+                    imdb_rating=movie_data.get("vote_average", 0.0)
+                )
+                new_movie.save()
+                
+                # Add genres
+                for genre_name in genres:
+                    genre, created = Genre.objects.get_or_create(name=genre_name)
+                    new_movie.genres.add(genre)
+                
+                # Prepare response data
+                response_data = {
+                    'id': movie_id,
+                    'title': movie_data.get("title", "Unknown"),
+                    'movie_info': movie_data.get("overview", ""),
+                    'director': director,
+                    'star1': star1,
+                    'star2': star2,
+                    'poster_url': poster_url,
+                    'release_date': movie_data.get("release_date"),
+                    'imdb_rating': movie_data.get("vote_average", 0.0),
+                    'our_rating': 0,
+                    'genres': genres
+                }
+                
+                return Response(response_data)
+                
+        else:
+            # Search by title
+            # First check our database
+            movie = Movie.objects.filter(title__icontains=query).first()
+            if movie:
+                response_data = {
+                    'id': movie.id,
+                    'title': movie.title,
+                    'movie_info': movie.description,
+                    'director': movie.director,
+                    'star1': movie.star1,
+                    'star2': movie.star2,
+                    'poster_url': movie.poster_url,
+                    'release_date': movie.release_date,
+                    'imdb_rating': movie.imdb_rating,
+                    'our_rating': movie.our_rating,
+                    'genres': [genre.name for genre in movie.genres.all()]
+                }
+                
+                return Response(response_data)
+                
+            # If not found locally, search TMDB
+            TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+            TMDB_BASE_URL = "https://api.themoviedb.org/3"
+            TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
+            
+            headers = {
+                "Authorization": f"Bearer {TMDB_BEARER_TOKEN}",
+                "accept": "application/json"
+            }
+            
+            # Search for movies by title
+            search_url = f"{TMDB_BASE_URL}/search/movie?api_key={TMDB_API_KEY}&query={query}"
+            search_response = requests.get(search_url, headers=headers)
+            
+            if search_response.status_code != 200 or not search_response.json().get('results'):
+                return Response({"error": f"Movie '{query}' not found"}, status=status.HTTP_404_NOT_FOUND)
+                
+            # Get first matching movie
+            first_result = search_response.json()['results'][0]
+            movie_id = first_result['id']
+            
+            # Now get detailed info using the movie ID
+            movie_url = f"{TMDB_BASE_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}"
+            movie_response = requests.get(movie_url, headers=headers)
+            
+            if movie_response.status_code != 200:
+                return Response({"error": "Failed to get movie details"}, status=status.HTTP_404_NOT_FOUND)
+                
+            movie_data = movie_response.json()
+            
+            # Get credits to find director and actors
+            credits_url = f"{TMDB_BASE_URL}/movie/{movie_id}/credits?api_key={TMDB_API_KEY}"
+            credits_response = requests.get(credits_url, headers=headers)
+            credits_data = credits_response.json() if credits_response.status_code == 200 else {"crew": [], "cast": []}
+            
+            # Find director
+            director = next((person["name"] for person in credits_data.get("crew", []) 
+                           if person.get("job", "").lower() == "director"), "Unknown")
+            
+            # Get top actors
+            cast = credits_data.get("cast", [])
+            star1 = cast[0]["name"] if len(cast) > 0 else "Unknown"
+            star2 = cast[1]["name"] if len(cast) > 1 else "Unknown"
+            
+            # Get poster URL
+            poster_path = movie_data.get("poster_path")
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
+            
+            # Get genres
+            genres = [genre["name"] for genre in movie_data.get("genres", [])]
+            
+            # Create a new Movie in our DB
+            new_movie = Movie(
+                id=movie_id,
+                title=movie_data.get("title", "Unknown"),
+                description=movie_data.get("overview", ""),
+                director=director,
+                star1=star1,
+                star2=star2,
+                poster_url=poster_url,
+                release_date=movie_data.get("release_date"),
+                imdb_rating=movie_data.get("vote_average", 0.0)
+            )
+            new_movie.save()
+            
+            # Add genres
+            for genre_name in genres:
+                genre, created = Genre.objects.get_or_create(name=genre_name)
+                new_movie.genres.add(genre)
+            
+            # Prepare response data
+            response_data = {
+                'id': movie_id,
+                'title': movie_data.get("title", "Unknown"),
+                'movie_info': movie_data.get("overview", ""),
+                'director': director,
+                'star1': star1,
+                'star2': star2,
+                'poster_url': poster_url,
+                'release_date': movie_data.get("release_date"),
+                'imdb_rating': movie_data.get("vote_average", 0.0),
+                'our_rating': 0,
+                'genres': genres
+            }
+            
+            return Response(response_data)
+                
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
