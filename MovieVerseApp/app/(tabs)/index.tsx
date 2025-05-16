@@ -103,7 +103,6 @@ const Index = () => {
     });
   }
 
-  // Function to view movie details
   const viewMovieDetails = (movie: Movie) => {
     router.push({
       pathname: '/pages/MovieDetailPage',
