@@ -102,6 +102,29 @@ def remove_movie_from_watchlist(request, pk):
     watchlist_item.delete()
     return Response(status=204)
 
+from rest_framework import serializers
+from .models import Movie, Watchlist, Genre
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ['name']
+
+# Update the MovieSerializer to include genre names instead of IDs
+class MovieSerializer(serializers.ModelSerializer):
+    # Add a serialized field for genres that returns the names
+    genres = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Movie
+        fields = ['id', 'title', 'description', 'release_date', 'director','star1','star2', 'poster_url', 'genres', 'imdb_rating', 'our_rating']
+    
+    def get_genres(self, obj):
+        """
+        Return a list of genre names instead of genre objects or IDs
+        """
+        return [genre.name for genre in obj.genres.all()]
+
 @api_view(['GET'])
 def tinder_movies(request):
     movies = list(Movie.objects.all())

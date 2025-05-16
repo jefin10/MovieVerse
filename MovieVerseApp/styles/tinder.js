@@ -145,6 +145,47 @@ const styles = StyleSheet.create({
         marginLeft: 10,
         flex: 1,
     },
+  readMoreText: {
+    color: '#4F7FFA',  
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 3,
+    textAlign: 'right',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    marginTop: 10,
+  },
+  noMoviesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  noMoviesText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  refreshButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  refreshButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
 });
 
 module.exports = styles;
