@@ -1,66 +1,61 @@
-import { StyleSheet, Text, View, Image, ImageBackground, Dimensions, Modal, Animated } from 'react-native'
+import { StyleSheet, Text, View, Image, ImageBackground, Dimensions, Modal, Animated, ActivityIndicator, TouchableOpacity } from 'react-native'
 import React, { useRef, useState, useEffect } from 'react'
 import styles from '@/styles/tinder'
 import { ArrowRight, CheckCircle } from 'lucide-react-native'
 import Swiper from 'react-native-deck-swiper'
-import tinderMovieCard from '../components/tinderMovieCard'
 import ProtectedRoute from '../auth/protectedRoute';
 import api from '../auth/api'
+import TinderMovieCard from '../components/tinderMovieCard'
 
 const tinder = () => {
   const swiperRef = useRef(null);
   const [showPopup, setShowPopup] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const [movies,setMovies] = useState([
-    {
-      title: 'The Dark Knight',
-      description: 'The Dark Knight was the first comic book movie to win an Oscar for acting—thanks to Heath Ledger\'s Joker.',
-      image: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkC8Y2j3v4t1zX2a.jpg',
-      imRating: '8.4',
-      ourRating: '9.0',
-      genre: 'Action, Crime, Drama'
-    },
-    {
-      title: 'Inception',
-      description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.',
-      image: 'https://image.tmdb.org/t/p/w500/8hP9c4g2j3v4t1zX2a.jpg',
-      imRating: '8.8',
-      ourRating: '9.5',
-      genre: 'Action, Adventure, Science Fiction'
-    },
-    {
-      title: 'Interstellar',
-      description: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.',
-      image: 'https://image.tmdb.org/t/p/w500/8hP9c4g2j3v4t1zX2a.jpg',
-      imRating: '8.6',
-      ourRating: '9.2',
-      genre: 'Adventure, Drama, Science Fiction'
-    }
-  ]);
+  const [movies, setMovies] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const getMovies = async () => {
-    try{
+    try {
+      setIsLoading(true);
       const response = await api.get('api/TinderMovies/');
       
-      //console.log('Movies:', response.data);
       setMovies(response.data);
+      console.log('Loaded new batch of movies:', response.data.length);
     }
     catch (error) {
       console.log('Error fetching movies:', error);
       console.error('Error fetching movies:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
   useEffect(() => {
     getMovies();
   }, []);
+
+  // Add movie to watchlist
+  const addToWatchlist = async (movieId) => {
+    try {
+      await api.post('api/watchlist/add/', { movie_id: movieId });
+      console.log(`Added movie ${movieId} to watchlist`);
+    } catch (error) {
+      console.error('Error adding to watchlist:', error);
+    }
+  };
 
   // Handler for when a card is swiped
   const handleSwiped = (cardIndex, direction) => {
     console.log(`Swiped ${direction} on card at index ${cardIndex}`);
     
     if (direction === 'right') {
+      // Add to watchlist
+      const swipedMovie = movies[cardIndex];
+      if (swipedMovie && swipedMovie.id) {
+        addToWatchlist(swipedMovie.id);
+      }
+      
       // Show popup when swiped right
       setCurrentMovie(movies[cardIndex]);
       setShowPopup(true);
@@ -90,6 +85,12 @@ const tinder = () => {
     });
   };
 
+  // Handle when all cards are swiped
+  const handleAllSwiped = () => {
+    console.log('All cards swiped! Getting more movies...');
+    getMovies(); // Fetch new movies when all cards are swiped
+  };
+
   return (
     <ProtectedRoute>
     <View style={styles.container}>
@@ -102,65 +103,83 @@ const tinder = () => {
       </View>
       
       <View style={styles.swiperContainer}>
-        <Swiper
-          ref={swiperRef}
-          cards={movies}
-          renderCard={tinderMovieCard}
-          onSwiped={(cardIndex) => {console.log(`Swiped card at index ${cardIndex}`)}}
-          onSwipedRight={(cardIndex) => handleSwiped(cardIndex, 'right')}
-          onSwipedLeft={(cardIndex) => handleSwiped(cardIndex, 'left')}
-          onSwipedAll={() => {console.log('All cards swiped!')}}
-          cardIndex={0}
-          backgroundColor={'transparent'}
-          stackSize={3}
-          stackSeparation={15}
-          cardVerticalMargin={10}
-          animateCardOpacity
-          overlayLabels={{
-            left: {
-              title: 'REJECT',
-              style: {
-                label: {
-                  backgroundColor: '#FF0000',
-                  color: '#FFFFFF',
-                  fontSize: 24,
-                  borderRadius: 5,
-                  padding: 10,
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                },
-                wrapper: {
-                  flexDirection: 'column',
-                  alignItems: 'flex-end',
-                  justifyContent: 'flex-start',
-                  marginTop: 30,
-                  marginLeft: -30
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.loadingText}>Loading movies...</Text>
+          </View>
+        ) : movies && movies.length > 0 ? (
+          <Swiper
+            ref={swiperRef}
+            cards={movies}
+            renderCard={(card) => {
+              // This ensures card is defined before passing to TinderMovieCard
+              if (!card) return null;
+              return <TinderMovieCard {...card} />;
+            }}
+            onSwiped={(cardIndex) => {console.log(`Swiped card at index ${cardIndex}`)}}
+            onSwipedRight={(cardIndex) => handleSwiped(cardIndex, 'right')}
+            onSwipedLeft={(cardIndex) => handleSwiped(cardIndex, 'left')}
+            onSwipedAll={handleAllSwiped}
+            cardIndex={0}
+            backgroundColor={'transparent'}
+            stackSize={3}
+            stackSeparation={15}
+            cardVerticalMargin={10}
+            animateCardOpacity
+            overlayLabels={{
+              left: {
+                title: 'REJECT',
+                style: {
+                  label: {
+                    backgroundColor: '#FF0000',
+                    color: '#FFFFFF',
+                    fontSize: 24,
+                    borderRadius: 5,
+                    padding: 10,
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                  },
+                  wrapper: {
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    justifyContent: 'flex-start',
+                    marginTop: 30,
+                    marginLeft: -30
+                  }
+                }
+              },
+              right: {
+                title: 'Add to Watchlist',
+                style: {
+                  label: {
+                    backgroundColor: '#00FF00',
+                    color: '#FFFFFF',
+                    fontSize: 24,
+                    borderRadius: 5,
+                    padding: 10,
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                  },
+                  wrapper: {
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    justifyContent: 'flex-start',
+                    marginTop: 30,
+                    marginLeft: 30
+                  }
                 }
               }
-            },
-            right: {
-              title: 'Add to Watchlist',
-              style: {
-                label: {
-                  backgroundColor: '#00FF00',
-                  color: '#FFFFFF',
-                  fontSize: 24,
-                  borderRadius: 5,
-                  padding: 10,
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                },
-                wrapper: {
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  marginTop: 30,
-                  marginLeft: 30
-                }
-              }
-            }
-          }}
-        />
+            }}
+          />
+        ) : (
+          <View style={styles.noMoviesContainer}>
+            <Text style={styles.noMoviesText}>No movies available</Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={getMovies}>
+              <Text style={styles.refreshButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       
       {/* Popup notification */}
