@@ -6,6 +6,7 @@ import Swiper from 'react-native-deck-swiper'
 import ProtectedRoute from '../auth/protectedRoute';
 import api from '../auth/api'
 import TinderMovieCard from '../components/tinderMovieCard'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const tinder = () => {
   const swiperRef = useRef(null);
@@ -14,6 +15,7 @@ const tinder = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [username, setUsername] = useState(null);
 
   const getMovies = async () => {
     try {
@@ -32,13 +34,19 @@ const tinder = () => {
   };
 
   useEffect(() => {
+    const getUsername = async () => {
+      let user2 = await AsyncStorage.getItem('username');
+      setUsername(user2);
+    }
+    getUsername();
     getMovies();
   }, []);
 
   // Add movie to watchlist
   const addToWatchlist = async (movieId) => {
     try {
-      await api.post('api/watchlist/add/', { movie_id: movieId });
+      console.log(`Adding movie ${movieId} to watchlist for user ${username}`);
+      await api.post('api/watchlist/add/', { username,movie_id: movieId });
       console.log(`Added movie ${movieId} to watchlist`);
     } catch (error) {
       console.error('Error adding to watchlist:', error);
