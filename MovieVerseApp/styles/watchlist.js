@@ -8,6 +8,27 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  // Add to styles object in @/styles/watchlist
+dateAdded: {
+  fontSize: 12,
+  color: '#888',
+  marginTop: 4,
+},
+
+movieImage: {
+  width: 90,
+  height: 135,
+  borderRadius: 8,
+},
+
+movieImagePlaceholder: {
+  width: 90,
+  height: 135,
+  backgroundColor: '#333',
+  borderRadius: 8,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

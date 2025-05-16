@@ -22,18 +22,31 @@ const Mood = () => {
   const [loading, setLoading] = useState(false)
   const [recommendedMovies, setRecommendedMovies] = useState([])
   const [error, setError] = useState('')
+  
   React.useEffect(() => {
     if (initialMood) {
       getMoodRecommendations(initialMood);
     }
   }, [initialMood]);
   
+  // Helper function to ensure image URLs are complete
+  const ensureCompleteImageUrl = (url) => {
+    if (!url) return null;
+    
+    // If the URL already starts with http/https, it's complete
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it's a relative path or just the path component from TMDB
+    return `https://image.tmdb.org/t/p/w500${url}`;
+  };
+  
   const getMoodRecommendations = async (mood) => {
     setLoading(true)
     setError('')
     const sessionid = await AsyncStorage.getItem('sessionid');
     const csrftoken = await AsyncStorage.getItem('csrftoken');
-    
     
     try {
       // Call the Django backend API endpoint for mood-based recommendations
@@ -47,7 +60,14 @@ const Mood = () => {
         },
       });
       
-      setRecommendedMovies(response.data.recommendations || [])
+      // Process the response data to ensure complete poster URLs
+      const processedMovies = response.data.recommendations.map(movie => ({
+        ...movie,
+        poster_url: ensureCompleteImageUrl(movie.poster_url)
+      })) || [];
+      
+      setRecommendedMovies(processedMovies)
+      setSelectedMood(mood)
       setMoodAvailable(true)
     } catch (err) {
       console.error('Failed to get mood recommendations:', err)
@@ -69,6 +89,7 @@ const Mood = () => {
     setOpenOther(false)
   }
 
+  // Rest of the component remains unchanged
   return (
     <ProtectedRoute>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -97,7 +118,7 @@ const Mood = () => {
                 <Text style={moodStyles.changeMoodButtonText}>Change Mood</Text>
               </TouchableOpacity>
             </View>
-          ) : (
+          )  : (
             <View style={moodStyles.moodSelector}>
               <Text style={moodStyles.moodTitle}>How are you feeling today?</Text>
               <Text style={moodStyles.moodSubtitle}>Get movies personalized for your mood</Text>

@@ -8,8 +8,10 @@ import { styles } from "@/styles/watchlist";
 import ProtectedRoute from '../auth/protectedRoute';
 import api from '@/app/auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 const WatchList = () => {
+  const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,39 +21,55 @@ const WatchList = () => {
   }, []);
 
   const fetchWatchlist = async () => {
-    setLoading(true);
-    try {
-      const username = await AsyncStorage.getItem('username');
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      
-      if (!username) {
-        setError('User not logged in. Please log in first.');
-        setLoading(false);
-        return;
-      }
-      
-      const response = await api.post('api/watchlist/', 
-        {
-          username: username
-        },
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
-          }
-        }
-      );
-      
-      setWatchlistItems(response.data);
-    } catch (err) {
-      console.error('Failed to fetch watchlist:', err);
-      setError('Failed to load your watchlist. Please try again.');
-    } finally {
+  setLoading(true);
+  try {
+    const username = await AsyncStorage.getItem('username');
+    const sessionid = await AsyncStorage.getItem('sessionid');
+    const csrftoken = await AsyncStorage.getItem('csrftoken');
+    
+    if (!username) {
+      setError('User not logged in. Please log in first.');
       setLoading(false);
+      return;
     }
-  };
+    
+    const response = await api.post('api/watchlist/', 
+      {
+        username: username
+      },
+      {
+        headers: {
+          'X-CSRFToken': csrftoken,
+          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
+        }
+      }
+    );
+    
+    // Process the response data to ensure complete poster URLs
+    const processedData = response.data.map(item => ({
+      ...item,
+      poster_url: ensureCompleteImageUrl(item.poster_url)
+    }));
+    
+    setWatchlistItems(processedData);
+  } catch (err) {
+    console.error('Failed to fetch watchlist:', err);
+    setError('Failed to load your watchlist. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+const ensureCompleteImageUrl = (url) => {
+  if (!url) return null;
   
+  // If the URL already starts with http/https, it's complete
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // If it's a relative path or just the path component from TMDB
+  return `https://image.tmdb.org/t/p/w500${url}`;
+};
   const removeFromWatchlist = async (id) => {
     const sessionid = await AsyncStorage.getItem('sessionid');
     const csrftoken = await AsyncStorage.getItem('csrftoken');
@@ -94,47 +112,58 @@ const WatchList = () => {
 
   // Render visible item
   const renderItem = (data) => (
-    <View style={styles.rowFront}>
-      <View style={styles.movieItem}>
-        <View style={styles.movieImageContainer}>
-          {data.item.poster_url ? (
-            <Image 
-              source={{ uri: data.item.poster_url }} 
-              style={styles.movieImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.movieImagePlaceholder} />
-          )}
+  <TouchableOpacity 
+    style={styles.rowFront}
+    onPress={() => router.push({
+      pathname: '/pages/MovieDetailPage',
+      params: { movieId: data.item.movie_id }
+    })}
+  >
+    <View style={styles.movieItem}>
+      <View style={styles.movieImageContainer}>
+        {data.item.poster_url ? (
+          <Image 
+            source={{ uri: data.item.poster_url }} 
+            style={styles.movieImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.movieImagePlaceholder} />
+        )}
+      </View>
+      
+      <View style={styles.movieInfo}>
+        <View style={styles.titleRow}>
+          <Text style={styles.movieTitle}>{data.item.title}</Text>
+          <TouchableOpacity 
+            onPress={() => removeFromWatchlist(data.item.id)}
+            style={styles.deleteButton}
+          >
+            <Trash2 size={18} color="#ff5252" />
+          </TouchableOpacity>
         </View>
         
-        <View style={styles.movieInfo}>
-          <View style={styles.titleRow}>
-            <Text style={styles.movieTitle}>{data.item.title}</Text>
-            <TouchableOpacity 
-              onPress={() => removeFromWatchlist(data.item.id)}
-              style={styles.deleteButton}
-            >
-              <Trash2 size={18} color="#ff5252" />
-            </TouchableOpacity>
-          </View>
-          
-          {data.item.genres && (
-            <Text style={styles.movieDetail}>
-              Genre: {data.item.genres.join(', ')}
-            </Text>
-          )}
-          
-          {data.item.description && (
-            <Text style={styles.movieDescription} numberOfLines={2}>
-              {data.item.description}
-            </Text>
-          )}
-        </View>
+        {data.item.genres && (
+          <Text style={styles.movieDetail}>
+            Genre: {data.item.genres.join(', ')}
+          </Text>
+        )}
+        
+        {data.item.description && (
+          <Text style={styles.movieDescription} numberOfLines={2}>
+            {data.item.description}
+          </Text>
+        )}
+        
+        {data.item.added_on && (
+          <Text style={styles.dateAdded}>
+            Added: {new Date(data.item.added_on).toLocaleDateString()}
+          </Text>
+        )}
       </View>
     </View>
-  );
-
+  </TouchableOpacity>
+);
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
