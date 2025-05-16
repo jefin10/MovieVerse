@@ -5,6 +5,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const api = axios.create({
   baseURL: 'http://10.0.2.2:8000/', // Update to match your backend IP
   withCredentials: true,
+  headers:{
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
+});
+
+// Initialize the CSRF token if available
+AsyncStorage.getItem('csrftoken').then(token => {
+  if (token) {
+    api.defaults.headers.common['X-CSRFToken'] = token;
+  }
 });
 
 export const getCSRFToken = async () => {
