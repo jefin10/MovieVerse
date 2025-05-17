@@ -22,6 +22,7 @@ urlpatterns = [
     path('watchlist/remove/<int:pk>/', remove_movie_from_watchlist, name='remove_from_watchlist'),
     path('recommendations/temp-add/', add_temp_recommendations, name='temp_add_recommendations'),
     path('recommendations/', get_user_recommendations, name='get_user_recommendations'),  # Add this line
-
+    path('addRatings/', views.add_rating, name='add_ratings'),
+    path('getRatings/', views.get_rating, name='get_ratings'),
     #END OF ROUTES
 ]

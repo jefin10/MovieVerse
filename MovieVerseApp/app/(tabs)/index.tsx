@@ -253,7 +253,7 @@ const Index = () => {
                   >
                     {movie.poster_url ? (
                       <Image 
-                        source={{ uri: movie.poster_url }} 
+                        source={{ uri: `https://image.tmdb.org/t/p/original/${movie.poster_url}` }} 
                         style={styles.movieThumbnail}
                         resizeMode="cover"
                       />

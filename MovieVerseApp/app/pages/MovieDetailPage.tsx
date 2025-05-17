@@ -17,6 +17,7 @@ import { ArrowLeft, Star, Plus, Check, Heart, Share, Play } from 'lucide-react-n
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 interface MovieDetail {
   id: number;
@@ -43,6 +44,7 @@ export default function MovieDetailPage() {
   const [inWatchlist, setInWatchlist] = useState(false);
   const [watchlistItemId, setWatchlistItemId] = useState<number | null>(null);
   const scrollY = new Animated.Value(0);
+  const [userRating, setUserRating] = useState<number | null>(0);
 
   // Fetch movie details and check if in watchlist
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function MovieDetailPage() {
         setLoading(false);
       }
     };
-    
+    getUserRating();
     fetchData();
   }, [movieId]);
 
@@ -186,6 +188,17 @@ export default function MovieDetailPage() {
       console.error('Error removing from watchlist:', error);
     }
   };
+
+  const getUserRating= async()=>{
+    try{
+      const result= await api.get(`api/getRatings/${username}/${movieId}/`);
+      if(result.data){
+        setUserRating(result.data.rating);
+      }
+    }catch(error){
+      console.error('Error fetching user rating:', error);
+    }
+  }
 
   // Dynamic header opacity based on scroll position
   const headerOpacity = scrollY.interpolate({
@@ -358,16 +371,55 @@ export default function MovieDetailPage() {
           )}
           
           {/* Rate this movie section */}
-          <View style={styles.rateContainer}>
-            <Text style={styles.rateTitle}>How would you rate this movie?</Text>
-            <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity key={star} style={styles.starButton}>
-                  <Star size={32} color="#FFD700" strokeWidth={1.5} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+         <View style={styles.rateContainer}>
+  <Text style={styles.rateTitle}>How would you rate this movie?</Text>
+  <View style={styles.starsContainer}>
+    {[1, 2, 3, 4, 5].map((star) => (
+      <TouchableOpacity 
+        key={star} 
+        style={styles.starButton}
+        onPress={async () => {
+          try {
+            const sessionid = await AsyncStorage.getItem('sessionid');
+            const csrftoken = await AsyncStorage.getItem('csrftoken');
+            
+            if (!sessionid || !csrftoken) return;
+            
+            await api.post(
+              'api/add_rating/',
+              {
+                username: username,
+                movie_id: movieId,
+                rating: star
+              },
+              {
+                headers: {
+                  'X-CSRFToken': csrftoken,
+                  Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
+                },
+              }
+            );
+            
+            setUserRating(star);
+            
+          } catch (error) {
+            console.error('Error submitting rating:', error);
+          }
+        }}
+      >
+        <Star 
+          size={32} 
+          color="#FFD700" 
+          fill={star <= userRating ? "#FFD700" : "transparent"}
+          strokeWidth={1.5} 
+        />
+      </TouchableOpacity>
+    ))}
+  </View>
+  <Text style={styles.userRatingText}>
+    {userRating > 0 ? `Your rating: ${userRating}/5` : 'Not rated yet'}
+  </Text>
+</View>
           
           {/* Space at bottom */}
           <View style={{ height: 40 }} />
@@ -388,6 +440,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
   },
+  userRatingText: {
+  color: '#999',
+  fontSize: 14,
+  textAlign: 'center',
+  marginTop: 12,
+},
   header: {
     position: 'absolute',
     top: 0,
