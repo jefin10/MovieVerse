@@ -477,9 +477,8 @@ def add_rating(request):
         return Response({"error":"Rating not found"},status=404)
 
 @api_view(['GET'])
-def get_rating(request):
-    username=request.data.get('username')
-    movie_id=request.data.get('movie_id')
+def get_rating(request,username, movie_id):
+
     userid=CustomUser.objects.get(username=username).id
 
     try:
@@ -866,3 +865,22 @@ def get_movie_rating(request, movie_id):
         
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def search_movies(request,query):
+    """
+    Search for movies by title
+    """
+    #query = request.query_params.get('query')
+    
+    if not query:
+        return Response({"error": "Query parameter 'query' is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    movies = Movie.objects.filter(title__icontains=query).order_by('-release_date')
+    
+    if not movies.exists():
+        return Response({"message": "No movies found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = MovieSerializer(movies, many=True)
+    return Response(serializer.data)

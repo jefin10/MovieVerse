@@ -52,6 +52,7 @@ const WatchList = () => {
     }));
     
     setWatchlistItems(processedData);
+    //console.log('Watchlist items:', processedData);
   } catch (err) {
     console.error('Failed to fetch watchlist:', err);
     setError('Failed to load your watchlist. Please try again.');

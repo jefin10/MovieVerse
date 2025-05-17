@@ -131,6 +131,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    logoutButton: {
+        backgroundColor: '#fc0303', // Red color for logout
+        padding: 18,
+        borderRadius: 40,
+        height: 60,
+        alignItems: 'center',
+        marginTop: 15,
+        marginBottom: 30,
+        marginHorizontal: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    logoutButtonText: {
+        color: '#FFF',
+        fontSize: 19,
+        fontWeight: '600',
+    },
+    
 });
 
 export default styles;

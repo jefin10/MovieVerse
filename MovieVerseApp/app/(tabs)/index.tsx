@@ -27,6 +27,7 @@ const Index = () => {
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   
   const { authenticated } = useAuth();
   const router = useRouter();
@@ -109,6 +110,20 @@ const Index = () => {
       params: { movieId: movie.id }
     });
   };
+
+  const handleSearch = async (query: string) => {
+  if (!query.trim()) return;
+  
+    try {
+      // Navigate to search results page with the query parameter
+      router.push({
+        pathname: '/pages/SearchResults',
+        params: { query: query.trim() }
+      });
+    } catch (error) {
+      console.error('Error handling search:', error);
+    }
+  };
   
   return (
     <ProtectedRoute>
@@ -132,8 +147,15 @@ const Index = () => {
                 style={styles.searchInput}
                 placeholder="Search Movies Here"
                 placeholderTextColor="#8a8a8a"
+                value={search}
+                onChangeText={setSearch}
+                returnKeyType="search"
+                onSubmitEditing={() => handleSearch(search)}
               />
-              <TouchableOpacity style={styles.searchButton}>
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={() => handleSearch(search)}
+              >
                 <Search size={20} color="#000" />
               </TouchableOpacity>
             </View>
@@ -268,7 +290,7 @@ const Index = () => {
             </ScrollView>
 
             {/* Weekend Banner */}
-            <View style={styles.weekendBanner}>
+            <TouchableOpacity onPress={()=>{router.push('/(tabs)/tinder')}} style={styles.weekendBanner}>
               <View>
                 <Text style={styles.weekendTitle}>Free Weekend?</Text>
                 <Text style={styles.weekendSubtitle}>Populate your watchlist for bingewatching</Text>
@@ -277,12 +299,6 @@ const Index = () => {
                 <Text style={styles.swipeText}>Swipe right to find your matches</Text>
                 <ArrowRight size={20} color="#fff" />
               </View>
-            </View>
-
-            {/* Social Banner */}
-            <TouchableOpacity style={styles.socialBanner} onPress={() => {router.push('/pages/TestPage')}}>
-              <Text style={styles.socialText}>Find people who have the same taste as you....</Text>
-              <ArrowRight size={20} color="#fff" />
             </TouchableOpacity>
             <View style={styles.tabBarSpacer} />
           </ScrollView>

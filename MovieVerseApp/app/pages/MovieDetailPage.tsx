@@ -46,11 +46,12 @@ export default function MovieDetailPage() {
   const [inWatchlist, setInWatchlist] = useState(false);
   const [watchlistItemId, setWatchlistItemId] = useState<number | null>(null);
   const scrollY = new Animated.Value(0);
-  const [userRating, setUserRating] = useState<number | null>(0);
+  const [userRating, setUserRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
 
   // Fetch movie details and check if in watchlist
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -244,10 +245,11 @@ export default function MovieDetailPage() {
       }
       
       const response = await api.post(
-        `api/movie/${movie.id}/rate/`,
+        `api/addRatings/`,
         {
           username: username,
-          rating: rating
+          rating: rating,
+          movie_id: movie.id
         },
         {
           headers: {
@@ -268,7 +270,9 @@ export default function MovieDetailPage() {
 
   const getUserRating= async()=>{
     try{
-      const result= await api.get(`api/getRatings/${username}/${movieId}/`);
+      console.log(username)
+      const username2= await AsyncStorage.getItem('username');
+      const result= await api.get(`api/getRatings/${username2}/${movieId}/`);
       if(result.data){
         setUserRating(result.data.rating);
       }

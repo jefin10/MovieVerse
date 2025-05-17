@@ -1,6 +1,6 @@
 import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react'
-import { UserRound, Edit2 } from 'lucide-react-native'
+import { UserRound, Edit,ArrowLeft } from 'lucide-react-native'
 import styles from '@/styles/profilePage'
 import ProtectedRoute from '../auth/protectedRoute';
 import { useRouter } from 'expo-router'
@@ -42,7 +42,35 @@ const ProfilePage = () => {
     return (
         <ProtectedRoute>
         <ScrollView style={styles.container}>
-            <Text style={styles.headerText}>Profile</Text>
+             <View style={{
+    flexDirection: 'row',
+    alignItems: 'center',  // This ensures vertical alignment
+    paddingVertical: 20,
+    paddingHorizontal: 15,
+    marginBottom: 15
+}}>
+    <TouchableOpacity 
+        style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: 20,
+            padding: 8,
+            marginRight: 15
+        }}
+        onPress={() => router.back()}
+    >
+        <ArrowLeft size={24} color="#FFF" />
+    </TouchableOpacity>
+    
+    {/* Adjust the Text component to better align with the back button */}
+    <Text style={{
+        color: '#FFF',
+        fontSize: 24, 
+        fontWeight: 'bold',
+        marginBottom: 0,
+        paddingBottom: 0,
+        lineHeight: 28
+    }}>Profile</Text>
+</View>
             
             <View style={styles.profileCard}>
                 <View style={styles.profileImageContainer}>
@@ -52,7 +80,6 @@ const ProfilePage = () => {
                     <Text style={styles.username}>{username}</Text>
                 </View>
             </View>
-            
             <View style={styles.editInfoContainer}>
                 <View style={styles.sectionHeaderRow}>
                     <Text style={styles.heading}>Personal Information</Text>
@@ -107,6 +134,11 @@ const ProfilePage = () => {
                 ) : (
                     <Text style={styles.changePasswordButtonText}>Change Password</Text>
                 )}
+            </TouchableOpacity>
+             <TouchableOpacity 
+                style={styles.logoutButton} 
+                onPress={()=>{router.replace('/pages/LogoutPage')}}>
+                <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
             
         </ScrollView>
