@@ -23,9 +23,10 @@ urlpatterns = [
     path('recommendations/temp-add/', add_temp_recommendations, name='temp_add_recommendations'),
     path('recommendations/', get_user_recommendations, name='get_user_recommendations'),  # Add this line
     path('addRatings/', views.add_rating, name='add_ratings'),
-    path('getRatings/', views.get_rating, name='get_ratings'),
+    path('getRatings/<str:username>/<int:movie_id>/', views.get_rating, name='get_ratings'),
     path('movie/<int:movie_id>/rate/', rate_movie, name='rate_movie'),
     path('movie/<int:movie_id>/rating/', get_movie_rating, name='get_movie_rating'),
+    path('searchMovie/<str:query>/',views.search_movie, name='search_movie'),
       # Add this line
 
     #END OF ROUTES
