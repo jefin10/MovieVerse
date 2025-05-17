@@ -19,6 +19,7 @@ import { ArrowLeft, Star, Plus, Check, Play } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 interface MovieDetail {
   id: number;
@@ -45,8 +46,9 @@ export default function MovieDetailPage() {
   const [inWatchlist, setInWatchlist] = useState(false);
   const [watchlistItemId, setWatchlistItemId] = useState<number | null>(null);
   const scrollY = new Animated.Value(0);
-  const [userRating, setUserRating] = useState<number | null>(null);
+  const [userRating, setUserRating] = useState<number | null>(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
 
   // Fetch movie details and check if in watchlist
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function MovieDetailPage() {
         setLoading(false);
       }
     };
-    
+    getUserRating();
     fetchData();
   }, [movieId]);
 
@@ -264,6 +266,16 @@ export default function MovieDetailPage() {
     }
   };
 
+  const getUserRating= async()=>{
+    try{
+      const result= await api.get(`api/getRatings/${username}/${movieId}/`);
+      if(result.data){
+        setUserRating(result.data.rating);
+      }
+    }catch(error){
+      console.error('Error fetching user rating:', error);
+    }
+  }
   // Open YouTube to search for movie trailer
   const watchTrailer = () => {
     if (!movie) return;
@@ -454,6 +466,7 @@ export default function MovieDetailPage() {
           )}
           
           {/* Rate this movie section */}
+
           <View style={styles.rateContainer}>
             <Text style={styles.rateTitle}>How would you rate this movie?</Text>
             <View style={styles.starsContainer}>
@@ -478,6 +491,7 @@ export default function MovieDetailPage() {
               </Text>
             )}
           </View>
+
           
           {/* Space at bottom */}
           <View style={{ height: 40 }} />
@@ -498,6 +512,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
   },
+  userRatingText: {
+  color: '#999',
+  fontSize: 14,
+  textAlign: 'center',
+  marginTop: 12,
+},
   header: {
     position: 'absolute',
     top: 0,

@@ -17,6 +17,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import SessionAuthentication
 import requests
 from .models import Ratings,RecommendedMovies
+
 @api_view(['GET'])
 def hello(request):
     return Response({"message": "Hello from Django!"})
@@ -444,7 +445,53 @@ def add_temp_recommendations(request):
         
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+@api_view(['POST'])
+def add_rating(request):
+    username=request.data.get('username')
+    rating=float(request.data.get('rating'))
+    movie_id=request.data.get('movie_id')
+    userid=CustomUser.objects.get(username=username).id
+
+    try:
+        movie=Movie.objects.get(id=movie_id)
+        if Ratings.objects.filter(user_id=userid,movie_id=movie_id).exists():
+            rating_obj=Ratings.objects.get(user_id=userid,movie_id=movie_id)
+            oldRating=rating_obj.rating
+            rating_obj.rating=rating
+            rating_obj.save()
+            noOfRaters=Ratings.objects.filter(movie=movie).count()
+            movie.our_rating=(movie.our_rating+rating-oldRating)/(noOfRaters)
+            movie.save()
+            return Response({"message":"Rating updated successfully"},status=200)
+        else:
+            rating_obj=Ratings(user_id=userid,movie=movie,rating=rating)
+            rating_obj.save()
+            noOfRaters=Ratings.objects.filter(movie=movie).count()
+            movie.our_rating=(movie.our_rating+rating)/(noOfRaters)
+            movie.save()
+            return Response({"message":"Rating added successfully"},status=200)
+    except Movie.DoesNotExist:
+        return Response({"error":"Movie not found"},status=404)
+    except Ratings.DoesNotExist:
+        return Response({"error":"Rating not found"},status=404)
+
+@api_view(['GET'])
+def get_rating(request):
+    username=request.data.get('username')
+    movie_id=request.data.get('movie_id')
+    userid=CustomUser.objects.get(username=username).id
+
+    try:
+        if Ratings.objects.filter(user_id=userid,movie_id=movie_id).exists():
+            rating_obj=Ratings.objects.get(user_id=userid,movie_id=movie_id)
+            return Response({"rating":(rating_obj.rating)/2},status=200)
+        else:
+            return Response({"rating":0},status=200)
+    except Movie.DoesNotExist:
+        return Response({"error":"Movie not found"},status=404)
+
+
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
