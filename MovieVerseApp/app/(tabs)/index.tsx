@@ -170,13 +170,13 @@ const Index = () => {
               <View style={styles.moodButtonsRow}>
                 <TouchableOpacity 
                   style={styles.moodButton}
-                  onPress={() => handleMoodSelection('Happy')}
+                  onPress={() => handleMoodSelection('drama')}
                 >
                   <Text style={styles.moodButtonText}>I'm feeling Happy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.moodButton, styles.moodButtonLight]}
-                  onPress={() => handleMoodSelection('Sad')}
+                  onPress={() => handleMoodSelection('comedy')}
                 >
                   <Text style={[styles.moodButtonText, styles.moodButtonTextDark]}>I'm feeling Sad</Text>
                 </TouchableOpacity>
@@ -191,7 +191,7 @@ const Index = () => {
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.moodButton}
-                  onPress={() => handleMoodSelection('Empty')}
+                  onPress={() => handleMoodSelection('action')}
                 >
                   <Text style={styles.moodButtonText}>I'm feeling Empty</Text>
                 </TouchableOpacity>

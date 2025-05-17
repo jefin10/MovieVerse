@@ -17,7 +17,11 @@ export const moodStyles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 24,
   },
-  
+  movierating:{
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 4,
+  },
   // Movie grid layout
   movieGrid: {
     flexDirection: 'row',

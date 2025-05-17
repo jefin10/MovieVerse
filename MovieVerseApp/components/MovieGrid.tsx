@@ -3,7 +3,7 @@ import React from 'react'
 import { moodStyles } from '@/styles/mood'
 import { useRouter } from 'expo-router'
 
-const MovieGrid = ({ movies = [], mood }) => {
+const MovieGrid = ({ movies = [], mood  }) => {
   const router = useRouter();
 
   // Movie data object organized by mood (fallback if API returns no results)
@@ -59,29 +59,48 @@ const MovieGrid = ({ movies = [], mood }) => {
     ]
   };
 
+const ensureSixMovies = (movieList) => {
+  if (movieList.length === 0) return [];
+  
+  // If we have less than 6, duplicate some movies
+  if (movieList.length < 6) {
+    const extraNeeded = 6 - movieList.length;
+    const extraMovies = [...Array(extraNeeded)].map((_, i) => 
+      movieList[i % movieList.length]
+    );
+    return [...movieList, ...extraMovies];
+  }
+  
+  // If we have more than 6, take 6 random movies
+  if (movieList.length > 6) {
+    const shuffled = [...movieList].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 6);
+  }
+  
+  // Exactly 6 movies
+  return movieList;
+};
   // Determine which movies to show - use API data if available, otherwise use static data
-  const moviesToShow = movies.length > 0 
+  const processMovies = movies.length > 0 
     ? movies.map(movie => ({
         id: movie.id || movie.movie_id,
         title: movie.title || movie.Series_Title,
-        image: require('@/assets/placeholder-movie.png'), // Keep using placeholder image
-        overview: movie.overview,
-        genre: movie.Genre || movie.genre,
-        rating: movie.IMDB_Rating || movie.rating
+        poster_url: movie.poster_url,
+        description: movie.description || movie.overview,
+        imdb_rating: movie.imdb_rating || movie.rating,
+        director: movie.director,
+        genres: movie.genres || (movie.genre ? [movie.genre] : [])
       }))
     : (moviesByMood[mood] || moviesByMood.default);
+  
+  // Ensure exactly 6 movies
+  const moviesToShow = ensureSixMovies(processMovies);
 
   const handleMoviePress = (movie) => {
-    // Navigate to movie details page with all available movie data
+    // Navigate to movie details page with the movie ID
     router.push({
-      pathname: '/pages/MovieDetails',
-      params: { 
-        id: movie.id,
-        title: encodeURIComponent(movie.title),
-        ...(movie.overview && { overview: encodeURIComponent(movie.overview) }),
-        ...(movie.genre && { genre: encodeURIComponent(movie.genre) }),
-        ...(movie.rating && { rating: movie.rating })
-      }
+      pathname: '/pages/MovieDetailPage',
+      params: { movieId: movie.id }
     });
   };
 
@@ -94,17 +113,27 @@ const MovieGrid = ({ movies = [], mood }) => {
           onPress={() => handleMoviePress(movie)}
         >
           <View style={moodStyles.movieThumbnail}>
-            <Image 
-              source={movie.image} 
-              style={moodStyles.movieImage}
-              resizeMode="cover"
-            />
+            {movie.poster_url ? (
+              <Image 
+                source={{ uri: movie.poster_url.startsWith('http') ? 
+                  movie.poster_url : 
+                  `https://image.tmdb.org/t/p/w500${movie.poster_url}` }} 
+                style={moodStyles.movieImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Image 
+                source={require('@/assets/placeholder-movie.png')} 
+                style={moodStyles.movieImage}
+                resizeMode="cover"
+              />
+            )}
           </View>
-          <Text style={moodStyles.movieTitle} numberOfLines={2}>{movie.title}</Text>
+          <Text style={moodStyles.movieTitle}>{movie.title}</Text>
         </TouchableOpacity>
       ))}
     </View>
   )
 }
 
-export default MovieGrid
+export default MovieGrid;
