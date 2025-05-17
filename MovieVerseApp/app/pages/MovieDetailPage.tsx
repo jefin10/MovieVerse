@@ -10,10 +10,12 @@ import {
   Dimensions,
   ActivityIndicator, 
   Animated,
-  ImageBackground
+  ImageBackground,
+  Linking,
+  Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { ArrowLeft, Star, Plus, Check, Heart, Share, Play } from 'lucide-react-native';
+import { ArrowLeft, Star, Plus, Check, Play } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
@@ -45,6 +47,8 @@ export default function MovieDetailPage() {
   const [watchlistItemId, setWatchlistItemId] = useState<number | null>(null);
   const scrollY = new Animated.Value(0);
   const [userRating, setUserRating] = useState<number | null>(0);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
 
   // Fetch movie details and check if in watchlist
   useEffect(() => {
@@ -76,10 +80,12 @@ export default function MovieDetailPage() {
           // Check if movie is in user's watchlist
           if (storedUsername) {
             checkWatchlist(Number(movieId), storedUsername);
+            checkUserRating(Number(movieId), storedUsername);
           }
         }
       } catch (error) {
         console.error('Error fetching movie details:', error);
+        Alert.alert('Error', 'Failed to load movie details. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -124,6 +130,37 @@ export default function MovieDetailPage() {
     }
   };
 
+  // Check if user has already rated this movie
+  const checkUserRating = async (movieId: number, username: string) => {
+    try {
+      const sessionid = await AsyncStorage.getItem('sessionid');
+      const csrftoken = await AsyncStorage.getItem('csrftoken');
+      
+      if (!sessionid || !csrftoken) {
+        console.warn('Missing authentication tokens');
+        return;
+      }
+      
+      const response = await api.get(
+        `api/movie/${movieId}/rating/`,
+        {
+          headers: {
+            'X-CSRFToken': csrftoken,
+            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
+          },
+          params: { username }
+        }
+      );
+      
+      if (response.data && response.data.rating) {
+        setUserRating(response.data.rating);
+        setRatingSubmitted(true);
+      }
+    } catch (error) {
+      console.log('Error checking user rating:', error);
+    }
+  };
+
   // Add movie to watchlist
   const addToWatchlist = async () => {
     if (!movie || !username) return;
@@ -133,7 +170,7 @@ export default function MovieDetailPage() {
       const csrftoken = await AsyncStorage.getItem('csrftoken');
       
       if (!sessionid || !csrftoken) {
-        console.warn('Missing authentication tokens');
+        Alert.alert('Error', 'Authentication required. Please login again.');
         return;
       }
       
@@ -153,8 +190,10 @@ export default function MovieDetailPage() {
       
       setInWatchlist(true);
       setWatchlistItemId(response.data.id);
+      Alert.alert('Success', 'Added to watchlist');
     } catch (error) {
       console.error('Error adding to watchlist:', error);
+      Alert.alert('Error', 'Failed to add to watchlist. Please try again.');
     }
   };
 
@@ -167,7 +206,7 @@ export default function MovieDetailPage() {
       const csrftoken = await AsyncStorage.getItem('csrftoken');
       
       if (!sessionid || !csrftoken) {
-        console.warn('Missing authentication tokens');
+        Alert.alert('Error', 'Authentication required. Please login again.');
         return;
       }
       
@@ -184,8 +223,46 @@ export default function MovieDetailPage() {
       
       setInWatchlist(false);
       setWatchlistItemId(null);
+      Alert.alert('Success', 'Removed from watchlist');
     } catch (error) {
       console.error('Error removing from watchlist:', error);
+      Alert.alert('Error', 'Failed to remove from watchlist. Please try again.');
+    }
+  };
+
+  // Rate movie
+  const rateMovie = async (rating: number) => {
+    if (!movie || !username) return;
+    
+    try {
+      const sessionid = await AsyncStorage.getItem('sessionid');
+      const csrftoken = await AsyncStorage.getItem('csrftoken');
+      
+      if (!sessionid || !csrftoken) {
+        Alert.alert('Error', 'Authentication required. Please login again.');
+        return;
+      }
+      
+      const response = await api.post(
+        `api/movie/${movie.id}/rate/`,
+        {
+          username: username,
+          rating: rating
+        },
+        {
+          headers: {
+            'X-CSRFToken': csrftoken,
+            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
+          },
+        }
+      );
+      
+      setUserRating(rating);
+      setRatingSubmitted(true);
+      Alert.alert('Thank You!', 'Your rating has been submitted.');
+    } catch (error) {
+      console.error('Error rating movie:', error);
+      Alert.alert('Error', 'Failed to submit rating. Please try again.');
     }
   };
 
@@ -199,6 +276,26 @@ export default function MovieDetailPage() {
       console.error('Error fetching user rating:', error);
     }
   }
+  // Open YouTube to search for movie trailer
+  const watchTrailer = () => {
+    if (!movie) return;
+    
+    const searchQuery = encodeURIComponent(`${movie.title} trailer`);
+    const youtubeUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
+    
+    Linking.canOpenURL(youtubeUrl)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(youtubeUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open YouTube');
+        }
+      })
+      .catch((error) => {
+        console.error('Error opening YouTube:', error);
+        Alert.alert('Error', 'Failed to open YouTube');
+      });
+  };
 
   // Dynamic header opacity based on scroll position
   const headerOpacity = scrollY.interpolate({
@@ -214,7 +311,7 @@ export default function MovieDetailPage() {
     extrapolate: 'clamp',
   });
 
-  // FIX: Correctly configure onScroll handler for Animated ScrollView
+  // Configure onScroll handler for Animated ScrollView
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { useNativeDriver: true }
@@ -309,7 +406,7 @@ export default function MovieDetailPage() {
             </View>
           )}
           
-          {/* Action Buttons */}
+          {/* Action Buttons - Removed Share button */}
           <View style={styles.actionContainer}>
             <TouchableOpacity 
               style={styles.actionButton}
@@ -325,14 +422,12 @@ export default function MovieDetailPage() {
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={watchTrailer}
+            >
               <Play color="#fff" size={20} fill="#fff" />
               <Text style={styles.actionText}>Watch Trailer</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <Share color="#fff" size={20} />
-              <Text style={styles.actionText}>Share</Text>
             </TouchableOpacity>
           </View>
           
@@ -371,55 +466,32 @@ export default function MovieDetailPage() {
           )}
           
           {/* Rate this movie section */}
-         <View style={styles.rateContainer}>
-  <Text style={styles.rateTitle}>How would you rate this movie?</Text>
-  <View style={styles.starsContainer}>
-    {[1, 2, 3, 4, 5].map((star) => (
-      <TouchableOpacity 
-        key={star} 
-        style={styles.starButton}
-        onPress={async () => {
-          try {
-            const sessionid = await AsyncStorage.getItem('sessionid');
-            const csrftoken = await AsyncStorage.getItem('csrftoken');
-            
-            if (!sessionid || !csrftoken) return;
-            
-            await api.post(
-              'api/add_rating/',
-              {
-                username: username,
-                movie_id: movieId,
-                rating: star
-              },
-              {
-                headers: {
-                  'X-CSRFToken': csrftoken,
-                  Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-                },
-              }
-            );
-            
-            setUserRating(star);
-            
-          } catch (error) {
-            console.error('Error submitting rating:', error);
-          }
-        }}
-      >
-        <Star 
-          size={32} 
-          color="#FFD700" 
-          fill={star <= userRating ? "#FFD700" : "transparent"}
-          strokeWidth={1.5} 
-        />
-      </TouchableOpacity>
-    ))}
-  </View>
-  <Text style={styles.userRatingText}>
-    {userRating > 0 ? `Your rating: ${userRating}/5` : 'Not rated yet'}
-  </Text>
-</View>
+
+          <View style={styles.rateContainer}>
+            <Text style={styles.rateTitle}>How would you rate this movie?</Text>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity 
+                  key={star} 
+                  style={styles.starButton}
+                  onPress={() => rateMovie(star)}
+                >
+                  <Star 
+                    size={32} 
+                    color="#FFD700" 
+                    fill={userRating && star <= userRating ? "#FFD700" : "transparent"} 
+                    strokeWidth={1.5} 
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            {ratingSubmitted && (
+              <Text style={styles.ratingSubmitted}>
+                Thanks for rating!
+              </Text>
+            )}
+          </View>
+
           
           {/* Space at bottom */}
           <View style={{ height: 40 }} />
@@ -568,7 +640,7 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around', // Modified to fit two buttons
     marginBottom: 24,
   },
   actionButton: {
@@ -630,4 +702,10 @@ const styles = StyleSheet.create({
   starButton: {
     marginHorizontal: 8,
   },
+  ratingSubmitted: {
+    color: '#4CAF50',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 12,
+  }
 });

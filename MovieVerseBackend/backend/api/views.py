@@ -766,3 +766,103 @@ def fetch_movie_info(request, query):
                 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+# Add these two new views to your views.py file
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def rate_movie(request, movie_id):
+    """
+    Rate a movie (add or update rating)
+    """
+    try:
+        username = request.data.get('username')
+        rating_value = request.data.get('rating')
+        
+        if not username or rating_value is None:
+            return Response({"error": "Username and rating are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            rating_value = float(rating_value)
+            if rating_value < 0 or rating_value > 5:
+                return Response({"error": "Rating must be between 0 and 5"}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({"error": "Rating must be a number"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            movie = Movie.objects.get(id=movie_id)
+        except Movie.DoesNotExist:
+            return Response({"error": f"Movie with ID {movie_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if user already rated this movie
+        rating, created = Ratings.objects.get_or_create(
+            user=user,
+            movie=movie,
+            defaults={'rating': rating_value}
+        )
+        
+        if not created:
+            rating.rating = rating_value
+            rating.save()
+        
+        # Update movie's overall rating
+        all_ratings = Ratings.objects.filter(movie=movie)
+        if all_ratings.exists():
+            avg_rating = sum(r.rating for r in all_ratings) / all_ratings.count()
+            movie.our_rating = round(avg_rating, 1)
+            movie.save()
+        
+        return Response({
+            "id": rating.id,
+            "movie_id": movie.id,
+            "rating": rating.rating,
+            "movie_title": movie.title,
+            "created": created
+        })
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_movie_rating(request, movie_id):
+    """
+    Get a user's rating for a specific movie
+    """
+    try:
+        username = request.query_params.get('username')
+        
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            movie = Movie.objects.get(id=movie_id)
+        except Movie.DoesNotExist:
+            return Response({"error": f"Movie with ID {movie_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if user rated this movie
+        try:
+            rating = Ratings.objects.get(user=user, movie=movie)
+            return Response({
+                "id": rating.id,
+                "movie_id": movie.id,
+                "rating": rating.rating,
+                "created_at": rating.created_at
+            })
+        except Ratings.DoesNotExist:
+            return Response({"message": "No rating found for this movie"}, status=status.HTTP_404_NOT_FOUND)
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
