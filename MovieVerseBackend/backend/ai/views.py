@@ -11,16 +11,16 @@ from sklearn.metrics.pairwise import cosine_similarity
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import SessionAuthentication
-from django.views.decorators.csrf import ensure_csrf_cookie
 
 # Load model and vectorizer once
-model_path = os.path.join(settings.BASE_DIR, 'ai', 'model', 'mood_genre_model.pkl')
-vectorizer_path = os.path.join(settings.BASE_DIR, 'ai', 'model', 'vectorizer.pkl')
-csv_path = os.path.join(settings.BASE_DIR, 'ai', 'model', 'movies.csv')
+MODEL_DIR = os.path.join(settings.BASE_DIR, 'ai', 'model')
+model_path = os.path.join(MODEL_DIR, 'mood_genre_model.pkl')
+vectorizer_path = os.path.join(MODEL_DIR, 'vectorizer.pkl')
+movies_path = os.path.join(MODEL_DIR, 'cleaned_movies.csv')
 
 model = joblib.load(model_path)
 vectorizer = joblib.load(vectorizer_path)
-movies_df = pd.read_csv(csv_path)
+movies_df = pd.read_csv(movies_path)
 
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
@@ -30,14 +30,59 @@ def predict_genre_and_recommend(request):
 
     if not user_mood:
         return JsonResponse({"error": "Mood is required"}, status=400)
+        
+    # Add randomness with time-based seed
+    import random
+    import time
+    random.seed(int(time.time()))
 
     mood_input = vectorizer.transform([user_mood])
     predicted_genre = model.predict(mood_input)[0]
 
-    matched = movies_df[movies_df['Genre'].str.contains(predicted_genre, case=False, na=False)]
+    # First try to find movies matching the predicted genre
+    matching_description = movies_df[movies_df['description'].str.contains(predicted_genre, case=False, na=False)]
+    
+    # If we don't have at least 50 matches, include more movies
+    if len(matching_description) < 50:
+        # Sample random movies to fill the gap
+        remaining_needed = 50 - len(matching_description)
+        non_matching = movies_df[~movies_df.index.isin(matching_description.index)]
+        
+        if len(non_matching) >= remaining_needed:
+            # Randomly sample from non-matching movies
+            additional = non_matching.sample(n=remaining_needed)
+            matched = pd.concat([matching_description, additional])
+        else:
+            # If we still don't have enough, just use what we have
+            matched = pd.concat([matching_description, non_matching])
+    else:
+        # If we have enough matches, randomly sample from top rated movies
+        top_matches = matching_description.nlargest(min(100, len(matching_description)), 'imdb_rating')
+        matched = top_matches.sample(min(50, len(top_matches)))
+
+    # Get all available movies (up to 50)
+    final_count = min(50, len(matched))
+    matched = matched.head(final_count)
+    
     if not matched.empty:
-        recommendations = matched.sample(n=5)[['Series_Title', 'Genre', 'IMDB_Rating']]
-        movies = recommendations.to_dict(orient='records')
+        # Include all relevant fields, especially poster_url
+        recommendations = matched[['id', 'title', 'director', 'imdb_rating', 'poster_url', 'description']].head(final_count)
+        
+        # Ensure poster URLs are complete
+        movies = []
+        for _, movie in recommendations.iterrows():
+            poster_url = movie['poster_url']
+            if poster_url and not (str(poster_url).startswith('http://') or str(poster_url).startswith('https://')):
+                poster_url = f"https://image.tmdb.org/t/p/w500{poster_url}"
+                
+            movies.append({
+                'id': int(movie['id']),
+                'title': movie['title'],
+                'director': movie['director'],
+                'imdb_rating': float(movie['imdb_rating']) if pd.notna(movie['imdb_rating']) else 0,
+                'poster_url': poster_url,
+                'description': movie['description']
+            })
     else:
         movies = []
 
@@ -45,9 +90,7 @@ def predict_genre_and_recommend(request):
         "genre": predicted_genre,
         "recommendations": movies
     })
-
-
-MODEL_DIR = os.path.join(settings.BASE_DIR, 'ai', 'model')
+# Load movie features for recommendation system
 X = joblib.load(os.path.join(MODEL_DIR, 'features.pkl'))
 df = pd.read_csv(os.path.join(MODEL_DIR, 'cleaned_movies.csv'))
 
@@ -62,23 +105,38 @@ def get_recommendations(request):
     if not isinstance(liked, list) or not liked:
         return Response({"error": "Liked list must be a non-empty list"}, status=400)
 
-    liked_df = X[df['Series_Title'].isin(liked)]
-    disliked_df = X[df['Series_Title'].isin(disliked)]
+    # Filter features for liked and disliked movies
+    liked_df = X[df['title'].isin(liked)]
+    disliked_df = X[df['title'].isin(disliked)]
 
     if liked_df.empty:
         return Response({"error": "None of the liked movies were found in the dataset"}, status=400)
 
+    # Create user profile
     profile = liked_df.mean()
     if not disliked_df.empty:
         profile -= disliked_df.mean()
 
+    # Calculate similarity
     sim = cosine_similarity(X, profile.values.reshape(1, -1)).flatten()
     df['sim'] = sim
 
-    unseen = df[~df['Series_Title'].isin(liked + disliked)]
+    # Filter out movies user has already rated
+    unseen = df[~df['title'].isin(liked + disliked)]
     recs = unseen.sort_values(by='sim', ascending=False).head(10)
 
-    return Response(recs[['Series_Title', 'sim']].to_dict(orient='records'))
+    # Return recommendations with similarity scores
+    recommendations = []
+    for _, movie in recs.iterrows():
+        recommendations.append({
+            'title': movie['title'],
+            'similarity': float(movie['sim']),
+            'poster_url': movie.get('poster_url', ''),
+            'description': movie.get('description', ''),
+            'imdb_rating': movie.get('imdb_rating', 0)
+        })
+
+    return Response(recommendations)
 
 from api.models import Movie
 from api.models import Genre
@@ -88,10 +146,9 @@ def import_movies_from_csv(request):
     if request.method != 'POST':
         return JsonResponse({"error": "Only POST method allowed"}, status=405)
     
-    
     try:
         # Path to CSV file
-        csv_path = os.path.join(settings.BASE_DIR, 'ai', 'model', 'movies.csv')
+        csv_path = os.path.join(settings.BASE_DIR, 'ai', 'model', 'api_movie.csv')
         
         # Read CSV file using pandas
         df = pd.read_csv(csv_path)
@@ -105,24 +162,20 @@ def import_movies_from_csv(request):
             try:
                 # Create Movie record
                 movie = Movie.objects.create(
-                    title=row['Series_Title'],
-                    director=row['Director'] if 'Director' in row else None,
-                    star1=row['Star1'] if 'Star1' in row else None,
-                    star2=row['Star2'] if 'Star2' in row else None,
-                    description="",  # No description in CSV
-                    poster_url=None,  # No poster URL in CSV
+                    title=row['title'],
+                    director=row['director'] if 'director' in row else None,
+                    star1=row['star1'] if 'star1' in row else None,
+                    star2=row['star2'] if 'star2' in row else None,
+                    description=row['description'] if 'description' in row else "",
+                    poster_url=row['poster_url'] if 'poster_url' in row else None,
                 )
                 
-                # Split genres and create Genre records
-                genres = row['Genre'].split(',') if 'Genre' in row and isinstance(row['Genre'], str) else []
-                for genre_name in genres:
-                    genre_name = genre_name.strip()
-                    if genre_name:
-                        Genre.objects.create(movie=movie, name=genre_name)
+                # Extract genres from description using NLP or other methods
+                # This is a placeholder - you'd need a more sophisticated approach
                 
                 success_count += 1
             except Exception as e:
-                print(f"Error importing movie {row.get('Series_Title', 'Unknown')}: {e}")
+                print(f"Error importing movie {row.get('title', 'Unknown')}: {e}")
                 failure_count += 1
         
         return JsonResponse({
@@ -131,5 +184,20 @@ def import_movies_from_csv(request):
             "failed_count": failure_count
         })
         
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def test_recommendation(request):
+    """Test endpoint to verify recommendation system works"""
+    try:
+        sample_movies = df['title'].sample(3).tolist()
+        return JsonResponse({
+            "status": "success",
+            "message": "Recommendation system is working",
+            "sample_movies": sample_movies
+        })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
