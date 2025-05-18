@@ -484,7 +484,7 @@ export default function MovieDetailPage() {
                   <FontAwesome 
                     name="star" 
                     size={32} 
-                    color={userRating && star <= userRating ? "#FFD700" : "transparent"} 
+                    color={userRating && star <= userRating ? "#FFD700" : "#88888888"} 
                     solid={userRating && star <= userRating}
                   />
                 </TouchableOpacity>
