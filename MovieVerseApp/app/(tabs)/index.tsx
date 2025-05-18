@@ -33,7 +33,6 @@ const Index = () => {
   const router = useRouter();
 
   const goToProfile = () => {
-    console.log('Navigating to ProfilePage');
     router.push('/pages/ProfilePage');
   }
 
@@ -56,18 +55,49 @@ const Index = () => {
   }, []);
 
   // Fetch recommended movies for the user
-  const fetchRecommendations = async (username: string) => {
-    try {
-      setLoading(true);
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
+  // Modify the fetchRecommendations function
+const fetchRecommendations = async (username: string) => {
+  const sessionid = await AsyncStorage.getItem('sessionid');
+  const csrftoken = await AsyncStorage.getItem('csrftoken');
+  try {
+    setLoading(true);
+    const sessionid = await AsyncStorage.getItem('sessionid');
+    const csrftoken = await AsyncStorage.getItem('csrftoken');
 
-      if (!sessionid || !csrftoken) {
-        console.warn('Missing authentication tokens');
-        return;
+    if (!sessionid || !csrftoken) {
+      console.warn('Missing authentication tokens');
+      return;
+    }
+
+    // Call the new endpoint that uses ratings to generate recommendations
+    const response = await api.get(
+      'api/recommendations/from-ratings/',
+      {
+        headers: {
+          'X-CSRFToken': csrftoken,
+          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
+        },
+        params: { username }
       }
+    );
 
-      const response = await api.post(
+    
+    // Process poster URLs to ensure they're complete
+    const processedMovies = response.data.recommendations.map(movie => ({
+      ...movie,
+      poster_url: movie.poster_url ? (
+        movie.poster_url.startsWith('http') ? 
+          movie.poster_url : 
+          `https://image.tmdb.org/t/p/w500${movie.poster_url}`
+      ) : null
+    }));
+    
+    setRecommendations(processedMovies);
+  } catch (error) {
+    console.error('Error fetching recommendations:', error.response?.data || error.message);
+    // Fall back to the original recommendations endpoint if the new one fails
+    try {
+      const fallbackResponse = await api.post(
         'api/recommendations/',
         { username },
         {
@@ -77,14 +107,14 @@ const Index = () => {
           },
         }
       );
-      console.log('Received recommendations:', response.data);
-      setRecommendations(response.data);
-    } catch (error) {
-      console.error('Error fetching recommendations:', error.response?.data || error.message);
-    } finally {
-      setLoading(false);
+      setRecommendations(fallbackResponse.data);
+    } catch (fallbackError) {
+      console.error('Error with fallback recommendations:', fallbackError);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch trending movies
   const fetchTrendingMovies = async () => {
@@ -97,7 +127,7 @@ const Index = () => {
   };
 
   const handleMoodSelection = (mood) => {
-    console.log('Selected mood:', mood);
+  
     router.push({
       pathname: '/(tabs)/mood',
       params: { selectedMood: mood }
@@ -127,7 +157,7 @@ const Index = () => {
   
   return (
     <ProtectedRoute>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <ScreenWrapper>
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -170,13 +200,13 @@ const Index = () => {
               <View style={styles.moodButtonsRow}>
                 <TouchableOpacity 
                   style={styles.moodButton}
-                  onPress={() => handleMoodSelection('Happy')}
+                  onPress={() => handleMoodSelection('drama')}
                 >
                   <Text style={styles.moodButtonText}>I'm feeling Happy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.moodButton, styles.moodButtonLight]}
-                  onPress={() => handleMoodSelection('Sad')}
+                  onPress={() => handleMoodSelection('comedy')}
                 >
                   <Text style={[styles.moodButtonText, styles.moodButtonTextDark]}>I'm feeling Sad</Text>
                 </TouchableOpacity>
@@ -191,7 +221,7 @@ const Index = () => {
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.moodButton}
-                  onPress={() => handleMoodSelection('Empty')}
+                  onPress={() => handleMoodSelection('action')}
                 >
                   <Text style={styles.moodButtonText}>I'm feeling Empty</Text>
                 </TouchableOpacity>
@@ -232,15 +262,16 @@ const Index = () => {
             </View>
             
             {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
+            {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
             <Text style={styles.sectionTitle}>TOP PICKS FOR YOU</Text>
             {loading ? (
               <ActivityIndicator size="large" color="#fff" style={{marginVertical: 20}} />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
                 {recommendations.length > 0 ? (
-                  recommendations.map((movie) => (
+                  recommendations.map((movie, index) => (
                     <TouchableOpacity 
-                      key={`rec-${movie.id}`} 
+                      key={`rec-${movie.id}-${index}`} // Added index to ensure uniqueness
                       style={styles.movieCard}
                       onPress={() => viewMovieDetails(movie)}
                     >
@@ -254,21 +285,25 @@ const Index = () => {
                         <View style={styles.movieThumbnail} />
                       )}
                       <Text style={styles.movieTitle} numberOfLines={1}>{movie.title}</Text>
+                      
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={{color: '#999', marginLeft: 10}}>No recommendations yet</Text>
+                  <Text style={{color: '#999', marginLeft: 10}}>
+                    Rate some movies to get personalized recommendations!
+                  </Text>
                 )}
               </ScrollView>
             )}
 
             {/* TRENDING NOW SECTION */}
+            {/* TRENDING NOW SECTION */}
             <Text style={styles.sectionTitle}>TRENDING NOW</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
               {trendingMovies.length > 0 ? (
-                trendingMovies.map((movie) => (
+                trendingMovies.map((movie, index) => (
                   <TouchableOpacity 
-                    key={`trending-${movie.id}`} 
+                    key={`trending-${movie.id}-${index}`} // Added index to ensure uniqueness
                     style={styles.movieCard}
                     onPress={() => viewMovieDetails(movie)}
                   >

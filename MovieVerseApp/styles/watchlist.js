@@ -14,7 +14,12 @@ dateAdded: {
   color: '#888',
   marginTop: 4,
 },
-
+movieDescription:{
+  fontSize: 14,
+  color: '#fff',
+  opacity: 0.8,
+  marginRight: 10,
+},
 movieImage: {
   width: 90,
   height: 135,
@@ -29,6 +34,24 @@ movieImagePlaceholder: {
   justifyContent: 'center',
   alignItems: 'center',
 },
+// Add to your styles/watchlist.js file
+endOfListContainer: {
+  alignItems: 'center',
+  paddingVertical: 20,
+  opacity: 0.7,
+},
+endOfListDot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: '#FFF',
+  marginBottom: 8,
+},
+endOfListText: {
+  color: '#FFF',
+  fontSize: 12,
+  fontWeight: '500',
+},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -41,6 +64,54 @@ movieImagePlaceholder: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  emptyContainer:{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText:{
+    fontSize: 18,
+    color: '#fff',
+    opacity: 0.7,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptySubtext:{
+    fontSize: 14,
+    color: '#fff',
+    opacity: 0.5,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  centered:{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText:{
+    fontSize: 18,
+    color: '#fff',
+    opacity: 0.7,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  errorText:{
+    fontSize: 18,
+    color: '#ff3b30',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton:{
+    backgroundColor: '#ff3b30',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText:{
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   filterButton: {
     flexDirection: 'row',

@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'http://10.0.2.2:8000/', // Update to match your backend IP
+  baseURL: 'https://mvbackend-6fr8.onrender.com/', // Update to match your backend IP
   withCredentials: true,
   headers:{
     'Content-Type': 'application/json',
@@ -37,10 +37,15 @@ export const getCSRFToken = async () => {
   }
 };
 
-export const storeSessionCookie = async (setCookieHeader) => {
-  const cookieString = setCookieHeader?.toString();
-  const sessionMatch = cookieString.match(/sessionid=([^;]+)/);
-  const csrfMatch = cookieString.match(/csrftoken=([^;]+)/);
+interface Cookie {
+  sessionid?: string;
+  csrftoken?: string;
+}
+
+export const storeSessionCookie = async (setCookieHeader: string | string[] | undefined): Promise<void> => {
+  const cookieString: string = setCookieHeader?.toString() || '';
+  const sessionMatch: RegExpMatchArray | null = cookieString.match(/sessionid=([^;]+)/);
+  const csrfMatch: RegExpMatchArray | null = cookieString.match(/csrftoken=([^;]+)/);
 
   if (sessionMatch) {
     await AsyncStorage.setItem('sessionid', sessionMatch[1]);

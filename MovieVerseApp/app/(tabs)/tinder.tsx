@@ -7,6 +7,8 @@ import ProtectedRoute from '../auth/protectedRoute';
 import api from '../auth/api'
 import TinderMovieCard from '../components/tinderMovieCard'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry'
+import CustomSwiper from '../components/CustomSwiper'
 
 const tinder = () => {
   const swiperRef = useRef(null);
@@ -16,6 +18,8 @@ const tinder = () => {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState(null);
+  const [sessionid, setSessionid] = useState(null);
+  const [csrftoken, setCsrfToken] = useState(null);
 
   const getMovies = async () => {
     try {
@@ -23,10 +27,9 @@ const tinder = () => {
       const response = await api.get('api/TinderMovies/');
       
       setMovies(response.data);
-      console.log('Loaded new batch of movies:', response.data.length);
+
     }
     catch (error) {
-      console.log('Error fetching movies:', error);
       console.error('Error fetching movies:', error);
     } finally {
       setIsLoading(false);
@@ -38,6 +41,13 @@ const tinder = () => {
       let user2 = await AsyncStorage.getItem('username');
       setUsername(user2);
     }
+    const getSessionCookie = async () => {
+      const sessionid = await AsyncStorage.getItem('sessionid');
+      const csrftoken = await AsyncStorage.getItem('csrftoken');
+      setSessionid(sessionid);
+      setCsrfToken(csrftoken);
+    }
+    getSessionCookie();
     getUsername();
     getMovies();
   }, []);
@@ -45,9 +55,14 @@ const tinder = () => {
   // Add movie to watchlist
   const addToWatchlist = async (movieId) => {
     try {
-      console.log(`Adding movie ${movieId} to watchlist for user ${username}`);
-      await api.post('api/watchlist/add/', { username,movie_id: movieId });
-      console.log(`Added movie ${movieId} to watchlist`);
+
+      await api.post('api/watchlist/add/', { username,movie_id: movieId },
+       { headers: {
+          'X-CSRFToken': csrftoken,
+          'Cookie': `sessionid=${sessionid}; csrftoken=${csrftoken}`
+        }}
+      );
+     
     } catch (error) {
       console.error('Error adding to watchlist:', error);
     }
@@ -55,7 +70,6 @@ const tinder = () => {
 
   // Handler for when a card is swiped
   const handleSwiped = (cardIndex, direction) => {
-    console.log(`Swiped ${direction} on card at index ${cardIndex}`);
     
     if (direction === 'right') {
       // Add to watchlist
@@ -95,7 +109,6 @@ const tinder = () => {
 
   // Handle when all cards are swiped
   const handleAllSwiped = () => {
-    console.log('All cards swiped! Getting more movies...');
     getMovies(); // Fetch new movies when all cards are swiped
   };
 
@@ -117,7 +130,7 @@ const tinder = () => {
             <Text style={styles.loadingText}>Loading movies...</Text>
           </View>
         ) : movies && movies.length > 0 ? (
-          <Swiper
+          <CustomSwiper
             ref={swiperRef}
             cards={movies}
             renderCard={(card) => {
@@ -125,7 +138,7 @@ const tinder = () => {
               if (!card) return null;
               return <TinderMovieCard {...card} />;
             }}
-            onSwiped={(cardIndex) => {console.log(`Swiped card at index ${cardIndex}`)}}
+            onSwiped={(cardIndex) => {}}
             onSwipedRight={(cardIndex) => handleSwiped(cardIndex, 'right')}
             onSwipedLeft={(cardIndex) => handleSwiped(cardIndex, 'left')}
             onSwipedAll={handleAllSwiped}

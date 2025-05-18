@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native'
+import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator,SafeAreaView } from 'react-native'
 import React, { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { ChevronRight } from 'lucide-react-native'
@@ -22,6 +22,7 @@ const Mood = () => {
   const [loading, setLoading] = useState(false)
   const [recommendedMovies, setRecommendedMovies] = useState([])
   const [error, setError] = useState('')
+  const [predictedGenre, setPredictedGenre] = useState('');
   
   React.useEffect(() => {
     if (initialMood) {
@@ -42,40 +43,51 @@ const Mood = () => {
     return `https://image.tmdb.org/t/p/w500${url}`;
   };
   
-  const getMoodRecommendations = async (mood) => {
-    setLoading(true)
-    setError('')
-    const sessionid = await AsyncStorage.getItem('sessionid');
-    const csrftoken = await AsyncStorage.getItem('csrftoken');
-    
-    try {
-      // Call the Django backend API endpoint for mood-based recommendations
-      const response = await api.post('http://10.0.2.2:8000/ai/recommend/', {
-        mood: mood
+  // In the getMoodRecommendations function, update the way poster URLs are processed
+
+const getMoodRecommendations = async (mood) => {
+  setLoading(true)
+  setError('')
+  const sessionid = await AsyncStorage.getItem('sessionid');
+  const csrftoken = await AsyncStorage.getItem('csrftoken');
+  
+  try {
+    // Call the Django backend API endpoint for mood-based recommendations
+    const response = await api.post('http://10.0.2.2:8000/ai/recommend/', {
+      mood: mood
+    },
+    {
+      headers: {
+        'X-CSRFToken': csrftoken,
+        Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
       },
-      {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-        },
-      });
-      
-      // Process the response data to ensure complete poster URLs
-      const processedMovies = response.data.recommendations.map(movie => ({
-        ...movie,
-        poster_url: ensureCompleteImageUrl(movie.poster_url)
-      })) || [];
-      
-      setRecommendedMovies(processedMovies)
-      setSelectedMood(mood)
-      setMoodAvailable(true)
-    } catch (err) {
-      console.error('Failed to get mood recommendations:', err)
-      setError('Failed to get recommendations. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    });
+    
+    // Get the predicted genre from the response
+    const genre = response.data.genre || 'Unknown';
+    setPredictedGenre(genre);
+    
+    // Process the response data to ensure complete poster URLs
+    const processedMovies = response.data.recommendations.map(movie => ({
+      ...movie,
+      // Ensure the poster URL is complete
+      poster_url: movie.poster_url ? (
+        movie.poster_url.startsWith('http') ? 
+          movie.poster_url : 
+          `https://image.tmdb.org/t/p/w500${movie.poster_url}`
+      ) : null
+    })) || [];
+    
+    setRecommendedMovies(processedMovies)
+    setSelectedMood(mood)
+    setMoodAvailable(true)
+  } catch (err) {
+    console.error('Failed to get mood recommendations:', err)
+    setError('Failed to get recommendations. Please try again.')
+  } finally {
+    setLoading(false)
   }
+}
 
   const selectMood = (mood) => {
     setSelectedMood(mood)
@@ -92,7 +104,10 @@ const Mood = () => {
   // Rest of the component remains unchanged
   return (
     <ProtectedRoute>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+
+      
+       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={moodStyles.container}>
         <ScrollView contentContainerStyle={moodStyles.scrollContent}>
           {loading ? (
@@ -102,7 +117,7 @@ const Mood = () => {
             </View>
           ) : moodAvailable ? (
             <View style={moodStyles.moodResultContainer}>
-              <Text style={moodStyles.moodResultTitle}>You are currently in the mood for {selectedMood}</Text>
+              <Text style={moodStyles.moodResultTitle}>You are currently in the mood for {predictedGenre}</Text>
               <Text style={moodStyles.moodResultSubtitle}>Here are our suggestions</Text>
               
               {error ? (
@@ -126,7 +141,7 @@ const Mood = () => {
               <View style={moodStyles.moodButtonsRow}>
                 <TouchableOpacity 
                   style={moodStyles.moodButton}
-                  onPress={() => selectMood('Happy')}
+                  onPress={() => selectMood('dramatic movie')}
                 >
                   <Text style={moodStyles.moodButtonText}>I'm feeling Happy</Text>
                 </TouchableOpacity>
@@ -135,7 +150,7 @@ const Mood = () => {
               <View style={moodStyles.moodButtonsRow}>
                 <TouchableOpacity 
                   style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
-                  onPress={() => selectMood('Sad')}
+                  onPress={() => selectMood('comedy')}
                 >
                   <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Sad</Text>
                 </TouchableOpacity>
@@ -153,7 +168,7 @@ const Mood = () => {
               <View style={moodStyles.moodButtonsRow}>
                 <TouchableOpacity 
                   style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
-                  onPress={() => selectMood('Lonely')}
+                  onPress={() => selectMood('fantasy')}
                 >
                   <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Lonely</Text>
                 </TouchableOpacity>
@@ -171,7 +186,7 @@ const Mood = () => {
               <View style={moodStyles.moodButtonsRow}>
                 <TouchableOpacity 
                   style={[moodStyles.moodButton, moodStyles.moodButtonLight]}
-                  onPress={() => selectMood('Bad')}
+                  onPress={() => selectMood('Action')}
                 >
                   <Text style={[moodStyles.moodButtonText, moodStyles.moodButtonTextDark]}>I'm feeling Bad</Text>
                 </TouchableOpacity>
@@ -208,6 +223,7 @@ const Mood = () => {
           )}
         </ScrollView>
       </View>
+      </SafeAreaView>
     </ProtectedRoute>
   )
 }

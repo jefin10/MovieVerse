@@ -379,19 +379,36 @@ def remove_movie_from_watchlist(request, pk):
         return Response({"message": "Movie removed from watchlist"}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def trending_movies(request):
     """
-    Get trending movies (simplified version that returns recent movies)
+    Get trending movies based on recent ratings
     """
-    # Get newest movies or a random selection if no sorting criteria
-    movies = Movie.objects.all().order_by('?')[:10]  # Random selection
+    # Get distinct movies from recent ratings, ordered by most recent
+    rated_movies = Movie.objects.filter(
+        id__in=Ratings.objects.values_list('movie', flat=True)
+    ).distinct().order_by('-ratings__created_at')[:10]
     
-    serializer = MovieSerializer(movies, many=True)
+    # If we don't have enough rated movies, supplement with random movies
+    if rated_movies.count() < 10:
+        # Get IDs of movies we already have
+        existing_ids = [movie.id for movie in rated_movies]
+        
+        # Get random movies excluding the ones we already have
+        remaining_needed = 10 - rated_movies.count()
+        random_movies = Movie.objects.exclude(id__in=existing_ids).order_by('?')[:remaining_needed]
+        
+        # Combine both querysets
+        from itertools import chain
+        movies_list = list(chain(rated_movies, random_movies))
+    else:
+        movies_list = rated_movies
+    
+    serializer = MovieSerializer(movies_list, many=True)
     return Response(serializer.data)
-
 
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
@@ -884,3 +901,114 @@ def search_movies(request,query):
     
     serializer = MovieSerializer(movies, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_ratings_based_recommendations(request):
+    """
+    Get movie recommendations based on a user's movie ratings
+    """
+    try:
+        username = request.query_params.get('username')
+        
+        if not username:
+            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get all user ratings
+        user_ratings = Ratings.objects.filter(user=user)
+        
+        if not user_ratings.exists():
+            # Fall back to trending movies if no ratings exist
+            movies = Movie.objects.all().order_by('?')[:10]
+            serializer = MovieSerializer(movies, many=True)
+            return Response({
+                "info": "No ratings found, showing trending movies instead",
+                "recommendations": serializer.data
+            })
+        
+        # Split into liked (≥ 5) and disliked (< 5) movies
+        liked_movie_ids = [rating.movie.id for rating in user_ratings if rating.rating >= 5]
+        disliked_movie_ids = [rating.movie.id for rating in user_ratings if rating.rating < 5]
+        
+        # Get the movie titles for the AI recommendation engine
+        liked_movies = []
+        disliked_movies = []
+        
+        if liked_movie_ids:
+            liked_movies = list(Movie.objects.filter(id__in=liked_movie_ids).values_list('title', flat=True))
+        
+        if disliked_movie_ids:
+            disliked_movies = list(Movie.objects.filter(id__in=disliked_movie_ids).values_list('title', flat=True))
+        
+        # If no liked movies, fall back to trending
+        if not liked_movies:
+            movies = Movie.objects.all().order_by('?')[:10]
+            serializer = MovieSerializer(movies, many=True)
+            return Response({
+                "info": "No liked movies found, showing trending movies instead",
+                "recommendations": serializer.data
+            })
+        
+        # Use AI recommendation model
+        try:
+            # Import feature matrix and movie data
+            MODEL_DIR = os.path.join(settings.BASE_DIR, 'ai', 'model')
+            X = joblib.load(os.path.join(MODEL_DIR, 'features.pkl'))
+            df = pd.read_csv(os.path.join(MODEL_DIR, 'cleaned_movies.csv'))
+            
+            # Filter features for liked and disliked movies
+            liked_df = X[df['title'].isin(liked_movies)]
+            disliked_df = X[df['title'].isin(disliked_movies)]
+            
+            if liked_df.empty:
+                movies = Movie.objects.all().order_by('?')[:10]
+                serializer = MovieSerializer(movies, many=True)
+                return Response({
+                    "info": "No matching liked movies in model, showing trending instead",
+                    "recommendations": serializer.data
+                })
+            
+            # Create user profile
+            profile = liked_df.mean()
+            if not disliked_df.empty:
+                profile -= disliked_df.mean()
+            
+            # Calculate similarity
+            sim = cosine_similarity(X, profile.values.reshape(1, -1)).flatten()
+            df['sim'] = sim
+            
+            # Filter out movies user has already rated
+            all_rated_ids = liked_movie_ids + disliked_movie_ids
+            df_filtered = df[~df['title'].isin(liked_movies + disliked_movies)]
+            
+            # Sort by similarity and get top recommendations
+            recommendations_df = df_filtered.sort_values(by='sim', ascending=False).head(10)
+            
+            # Get our Movie objects for these recommendations
+            recommended_titles = recommendations_df['title'].tolist()
+            recommended_movies = Movie.objects.filter(title__in=recommended_titles)
+            
+            # Return as serialized data
+            serializer = MovieSerializer(recommended_movies, many=True)
+            return Response({
+                "recommendations": serializer.data
+            })
+            
+        except Exception as e:
+            # If ML fails, fall back to trending
+            movies = Movie.objects.all().order_by('?')[:10]
+            serializer = MovieSerializer(movies, many=True)
+            return Response({
+                "error": f"Error generating recommendations: {str(e)}",
+                "recommendations": serializer.data
+            })
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
