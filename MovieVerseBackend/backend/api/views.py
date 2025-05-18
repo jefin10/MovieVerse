@@ -379,6 +379,7 @@ def remove_movie_from_watchlist(request, pk):
         return Response({"message": "Movie removed from watchlist"}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
