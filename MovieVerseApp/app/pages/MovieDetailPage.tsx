@@ -14,8 +14,9 @@ import {
   Linking,
   Alert
 } from 'react-native';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { ArrowLeft, Star, Plus, Check, Play } from 'lucide-react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
@@ -339,7 +340,7 @@ export default function MovieDetailPage() {
           style={styles.backButton} 
           onPress={() => router.back()}
         >
-          <ArrowLeft color="#fff" size={24} />
+          <Feather name="arrow-left" color="#fff" size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {movie?.title}
@@ -386,7 +387,7 @@ export default function MovieDetailPage() {
             <Text style={styles.title}>{movie?.title}</Text>
             {movie?.imdb_rating && (
               <View style={styles.ratingContainer}>
-                <Star size={16} color="#FFD700" fill="#FFD700" />
+                <FontAwesome name="star" size={16} color="#FFD700" />
                 <Text style={styles.rating}>{movie.imdb_rating.toFixed(1)}</Text>
               </View>
             )}
@@ -417,9 +418,9 @@ export default function MovieDetailPage() {
               onPress={inWatchlist ? removeFromWatchlist : addToWatchlist}
             >
               {inWatchlist ? (
-                <Check color="#fff" size={20} />
+                <Feather name="check" color="#fff" size={20} />
               ) : (
-                <Plus color="#fff" size={20} />
+                <Feather name="plus" color="#fff" size={20} />
               )}
               <Text style={styles.actionText}>
                 {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
@@ -430,7 +431,7 @@ export default function MovieDetailPage() {
               style={styles.actionButton}
               onPress={watchTrailer}
             >
-              <Play color="#fff" size={20} fill="#fff" />
+              <Feather name="play" color="#fff" size={20} />
               <Text style={styles.actionText}>Watch Trailer</Text>
             </TouchableOpacity>
           </View>
@@ -480,11 +481,11 @@ export default function MovieDetailPage() {
                   style={styles.starButton}
                   onPress={() => rateMovie(star)}
                 >
-                  <Star 
+                  <FontAwesome 
+                    name="star" 
                     size={32} 
-                    color="#FFD700" 
-                    fill={userRating && star <= userRating ? "#FFD700" : "transparent"} 
-                    strokeWidth={1.5} 
+                    color={userRating && star <= userRating ? "#FFD700" : "transparent"} 
+                    solid={userRating && star <= userRating}
                   />
                 </TouchableOpacity>
               ))}

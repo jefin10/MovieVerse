@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View, Image, ImageBackground, Dimensions, Modal, Animated, ActivityIndicator, TouchableOpacity } from 'react-native'
 import React, { useRef, useState, useEffect } from 'react'
 import styles from '@/styles/tinder'
-import { ArrowRight, CheckCircle } from 'lucide-react-native'
-import Swiper from 'react-native-deck-swiper'
+import { Feather } from '@expo/vector-icons'
 import ProtectedRoute from '../auth/protectedRoute';
 import api from '../auth/api'
 import TinderMovieCard from '../components/tinderMovieCard'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry'
+import CustomSwiper from '../components/CustomSwiper'
 
 const tinder = () => {
   const swiperRef = useRef(null);
@@ -54,8 +54,7 @@ const tinder = () => {
   // Add movie to watchlist
   const addToWatchlist = async (movieId) => {
     try {
-
-      await api.post('api/watchlist/add/', { username,movie_id: movieId },
+      await api.post('api/watchlist/add/', { username, movie_id: movieId },
        { headers: {
           'X-CSRFToken': csrftoken,
           'Cookie': `sessionid=${sessionid}; csrftoken=${csrftoken}`
@@ -118,7 +117,7 @@ const tinder = () => {
         <Text style={styles.label}>Feel a Match?</Text>
         <View style={styles.swipeIndicator}>
           <Text style={styles.label_desc}>Swipe right</Text>
-          <ArrowRight color="#FFFFFF" size={24}/>
+          <Feather name="arrow-right" color="#FFFFFF" size={24}/>
         </View>
       </View>
       
@@ -129,7 +128,7 @@ const tinder = () => {
             <Text style={styles.loadingText}>Loading movies...</Text>
           </View>
         ) : movies && movies.length > 0 ? (
-          <Swiper
+          <CustomSwiper
             ref={swiperRef}
             cards={movies}
             renderCard={(card) => {
@@ -211,7 +210,7 @@ const tinder = () => {
           ]}
         >
           <View style={styles.simplifiedPopupContent}>
-            <CheckCircle color="#00FF00" size={24} />
+            <Feather name="check-circle" color="#00FF00" size={24} />
             <Text style={styles.simplifiedPopupText}>
               Added {currentMovie.title} to watchlist
             </Text>

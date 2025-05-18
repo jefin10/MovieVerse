@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View, TextInput, Image, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native';
-import { Search, ArrowRight, User, ChevronRight } from 'lucide-react-native'
+import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {styles} from '@/styles/home'
 import ScreenWrapper from '@/components/ScreenWrapper'
@@ -167,7 +167,7 @@ const fetchRecommendations = async (username: string) => {
                 <Text style={styles.username}>{username}</Text>
               </View>
               <TouchableOpacity style={styles.profileButton}>
-                <User size={24} color="#fff" onPress={goToProfile} />
+                <Feather name="user" size={24} color="#fff" onPress={goToProfile} />
               </TouchableOpacity>
             </View>
             
@@ -186,7 +186,7 @@ const fetchRecommendations = async (username: string) => {
                 style={styles.searchButton}
                 onPress={() => handleSearch(search)}
               >
-                <Search size={20} color="#000" />
+                <Feather name="search" size={20} color="#000" />
               </TouchableOpacity>
             </View>
             
@@ -247,7 +247,7 @@ const fetchRecommendations = async (username: string) => {
                     }}
                   >
                     <Text style={styles.goButtonText}>Go</Text>
-                    <ChevronRight size={16} color="#fff" />
+                    <Feather name="chevron-right" size={16} color="#fff" />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -332,7 +332,7 @@ const fetchRecommendations = async (username: string) => {
               </View>
               <View style={styles.arrowContainer}>
                 <Text style={styles.swipeText}>Swipe right to find your matches</Text>
-                <ArrowRight size={20} color="#fff" />
+                <Feather name="arrow-right" size={20} color="#fff" />
               </View>
             </TouchableOpacity>
             <View style={styles.tabBarSpacer} />

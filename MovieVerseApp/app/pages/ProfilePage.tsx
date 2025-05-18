@@ -1,6 +1,6 @@
 import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react'
-import { UserRound, Edit,ArrowLeft } from 'lucide-react-native'
+import { Feather } from '@expo/vector-icons';
 import styles from '@/styles/profilePage'
 import ProtectedRoute from '../auth/protectedRoute';
 import { useRouter } from 'expo-router'
@@ -58,7 +58,7 @@ const ProfilePage = () => {
         }}
         onPress={() => router.back()}
     >
-        <ArrowLeft size={24} color="#FFF" />
+        <Feather name="arrow-left" size={24} color="#FFF" />
     </TouchableOpacity>
     
     {/* Adjust the Text component to better align with the back button */}
@@ -75,7 +75,7 @@ const ProfilePage = () => {
             <View style={styles.profileCard}>
                 <View style={styles.profileImageContainer}>
                     <View style={styles.avatarContainer}>
-                        <UserRound size={80} color='#FFF' />
+                        <Feather name="user" size={80} color="#FFF" />
                     </View>
                     <Text style={styles.username}>{username}</Text>
                 </View>
