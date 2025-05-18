@@ -8,6 +8,7 @@ import api from '../auth/api'
 import TinderMovieCard from '../components/tinderMovieCard'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry'
+import CustomSwiper from '../components/CustomSwiper'
 
 const tinder = () => {
   const swiperRef = useRef(null);
@@ -129,7 +130,7 @@ const tinder = () => {
             <Text style={styles.loadingText}>Loading movies...</Text>
           </View>
         ) : movies && movies.length > 0 ? (
-          <Swiper
+          <CustomSwiper
             ref={swiperRef}
             cards={movies}
             renderCard={(card) => {
