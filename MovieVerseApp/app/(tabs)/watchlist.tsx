@@ -14,7 +14,7 @@ const WatchList = () => {
   const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWatchlist();
@@ -52,7 +52,7 @@ const WatchList = () => {
     }));
     
     setWatchlistItems(processedData);
-    //console.log('Watchlist items:', processedData);
+    console.log('Watchlist items:', processedData);
   } catch (err) {
     console.error('Failed to fetch watchlist:', err);
     setError('Failed to load your watchlist. Please try again.');
@@ -110,7 +110,12 @@ const ensureCompleteImageUrl = (url) => {
       </TouchableOpacity>
     </View>
   );
-
+  const EndOfListIndicator = () => (
+  <View style={styles.endOfListContainer}>
+    <View style={styles.endOfListDot} />
+    <Text style={styles.endOfListText}>End of your watchlist</Text>
+  </View>
+);
   // Render visible item
   const renderItem = (data) => (
   <TouchableOpacity 
@@ -208,9 +213,13 @@ const ensureCompleteImageUrl = (url) => {
               keyExtractor={(item) => item.id.toString()}
               ItemSeparatorComponent={() => <View style={styles.divider} />}
               contentContainerStyle={styles.scrollContent}
-              ListFooterComponent={() => <View style={styles.tabBarSpacer} />}
-            />
-          )}
+              ListFooterComponent={() =>( <>
+              <EndOfListIndicator />
+              <View style={styles.tabBarSpacer}/>
+            <View style={styles.tabBarSpacer}/></>
+            
+              
+          )}/>)}
         </SafeAreaView>
       </ScreenWrapper>
     </ProtectedRoute>

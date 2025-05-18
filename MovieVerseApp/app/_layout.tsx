@@ -1,13 +1,16 @@
 // app/_layout.tsx
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { Stack } from "expo-router";
-import { StatusBar } from "react-native";
+//import { StatusBar } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from './auth/AuthContext';
+import { SafeAreaView } from "react-native";
 export default function RootLayout() {
   return (
     <AuthProvider>
     <ScreenWrapper>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <SafeAreaView />
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }} />
     </ScreenWrapper>
     </AuthProvider>

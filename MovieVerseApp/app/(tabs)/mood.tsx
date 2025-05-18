@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native'
+import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator,SafeAreaView } from 'react-native'
 import React, { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { ChevronRight } from 'lucide-react-native'
@@ -104,7 +104,10 @@ const getMoodRecommendations = async (mood) => {
   // Rest of the component remains unchanged
   return (
     <ProtectedRoute>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+
+      
+       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={moodStyles.container}>
         <ScrollView contentContainerStyle={moodStyles.scrollContent}>
           {loading ? (
@@ -220,6 +223,7 @@ const getMoodRecommendations = async (mood) => {
           )}
         </ScrollView>
       </View>
+      </SafeAreaView>
     </ProtectedRoute>
   )
 }

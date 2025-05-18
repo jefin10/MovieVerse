@@ -33,7 +33,6 @@ const Index = () => {
   const router = useRouter();
 
   const goToProfile = () => {
-    console.log('Navigating to ProfilePage');
     router.push('/pages/ProfilePage');
   }
 
@@ -82,7 +81,6 @@ const fetchRecommendations = async (username: string) => {
       }
     );
 
-    console.log('Received recommendations:', response.data);
     
     // Process poster URLs to ensure they're complete
     const processedMovies = response.data.recommendations.map(movie => ({
@@ -129,7 +127,7 @@ const fetchRecommendations = async (username: string) => {
   };
 
   const handleMoodSelection = (mood) => {
-    console.log('Selected mood:', mood);
+  
     router.push({
       pathname: '/(tabs)/mood',
       params: { selectedMood: mood }
@@ -159,7 +157,7 @@ const fetchRecommendations = async (username: string) => {
   
   return (
     <ProtectedRoute>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <ScreenWrapper>
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.scrollContent}>

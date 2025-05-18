@@ -28,11 +28,22 @@ const LoginScreen = () => {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { setAuthenticated } = useAuth();
   const router = useRouter();
+  const [sessionid, setSessionid] = useState(null);
+  const [csrftoken, setCsrfToken] = useState(null);
   
   useEffect(() => {
     console.log('Fetching CSRF token...');
     getCSRFToken();
     console.log('CSRF token fetched');
+    const fetchSessionCookie = async () => {
+      const sessionid2 = await AsyncStorage.getItem('sessionid');
+      const csrftoken2 = await AsyncStorage.getItem('csrftoken');
+      setSessionid(sessionid2);
+      setCsrfToken(csrftoken2);
+      console.log('Session ID:', sessionid);
+      console.log('CSRF Token:', csrftoken);
+    };
+    fetchSessionCookie();
   }, []);
 
   const handleLogin = async () => {
@@ -47,7 +58,15 @@ const LoginScreen = () => {
     try {
       await getCSRFToken();
 
-      const res = await api.post('api/auth/login/', { username, password });
+      const res = await api.post('api/auth/login/', {
+        username, 
+        password
+      }, {
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Cookie': `sessionid=${sessionid}; csrftoken=${csrftoken}`
+        }
+      });
       const setCookie = res.headers['set-cookie'] || res.headers['Set-Cookie'];
       console.log('Set-Cookie:', setCookie);
       await storeSessionCookie(setCookie);
