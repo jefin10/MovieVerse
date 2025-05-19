@@ -148,6 +148,7 @@ export const moodStyles = StyleSheet.create({
   // General layout
   container: {
     flex: 1,
+    marginTop: 50,
     backgroundColor: '#000',
     
   },

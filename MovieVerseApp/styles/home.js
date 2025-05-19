@@ -1,5 +1,7 @@
 import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
+    // Apply font family to specific components instead of using global selector
+  
     container: {
       flex: 1,
       backgroundColor: '#000',
@@ -16,6 +18,7 @@ export const styles = StyleSheet.create({
     },
     greetingText: {
       color: '#fff',
+      fontFamily: 'Poppins',
       fontSize: 18,
       opacity: 0.8,
     },

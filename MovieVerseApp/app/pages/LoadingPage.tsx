@@ -1,10 +1,17 @@
 import { View, Text, StyleSheet, Animated } from 'react-native'
 import React, { useEffect, useRef } from 'react'
 import styles from '@/styles/loadingPage'
+import { useFonts } from 'expo-font';
+import AppLoading from 'expo-app-loading';
 
 const LoadingPage = () => {
   const fillHeight = useRef(new Animated.Value(0)).current;
-  
+  const [fontsLoaded] = useFonts({
+    'Cool': require('../../assets/fonts/StickNoBills-VariableFont_wght.ttf'),
+  });
+    if (!fontsLoaded) {
+    return <AppLoading />;
+  }
   useEffect(() => {
     Animated.timing(fillHeight, {
       toValue: 220, 
@@ -25,7 +32,7 @@ const LoadingPage = () => {
               ]} 
             />
           </View>
-          <Text style={styles.rotate}>MV</Text>
+          <Text style={[styles.rotate,{fontFamily:'Cool',fontWeight:'regular'}]}>MV</Text>
         </View>
         <Text style={styles.text}>MovieVerse</Text>
       </View>

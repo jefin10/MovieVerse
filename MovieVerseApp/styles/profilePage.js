@@ -12,11 +12,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#FFFFFF',
         marginTop: 60,
-        marginBottom: 34,
+        marginBottom: 12,
     },
     profileCard: {
         backgroundColor: '#111',
         borderRadius: 16,
+        marginTop: 4,
         padding: 24,
         marginBottom: 34,
         alignItems: 'center',
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     },
     changePasswordButtonText: {
         color: '#000',
-        fontSize: 19,
+        fontSize: 17,
         fontWeight: '600',
     },
     heading: {
@@ -98,13 +99,13 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 16,
         backgroundColor: '#222',
-        borderRadius: 8,
+        borderRadius: 12,
     },
     textInput: {
         fontSize: 18,
         color: '#FFFFFF',
         backgroundColor: '#222',
-        borderRadius: 8,
+        borderRadius: 60,
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderWidth: 1,
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
     },
     logoutButtonText: {
         color: '#FFF',
-        fontSize: 19,
+        fontSize: 17,
         fontWeight: '600',
     },
     

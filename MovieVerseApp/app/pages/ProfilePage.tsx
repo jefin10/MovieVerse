@@ -43,12 +43,13 @@ const ProfilePage = () => {
         <ProtectedRoute>
         <ScrollView style={styles.container}>
              <View style={{
-    flexDirection: 'row',
-    alignItems: 'center',  // This ensures vertical alignment
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    marginBottom: 15
-}}>
+                flexDirection: 'row',
+                alignItems: 'center',  // This ensures vertical alignment
+                paddingVertical: 20,
+                paddingTop: 24,
+                paddingHorizontal: 0,
+                marginBottom: 15
+            }}>
     <TouchableOpacity 
         style={{
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -92,7 +93,6 @@ const ProfilePage = () => {
                         <TextInput
                             style={styles.textInput}
                             value={username}
-                            onChangeText={setUsername}
                             placeholderTextColor="#999"
                         />
                     ) : (
