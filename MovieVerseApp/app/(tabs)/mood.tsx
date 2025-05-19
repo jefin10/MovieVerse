@@ -105,8 +105,6 @@ const getMoodRecommendations = async (mood) => {
   return (
     <ProtectedRoute>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-
-      
        <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={moodStyles.container}>
         <ScrollView contentContainerStyle={moodStyles.scrollContent}>
