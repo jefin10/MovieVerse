@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Home, BookmarkIcon, Search, Smile } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
@@ -39,7 +39,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
         }}
       />
       
@@ -47,7 +47,7 @@ export default function TabLayout() {
         name="watchlist"
         options={{
           title: 'Watchlist',
-          tabBarIcon: ({ color, size }) => <BookmarkIcon color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="bookmark" color={color} size={size} />,
         }}
       />
       
@@ -55,7 +55,7 @@ export default function TabLayout() {
         name="tinder"
         options={{
           title: 'Tinder',
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="search" color={color} size={size} />,
         }}
       />
       
@@ -63,7 +63,7 @@ export default function TabLayout() {
         name="mood"
         options={{
           title: 'Mood',
-          tabBarIcon: ({ color, size }) => <Smile color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="smile" color={color} size={size} />,
         }}
       />
      </Tabs>

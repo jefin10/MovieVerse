@@ -11,7 +11,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import api, { getCSRFToken } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
@@ -19,6 +20,7 @@ import { useRouter } from 'expo-router';
 import debounce from 'lodash.debounce';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '@/styles/RegisterPage';
+
 const RegisterScreen = () => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -174,138 +176,147 @@ const RegisterScreen = () => {
     return null;
   };
 
-  const goToLogin = ()=>{
-
+  const goToLogin = () => {
     router.replace('/pages/LoginPage');
-  }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.inner}>
-            <Text style={styles.title}>Register</Text>
-            <View style={styles.bottomSection}>
-              <View style={styles.form}>
-                <Text style={emailLabelStyle}>Email</Text>
-                <View style={[
-                  styles.inputContainer,
-                  getEmailBorderStyle()
-                ]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    placeholderTextColor="#999"
-                    onFocus={() => setEmailFocused(true)}
-                    onBlur={() => setEmailFocused(false)}
-                  />
-                </View>
-                {email && !isEmailValid && !emailFocused && (
-                  <Text style={styles.invalidMessage}>Please enter a valid email address</Text>
-                )}
-
-                <Text style={usernameLabelStyle}>Username</Text>
-                <View style={[
-                  styles.inputContainer,
-                  getUsernameBorderStyle()
-                ]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Choose a username"
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                    placeholderTextColor="#999"
-                    onFocus={() => setUsernameFocused(true)}
-                    onBlur={() => setUsernameFocused(false)}
-                  />
-                </View>
-                {checkingUsername && <Text style={styles.checking}>Checking username...</Text>}
-                {username.length > 0 && usernameAvailable === false && (
-                  <Text style={styles.unavailable}>❌ Username is already taken</Text>
-                )}
-                {username.length > 0 && usernameAvailable === true && (
-                  <Text style={styles.available}>✅ Username is available</Text>
-                )}
-
-                <Text style={passwordLabelStyle}>Password</Text>
-                <View style={[
-                  styles.inputContainer,
-                  getPasswordBorderStyle()
-                ]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Create a password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    placeholderTextColor="#999"
-                    onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
-                  />
-                </View>
-                {password && !isPasswordValid && !passwordFocused && (
-                  <Text style={styles.invalidMessage}>Password must be at least 6 characters</Text>
-                )}
-
-                <Text style={confirmPasswordLabelStyle}>Confirm Password</Text>
-              
-                <View style={[
-                  styles.inputContainer,
-                  getConfirmPasswordBorderStyle()
-                ]}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    placeholderTextColor="#999"
-                    onFocus={() => setConfirmPasswordFocused(true)}
-                    onBlur={() => setConfirmPasswordFocused(false)}
-                  />
-                </View>
-                {confirmPassword && !doPasswordsMatch && !confirmPasswordFocused && (
-                  <Text style={styles.invalidMessage}>Passwords do not match</Text>
-                )}
-                <View style={styles.loginContainer}>
-                  <Text style={styles.loginText}>Already have an account? </Text>
-                  <TouchableOpacity onPress={goToLogin}>
-                    <Text style={styles.loginLink}>Login</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity 
-                  style={[
-                    styles.button,
-                    isLoading && styles.buttonLoading
-                  ]}
-                  onPress={handleRegister}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color="#000" />
-                      <Text style={[styles.buttonText, {marginLeft: 10}]}>Creating Account...</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.buttonText}>Register</Text>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.inner}>
+              <Text style={styles.title}>Register</Text>
+              <View style={styles.bottomSection}>
+                <View style={styles.form}>
+                  <Text style={emailLabelStyle}>Email</Text>
+                  <View style={[
+                    styles.inputContainer,
+                    getEmailBorderStyle()
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your email"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholderTextColor="#999"
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => setEmailFocused(false)}
+                    />
+                  </View>
+                  {email && !isEmailValid && !emailFocused && (
+                    <Text style={styles.invalidMessage}>Please enter a valid email address</Text>
                   )}
-                </TouchableOpacity>
+
+                  <Text style={usernameLabelStyle}>Username</Text>
+                  <View style={[
+                    styles.inputContainer,
+                    getUsernameBorderStyle()
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Choose a username"
+                      value={username}
+                      onChangeText={setUsername}
+                      autoCapitalize="none"
+                      placeholderTextColor="#999"
+                      onFocus={() => setUsernameFocused(true)}
+                      onBlur={() => setUsernameFocused(false)}
+                    />
+                  </View>
+                  {checkingUsername && <Text style={styles.checking}>Checking username...</Text>}
+                  {username.length > 0 && usernameAvailable === false && (
+                    <Text style={styles.unavailable}>❌ Username is already taken</Text>
+                  )}
+                  {username.length > 0 && usernameAvailable === true && (
+                    <Text style={styles.available}>✅ Username is available</Text>
+                  )}
+
+                  <Text style={passwordLabelStyle}>Password</Text>
+                  <View style={[
+                    styles.inputContainer,
+                    getPasswordBorderStyle()
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Create a password"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      placeholderTextColor="#999"
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
+                    />
+                  </View>
+                  {password && !isPasswordValid && !passwordFocused && (
+                    <Text style={styles.invalidMessage}>Password must be at least 6 characters</Text>
+                  )}
+
+                  <Text style={confirmPasswordLabelStyle}>Confirm Password</Text>
+                
+                  <View style={[
+                    styles.inputContainer,
+                    getConfirmPasswordBorderStyle()
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      placeholderTextColor="#999"
+                      onFocus={() => setConfirmPasswordFocused(true)}
+                      onBlur={() => setConfirmPasswordFocused(false)}
+                    />
+                  </View>
+                  {confirmPassword && !doPasswordsMatch && !confirmPasswordFocused && (
+                    <Text style={styles.invalidMessage}>Passwords do not match</Text>
+                  )}
+                  <View style={styles.loginContainer}>
+                    <Text style={styles.loginText}>Already have an account? </Text>
+                    <TouchableOpacity onPress={goToLogin}>
+                      <Text style={styles.loginLink}>Login</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity 
+                    style={[
+                      styles.button,
+                      isLoading && styles.buttonLoading
+                    ]}
+                    onPress={handleRegister}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#000" />
+                        <Text style={[styles.buttonText, {marginLeft: 10}]}>Creating Account...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.buttonText}>Register</Text>
+                    )}
+                  </TouchableOpacity>
+                  
+                  {/* Add bottom padding to ensure everything is visible when keyboard is open */}
+                  <View style={{height: 50}} />
+                </View>
               </View>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
-
 
 export default RegisterScreen;

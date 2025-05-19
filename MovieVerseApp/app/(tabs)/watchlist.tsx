@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
-import { Trash2 } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SwipeListView } from 'react-native-swipe-list-view';
@@ -105,7 +105,7 @@ const ensureCompleteImageUrl = (url) => {
         style={[styles.backRightBtn, styles.backRightBtnRight]}
         onPress={() => removeFromWatchlist(data.item.id)}
       >
-        <Trash2 size={24} color="#fff" />
+        <Feather name="trash-2" size={24} color="#fff" />
         <Text style={styles.backTextWhite}>Delete</Text>
       </TouchableOpacity>
     </View>
@@ -145,7 +145,7 @@ const ensureCompleteImageUrl = (url) => {
             onPress={() => removeFromWatchlist(data.item.id)}
             style={styles.deleteButton}
           >
-            <Trash2 size={18} color="#ff5252" />
+            <Feather name="trash-2" size={18} color="#ff5252" />
           </TouchableOpacity>
         </View>
         

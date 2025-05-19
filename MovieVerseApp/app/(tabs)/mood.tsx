@@ -1,7 +1,7 @@
 import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator,SafeAreaView } from 'react-native'
 import React, { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { ChevronRight } from 'lucide-react-native'
+import { Feather } from '@expo/vector-icons';
 import { moodStyles } from '@/styles/mood'
 import MovieGrid from '@/components/MovieGrid'
 import ProtectedRoute from '../auth/protectedRoute'
@@ -53,7 +53,7 @@ const getMoodRecommendations = async (mood) => {
   
   try {
     // Call the Django backend API endpoint for mood-based recommendations
-    const response = await api.post('http://10.0.2.2:8000/ai/recommend/', {
+    const response = await api.post('https://mvbackend-6fr8.onrender.com/ai/recommend/', {
       mood: mood
     },
     {
@@ -206,7 +206,7 @@ const getMoodRecommendations = async (mood) => {
                     onPress={handleCustomMood}
                   >
                     <Text style={moodStyles.goButtonText}>Go</Text>
-                    <ChevronRight size={16} color="#fff" />
+                    <Feather name="chevron-right" size={16} color="#fff" />
                   </TouchableOpacity>
                 </View>
               ) : (

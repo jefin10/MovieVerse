@@ -8,12 +8,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  inner: {
-    flex: 1,
-    backgroundColor: '#000000',
-    padding: 20,
-    paddingTop: 60,
-  },
+ scrollContainer: {
+  flexGrow: 1,
+  paddingBottom: 20, 
+},
+inner: {
+  flex: 1,
+  justifyContent: 'space-between',
+  padding: 16,
+},
   buttonLoading: {
     backgroundColor: '#f0f0f0',
   },
