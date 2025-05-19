@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -281,5 +282,3 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 });
-
-export default CustomSwiper;
