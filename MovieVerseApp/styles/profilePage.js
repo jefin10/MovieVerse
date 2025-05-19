@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     },
     changePasswordButtonText: {
         color: '#000',
-        fontSize: 19,
+        fontSize: 17,
         fontWeight: '600',
     },
     heading: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: '#FFFFFF',
         backgroundColor: '#222',
-        borderRadius: 8,
+        borderRadius: 30,
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderWidth: 1,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     },
     logoutButtonText: {
         color: '#FFF',
-        fontSize: 19,
+        fontSize: 17,
         fontWeight: '600',
     },
     

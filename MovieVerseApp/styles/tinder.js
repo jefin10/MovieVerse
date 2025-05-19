@@ -8,7 +8,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#000000',
     },
     header: {
-        marginTop: 110,
+        marginTop: 60,
         marginBottom: 10,
         paddingHorizontal: 15
     },
@@ -22,6 +22,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 5,
+        marginBottom: 20,
     },
     label_desc: {
         fontSize: 20,
@@ -30,7 +31,8 @@ const styles = StyleSheet.create({
     },
     swiperContainer: {
         flex: 1,
-        padding: 10,
+        padding: 0,
+        paddingLeft: 20,
     },// Add these styles to your existing styles
 
     popup: {
@@ -68,7 +70,7 @@ const styles = StyleSheet.create({
     },
     movieCard: {
         width: width - 40,
-        height: 600,
+        height: 650,
         borderRadius: 15,
         overflow: 'hidden',
         elevation: 5,

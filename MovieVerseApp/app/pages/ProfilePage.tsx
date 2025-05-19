@@ -46,7 +46,8 @@ const ProfilePage = () => {
     flexDirection: 'row',
     alignItems: 'center',  // This ensures vertical alignment
     paddingVertical: 20,
-    paddingHorizontal: 15,
+    paddingTop: 22,
+    paddingHorizontal: 0,
     marginBottom: 15
 }}>
     <TouchableOpacity 
