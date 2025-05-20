@@ -288,7 +288,12 @@ const fetchRecommendations = async (username: string) => {
             
             {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
             {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
-            <Text style={styles.sectionTitle}>TOP PICKS FOR YOU</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>TOP PICKS FOR YOU</Text>
+              <View style={styles.scrollIndicator}>
+                <Feather name="chevron-right" size={18} color="#ffffff" />
+              </View>
+            </View>
             {loading ? (
               <ActivityIndicator size="large" color="#fff" style={{marginVertical: 20}} />
             ) : (
@@ -320,10 +325,12 @@ const fetchRecommendations = async (username: string) => {
                 )}
               </ScrollView>
             )}
-
-            {/* TRENDING NOW SECTION */}
-            {/* TRENDING NOW SECTION */}
+           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>TRENDING NOW</Text>
+            <View style={styles.scrollIndicator}>
+              <Feather name="chevron-right" size={18} color="#ffffff" />
+            </View>
+          </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
               {trendingMovies.length > 0 ? (
                 trendingMovies.map((movie, index) => (

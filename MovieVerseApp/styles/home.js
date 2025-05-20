@@ -114,6 +114,29 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
       },
+      // Add these to your styles object in @/styles/home.js:
+
+sectionHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 12,
+  paddingRight: 16,
+},
+scrollIndicator: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: 'rgba(255,255,255,0.1)',
+  paddingVertical: 4,
+  paddingHorizontal: 10,
+  borderRadius: 16,
+},
+scrollText: {
+  color: '#ffffff',
+  fontSize: 12,
+  marginRight: 4,
+  opacity: 0.8,
+},
       goButtonText: {
         color: '#fff',
         fontWeight: 'bold',
