@@ -14,63 +14,65 @@ const WatchList = () => {
   const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchWatchlist();
   }, []);
 
   const fetchWatchlist = async () => {
-  setLoading(true);
-  try {
-    const username = await AsyncStorage.getItem('username');
-    const sessionid = await AsyncStorage.getItem('sessionid');
-    const csrftoken = await AsyncStorage.getItem('csrftoken');
-    
-    if (!username) {
-      setError('User not logged in. Please log in first.');
+    setLoading(true);
+    try {
+      const username = await AsyncStorage.getItem('username');
+      const sessionid = await AsyncStorage.getItem('sessionid');
+      const csrftoken = await AsyncStorage.getItem('csrftoken');
+      
+      if (!username) {
+        setError('User not logged in. Please log in first.');
+        setLoading(false);
+        return;
+      }
+      
+      const response = await api.post('api/watchlist/', 
+        {
+          username: username
+        },
+        {
+          headers: {
+            'X-CSRFToken': csrftoken,
+            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
+          }
+        }
+      );
+      
+      // Process the response data to ensure complete poster URLs
+      const processedData = response.data.map(item => ({
+        ...item,
+        poster_url: ensureCompleteImageUrl(item.poster_url)
+      }));
+      
+      setWatchlistItems(processedData);
+      console.log('Watchlist items:', processedData);
+    } catch (err) {
+      console.error('Failed to fetch watchlist:', err);
+      setError('Failed to load your watchlist. Please try again.');
+    } finally {
       setLoading(false);
-      return;
+    }
+  };
+  
+  const ensureCompleteImageUrl = (url) => {
+    if (!url) return null;
+    
+    // If the URL already starts with http/https, it's complete
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
     }
     
-    const response = await api.post('api/watchlist/', 
-      {
-        username: username
-      },
-      {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
-        }
-      }
-    );
-    
-    // Process the response data to ensure complete poster URLs
-    const processedData = response.data.map(item => ({
-      ...item,
-      poster_url: ensureCompleteImageUrl(item.poster_url)
-    }));
-    
-    setWatchlistItems(processedData);
-    console.log('Watchlist items:', processedData);
-  } catch (err) {
-    console.error('Failed to fetch watchlist:', err);
-    setError('Failed to load your watchlist. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
-const ensureCompleteImageUrl = (url) => {
-  if (!url) return null;
+    // If it's a relative path or just the path component from TMDB
+    return `https://image.tmdb.org/t/p/w500${url}`;
+  };
   
-  // If the URL already starts with http/https, it's complete
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  
-  // If it's a relative path or just the path component from TMDB
-  return `https://image.tmdb.org/t/p/w500${url}`;
-};
   const removeFromWatchlist = async (id) => {
     const sessionid = await AsyncStorage.getItem('sessionid');
     const csrftoken = await AsyncStorage.getItem('csrftoken');
@@ -98,6 +100,19 @@ const ensureCompleteImageUrl = (url) => {
     }
   };
 
+  // Automatically delete the item when row is fully swiped
+  const onRowDidOpen = (rowKey, rowMap) => {
+    const itemToDelete = watchlistItems.find(item => item.id.toString() === rowKey);
+    if (itemToDelete) {
+      removeFromWatchlist(itemToDelete.id);
+      
+      // Close the row (optional, since it will be removed)
+      if (rowMap[rowKey]) {
+        rowMap[rowKey].closeRow();
+      }
+    }
+  };
+
   // Render hidden swipe action
   const renderHiddenItem = (data) => (
     <View style={styles.rowBack}>
@@ -110,66 +125,69 @@ const ensureCompleteImageUrl = (url) => {
       </TouchableOpacity>
     </View>
   );
+  
   const EndOfListIndicator = () => (
-  <View style={styles.endOfListContainer}>
-    <View style={styles.endOfListDot} />
-    <Text style={styles.endOfListText}>End of your watchlist</Text>
-  </View>
-);
+    <View style={styles.endOfListContainer}>
+      <View style={styles.endOfListDot} />
+      <Text style={styles.endOfListText}>End of your watchlist</Text>
+    </View>
+  );
+  
   // Render visible item
   const renderItem = (data) => (
-  <TouchableOpacity 
-    style={styles.rowFront}
-    onPress={() => router.push({
-      pathname: '/pages/MovieDetailPage',
-      params: { movieId: data.item.movie_id }
-    })}
-  >
-    <View style={styles.movieItem}>
-      <View style={styles.movieImageContainer}>
-        {data.item.poster_url ? (
-          <Image 
-            source={{ uri: data.item.poster_url }} 
-            style={styles.movieImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.movieImagePlaceholder} />
-        )}
-      </View>
-      
-      <View style={styles.movieInfo}>
-        <View style={styles.titleRow}>
-          <Text style={styles.movieTitle}>{data.item.title}</Text>
-          <TouchableOpacity 
-            onPress={() => removeFromWatchlist(data.item.id)}
-            style={styles.deleteButton}
-          >
-            <Feather name="trash-2" size={18} color="#ff5252" />
-          </TouchableOpacity>
+    <TouchableOpacity 
+      style={styles.rowFront}
+      onPress={() => router.push({
+        pathname: '/pages/MovieDetailPage',
+        params: { movieId: data.item.movie_id }
+      })}
+    >
+      <View style={styles.movieItem}>
+        <View style={styles.movieImageContainer}>
+          {data.item.poster_url ? (
+            <Image 
+              source={{ uri: data.item.poster_url }} 
+              style={styles.movieImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.movieImagePlaceholder} />
+          )}
         </View>
         
-        {data.item.genres && (
-          <Text style={styles.movieDetail}>
-            Genre: {data.item.genres.join(', ')}
-          </Text>
-        )}
-        
-        {data.item.description && (
-          <Text style={styles.movieDescription} numberOfLines={2}>
-            {data.item.description}
-          </Text>
-        )}
-        
-        {data.item.added_on && (
-          <Text style={styles.dateAdded}>
-            Added: {new Date(data.item.added_on).toLocaleDateString()}
-          </Text>
-        )}
+        <View style={styles.movieInfo}>
+          <View style={styles.titleRow}>
+            <Text style={styles.movieTitle}>{data.item.title}</Text>
+            <TouchableOpacity 
+              onPress={() => removeFromWatchlist(data.item.id)}
+              style={styles.deleteButton}
+            >
+              <Feather name="trash-2" size={18} color="#ff5252" />
+            </TouchableOpacity>
+          </View>
+          
+          {data.item.genres && (
+            <Text style={styles.movieDetail}>
+              Genre: {data.item.genres.join(', ')}
+            </Text>
+          )}
+          
+          {data.item.description && (
+            <Text style={styles.movieDescription} numberOfLines={2}>
+              {data.item.description}
+            </Text>
+          )}
+          
+          {data.item.added_on && (
+            <Text style={styles.dateAdded}>
+              Added: {new Date(data.item.added_on).toLocaleDateString()}
+            </Text>
+          )}
+        </View>
       </View>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+  
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -196,6 +214,9 @@ const ensureCompleteImageUrl = (url) => {
         <SafeAreaView style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Your Watchlist</Text>
+            <TouchableOpacity onPress={fetchWatchlist} style={styles.refreshButton}>
+              <Feather name="refresh-cw" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
           
           {watchlistItems.length === 0 ? (
@@ -210,16 +231,19 @@ const ensureCompleteImageUrl = (url) => {
               renderHiddenItem={renderHiddenItem}
               rightOpenValue={-75}
               disableRightSwipe
+              closeOnRowOpen={true}
+              previewRowKey={'0'}
+              previewOpenValue={-40}
+              previewOpenDelay={3000}
               keyExtractor={(item) => item.id.toString()}
+              onRowDidOpen={onRowDidOpen}
               ItemSeparatorComponent={() => <View style={styles.divider} />}
               contentContainerStyle={styles.scrollContent}
-              ListFooterComponent={() =>( <>
-              <EndOfListIndicator />
-              <View style={styles.tabBarSpacer}/>
-            <View style={styles.tabBarSpacer}/></>
-            
-              
-          )}/>)}
+              ListFooterComponent={() => (
+                <EndOfListIndicator />
+              )}
+            />
+          )}
         </SafeAreaView>
       </ScreenWrapper>
     </ProtectedRoute>

@@ -28,6 +28,9 @@ const Index = () => {
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [greeting, setGreeting] = useState('');
+
+  
   
   const { authenticated } = useAuth();
   const router = useRouter();
@@ -35,11 +38,25 @@ const Index = () => {
   const goToProfile = () => {
     router.push('/pages/ProfilePage');
   }
+  const getGreeting = () => {
+    const currentHour = new Date().getHours();
+    
+    if (currentHour >= 5 && currentHour < 12) {
+      return 'Good Morning,';
+    } else if (currentHour >= 12 && currentHour < 18) {
+      return 'Good Afternoon,';
+    } else {
+      return 'Good Evening,';
+    }
+  };
 
   // Fetch user info and recommendations when component mounts
-  useEffect(() => {
+    useEffect(() => {
     const fetchUserData = async () => {
       try {
+        // Set the greeting when the component mounts
+        setGreeting(getGreeting());
+        
         const storedUsername = await AsyncStorage.getItem('username');
         if (storedUsername) {
           setUsername(storedUsername);
@@ -52,6 +69,14 @@ const Index = () => {
     };
 
     fetchUserData();
+    
+    // Update greeting every minute in case user stays on screen across time boundaries
+    const greetingInterval = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(greetingInterval);
   }, []);
 
   // Fetch recommended movies for the user
@@ -163,7 +188,7 @@ const fetchRecommendations = async (username: string) => {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.header}>
               <View>
-                <Text style={styles.greetingText}>Good Morning,</Text>
+                <Text style={styles.greetingText}>{greeting}</Text>
                 <Text style={styles.username}>{username}</Text>
               </View>
               <TouchableOpacity style={styles.profileButton}>
@@ -217,7 +242,7 @@ const fetchRecommendations = async (username: string) => {
                   style={[styles.moodButton, styles.moodButtonLight]}
                   onPress={() => handleMoodSelection('Romantic')}
                 >
-                  <Text style={styles.moodButtonTextDark}>I'm feeling Romantic</Text>
+                  <Text  style={[styles.moodButtonText, styles.moodButtonTextDark]}>I'm feeling Love</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.moodButton}
