@@ -1,17 +1,22 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
+
+// Get device dimensions
+const { width, height } = Dimensions.get('window');
+
+// Determine if the device is a tablet
+const isTablet = width > 600;
+
+// Create a better scaling function that works for all device sizes
+const scale = (size) => {
+  const baseSize = isTablet ? size * 1.3 : size;
+  return Math.round(baseSize * (width / 375)); // Scale based on device width compared to iPhone 8
+};
 
 const styles = StyleSheet.create({
+  
   safeArea: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  imageContainer: {
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  logo: {
-    width: 500,
-    height: 500,
   },
   container: {
     flex: 1,
@@ -19,9 +24,119 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    justifyContent: 'space-between', 
     backgroundColor: '#000000',
-    padding: 20,
+    paddingHorizontal: scale(24),
+    paddingTop: scale(10), // Added a small top padding
+    paddingBottom: scale(20),
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginTop: scale(0), // Added positive margin to move logo down
+    // Still keeping the negative bottom margin to reduce gap between logo and content
+    marginBottom: scale(-100), 
+  },
+  logo: {
+    // Keeping your large logo size
+    width: scale(380),
+    height: scale(380),
+    resizeMode: 'contain',
+  },
+  topSection: {
+    alignItems: 'center',
+    marginBottom: scale(0),
+    // Add a negative top margin to pull this section closer to the logo
+    marginTop: scale(-20), // This further reduces the gap
+  },
+  title: {
+    fontSize: scale(30),
+    fontWeight: 'bold',
+    capitalize: 'uppercase',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: scale(10), // Slightly reduced from 15
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+  },
+  form: {
+    backgroundColor: '#000',
+    borderRadius: scale(20),
+    padding: scale(20),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+    marginTop: scale(5), // This will position the form closer to the title
+  },
+  bottomSection: {
+    marginBottom: scale(15),
+  },
+  label: {
+    fontSize: scale(16),
+    marginBottom: scale(6),
+    marginLeft: scale(16),
+    color: '#FFFFFF',
+  },
+  inputContainer: {
+    borderWidth: 2,
+    borderColor: '#444',
+    borderRadius: scale(30),
+    marginBottom: scale(15),
+    backgroundColor: '#111',
+  },
+  inputContainerFocused: {
+    borderColor: '#FFFFFF',
+    borderWidth: 2.5,
+  },
+  input: {
+    height: scale(55),
+    paddingHorizontal: scale(18),
+    fontSize: scale(16),
+    color: '#fff',
+  },
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: scale(15),
+  },
+  signupText: {
+    color: '#fff',
+    fontSize: scale(14),
+  },
+  signupLink: {
+    color: '#4F7FFA',
+    fontSize: scale(14),
+    fontWeight: 'bold',
+  },
+  forgotPasswordLink: {
+    color: '#4F7FFA',
+    fontSize: scale(14),
+    alignSelf: 'flex-end',
+    marginVertical: scale(8),
+  },
+  button: {
+    backgroundColor: '#fff',
+    height: scale(55),
+    borderRadius: scale(30),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: scale(18),
+    shadowColor: "#fff",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  buttonText: {
+    color: '#000',
+    fontSize: scale(18),
+    fontWeight: 'bold',
   },
   buttonLoading: {
     backgroundColor: '#f0f0f0',
@@ -30,102 +145,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
   },
-  topSection: {
-    flex: 1,
-    justifyContent: 'center', 
-    paddingTop: 120,
-    marginTop: 0,
-  },
-  signupContainer: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginTop: 15,
-  marginBottom: 10,
-  },
-  signupText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  signupLink: {
-    color: '#4F7FFA',  
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  forgotPasswordLink: {
-    color: '#4F7FFA',  
-    fontSize: 16,
-    alignSelf: 'flex-end',
-    marginTop: 5,
-    marginBottom: 15,
-  },
-  bottomSection: {
-    marginBottom: 30, 
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    textAlign: 'center',
-    fontVariant: ['small-caps'],
-    fontFamily: 'Poppins_700Bold',
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
-  },
-  form: {
-    backgroundColor: '#000',
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    color: '#fff',
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 18,
-    marginBottom: 6,
-    marginLeft: 19,
-  },
-  inputContainer: {
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 40,
-    marginBottom: 15,
-    backgroundColor: '#111',
-  },
-  inputContainerFocused: {
-    borderColor: '#FFFFFF',
-    borderWidth: 2,
-  },
-  input: {
-    height: 70,
-    paddingHorizontal: 19,
-    fontSize: 20,
-    color: '#fff',
-  },
-  button: {
-    backgroundColor: '#fff',
-    height: 65,
-    padding: 15,
-    borderRadius: 40,
-    alignItems: 'center',
-    marginTop: 60,
-    justifyContent: 'center', 
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: '#000',
-    fontSize: 26,
-    fontWeight: 'bold',
+  scrollViewContainer: {
+    flexGrow: 1,
   },
 });
 

@@ -1,5 +1,5 @@
 import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
-import React, { useState } from 'react'
+import React, { useState,useEffect } from 'react'
 import { Feather } from '@expo/vector-icons';
 import styles from '@/styles/profilePage'
 import ProtectedRoute from '../auth/protectedRoute';
@@ -9,14 +9,28 @@ import api from '../auth/api';
 
 const ProfilePage = () => {
     const router = useRouter()
-    const [username, setUsername] = useState('FoxPotato')
-    const [email, setEmail] = useState('potato@email.com')
+    const [username, setUsername] = useState('')
+    const [email, setEmail] = useState('')
     const [editing, setEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
     const handleSave = () => {
         setEditing(false)
     }
+
+    useEffect(()=>{
+        const getUsername=async()=>{
+            const res=await AsyncStorage.getItem('username')
+            setUsername(res)
+            const result=await api.post('api/auth/getEmail/',{
+                username:res
+            })
+            console.log(result.data)
+            setEmail(result.data.email)
+        }
+
+        getUsername()
+    },[])
    
     const goToResetPassword = async() => {
         console.log('Navigating to Reset Password')

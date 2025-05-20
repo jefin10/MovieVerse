@@ -36,6 +36,19 @@ const styles = StyleSheet.create({
       transform: [{ rotate: '45deg' }], // Rotation is back
       overflow: 'hidden',
     },
+    // Add this to your styles
+messageContainer: {
+  height: 25, // Fixed height to reserve space
+  justifyContent: 'center',
+  marginTop: 10,
+  marginBottom: 5,
+},
+loadingMessage: {
+  color: '#898989', // Orange/amber for attention
+  fontSize: 14,
+  textAlign: 'center',
+  fontStyle: 'italic',
+},
     fill: {
       position: 'absolute',
       bottom: 0,
@@ -45,13 +58,12 @@ const styles = StyleSheet.create({
       transform: [{ rotate: '-45deg' }, { scale: 1.5 }, { translateY: 60 }], // Counter-rotate and scale to ensure full coverage
     },
     rotate: {
-      fontSize: 70,
-      fontWeight: 'bold',
+      fontSize: 90,
       zIndex: 2,
       //transform: [{ rotate: '-45deg' }], // Counter-rotate text to appear straight
     },
     factContainer: {
-      width: '80%',
+      width: '95%',
       alignItems: 'center',
       marginBottom: 30, 
       padding: 15,

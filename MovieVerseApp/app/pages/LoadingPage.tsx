@@ -3,9 +3,11 @@ import React, { useEffect, useRef } from 'react'
 import styles from '@/styles/loadingPage'
 import { useFonts } from 'expo-font';
 import AppLoading from 'expo-app-loading';
+import { useRouter } from 'expo-router';
 
 const LoadingPage = () => {
   const fillHeight = useRef(new Animated.Value(0)).current;
+    const router = useRouter();
   const [fontsLoaded] = useFonts({
     'Cool': require('../../assets/fonts/StickNoBills-VariableFont_wght.ttf'),
   });
@@ -15,10 +17,22 @@ const LoadingPage = () => {
   useEffect(() => {
     Animated.timing(fillHeight, {
       toValue: 220, 
-      duration: 10000, 
+      duration: 15000, 
       useNativeDriver: false, 
     }).start();
+     checkOnlineStatus();
   }, []);
+
+    const checkOnlineStatus = async () => {
+    try {
+      const response = await fetch('https://mvbackend-6fr8.onrender.com/api/auth/csrf/');
+     if(response.ok){
+      router.push('/(tabs)/');
+     }
+    } catch (error) {
+      console.log('Offline');
+    }
+  }
   
   return (
     <View style={styles.container}>

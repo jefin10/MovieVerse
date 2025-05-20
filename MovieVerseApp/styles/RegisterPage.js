@@ -34,7 +34,8 @@ inner: {
     fontWeight: 'bold',
     color: '#ffffff',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
+    marginTop: '20%',
     fontVariant: ['small-caps'],
     fontFamily: 'Poppins_700Bold',
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
@@ -90,7 +91,7 @@ inner: {
     borderWidth: 2,
   },
   input: {
-    height: 70,
+    height: 65,
     paddingHorizontal: 19,
     fontSize: 20,
     color: '#fff',
@@ -107,7 +108,7 @@ inner: {
   },
   buttonText: {
     color: '#000',
-    fontSize: 26,
+    fontSize: 23,
     fontWeight: 'bold',
   },
   available: {

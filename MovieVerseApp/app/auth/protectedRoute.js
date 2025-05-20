@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (authenticated === false && pathname !== '/login') {
+    if (authenticated === false && pathname !== '/pages/LoginPage' && pathname !== '/pages/RegisterPage' && pathname!== '/pages/VerifyOtpPage' && pathname !=='/pages/ForgotPassUsername') {
       router.replace('../pages/LoginPage');
     }
   }, [authenticated, pathname]);
