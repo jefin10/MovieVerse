@@ -1,28 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
   TextInput, 
-  StyleSheet, 
   TouchableOpacity, 
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  findNodeHandle
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '../auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '@/styles/ForgotPassword';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const ForgotPasswordScreen = () => {
   const [username, setUsername] = useState('');
   const [usernameFocused, setUsernameFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  
+  // Create refs for keyboard handling
+  const scrollViewRef = useRef(null);
+  const usernameInputRef = useRef(null);
 
   const handleSubmit = async () => {
     if (!username) {
@@ -33,22 +36,18 @@ const ForgotPasswordScreen = () => {
     setIsLoading(true);
     
     try {
-      const res=await api.post('api/auth/forgot-password/s', { username });
+      const res = await api.post('api/auth/forgot-password/s', { username });
       await AsyncStorage.setItem('username', username);
-      if(res.status ==200){
-        router.push('/pages/VerifyOtpPage')
+      if(res.status === 200){
+        router.push('/pages/VerifyOtpPage');
       }
-      else{
-        router.push('/pages/VerifyOtpPage')
+      else {
+        router.push('/pages/VerifyOtpPage');
         Alert.alert('Error', 'Failed to send password reset request. Please try again.');
-        setIsLoading(false);
       }
-      
-      
     } catch (err) {
-        router.push('/pages/VerifyOtpPage')
+      router.push('/pages/VerifyOtpPage');
       console.log('Password reset request error:', err.response?.data || err.message);
-     
     } finally {
       setIsLoading(false);
     }
@@ -58,25 +57,49 @@ const ForgotPasswordScreen = () => {
     router.replace('/pages/LoginPage');
   };
 
+  // Handle username input focus
+  const handleUsernameFocus = () => {
+    setUsernameFocused(true);
+    // Add slight delay to ensure keyboard is showing
+    setTimeout(() => {
+      if (scrollViewRef.current && usernameInputRef.current) {
+        const nodeHandle = findNodeHandle(usernameInputRef.current);
+        if (nodeHandle) {
+          scrollViewRef.current.scrollToFocusedInput(nodeHandle);
+        }
+      }
+    }, 200);
+  };
+
   const usernameLabelStyle = {
     ...styles.label,
     color: usernameFocused || username ? '#FFFFFF' : '#888888',
   };
   
-  const getUsernameBorderStyle = () => {
-    if (usernameFocused) return styles.inputContainerFocused;
-    return null;
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+      <KeyboardAwareScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollViewContainer}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraHeight={150}
+        extraScrollHeight={100}
+        enableResetScrollToCoords={true}
+        resetScrollToCoords={{ x: 0, y: 0 }}
+        scrollEnabled={true}
+        showsVerticalScrollIndicator={false}
+        keyboardOpeningTime={0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.inner}>
+            {/* Top spacing container to push content down */}
+            <View style={styles.topSpacing} />
+            
             <Text style={styles.title}>Forgot Password</Text>
+            
             <View style={styles.bottomSection}>
               <View style={styles.form}>
                 <Text style={styles.instructions}>
@@ -86,16 +109,17 @@ const ForgotPasswordScreen = () => {
                 <Text style={usernameLabelStyle}>Username</Text>
                 <View style={[
                   styles.inputContainer,
-                  getUsernameBorderStyle()
+                  usernameFocused && styles.inputContainerFocused
                 ]}>
                   <TextInput
+                    ref={usernameInputRef}
                     style={styles.input}
                     placeholder="Enter your username"
                     value={username}
                     onChangeText={setUsername}
                     autoCapitalize="none"
                     placeholderTextColor="#999"
-                    onFocus={() => setUsernameFocused(true)}
+                    onFocus={handleUsernameFocus}
                     onBlur={() => setUsernameFocused(false)}
                   />
                 </View>
@@ -128,10 +152,9 @@ const ForgotPasswordScreen = () => {
             </View>
           </View>
         </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };
-
 
 export default ForgotPasswordScreen;

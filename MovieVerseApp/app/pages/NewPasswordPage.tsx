@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -11,13 +11,15 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '../auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 import styles from '@/styles/NewPassword';
+
 const NewPasswordPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,7 +32,7 @@ const NewPasswordPage = () => {
   const [username, setUsername] = useState('');
   // Get token from URL params
   const { token, email } = useLocalSearchParams();
-
+  const scrollViewRef = useRef(null);
   // Validate password strength (min 6 chars)
   useEffect(() => {
     setIsPasswordValid(password.length >= 6);
@@ -41,6 +43,32 @@ const NewPasswordPage = () => {
     }
     getUsername();
   }, [password, confirmPassword]);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (event) => {
+        // Scroll to active input when keyboard shows
+        const scrollPosition = confirmPasswordFocused ? 180 : 80;
+        scrollViewRef.current?.scrollTo({ y:scrollPosition,animated: true });
+      }
+    );
+    
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        // Return to normal position when keyboard hides
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }
+    );
+
+    // Cleanup listeners
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
 
   const handleSubmit = async () => {
     if (!password || !confirmPassword) {
@@ -116,7 +144,16 @@ const NewPasswordPage = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
+         keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 20}
       >
+        <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        >
+
+        
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.inner}>
             <Text style={styles.title}>New Password</Text>
@@ -190,10 +227,12 @@ const NewPasswordPage = () => {
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
+                <View style={{height: 80}} />
               </View>
             </View>
           </View>
         </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

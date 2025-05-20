@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 0,
   },
   title: {
     fontSize: 48,
@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     marginTop: '65%',
     fontVariant: ['small-caps'],
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Poppins_600Bold',
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 10,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#000',
-    fontSize: 26,
+    fontSize: 23,
     fontWeight: 'bold',
   },
   resendContainer: {
