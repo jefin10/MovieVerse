@@ -55,7 +55,9 @@ const ProfilePage = () => {
 
     return (
         <ProtectedRoute>
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container}
+        showsVerticalScrollIndicator={false}
+        >
              <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',  // This ensures vertical alignment

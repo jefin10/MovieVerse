@@ -185,7 +185,9 @@ const fetchRecommendations = async (username: string) => {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <ScreenWrapper>
         <SafeAreaView style={styles.container}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.header}>
               <View>
                 <Text style={styles.greetingText}>{greeting}</Text>
