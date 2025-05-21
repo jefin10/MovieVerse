@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { Stack } from "expo-router";
 //import { StatusBar } from "react-native";
