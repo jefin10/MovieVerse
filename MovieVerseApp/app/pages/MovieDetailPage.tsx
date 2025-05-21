@@ -283,24 +283,41 @@ export default function MovieDetailPage() {
   }
   // Open YouTube to search for movie trailer
   const watchTrailer = () => {
-    if (!movie) return;
-    
-    const searchQuery = encodeURIComponent(`${movie.title} trailer`);
-    const youtubeUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
-    
-    Linking.canOpenURL(youtubeUrl)
-      .then((supported) => {
-        if (supported) {
-          return Linking.openURL(youtubeUrl);
-        } else {
-          Alert.alert('Error', 'Cannot open YouTube');
-        }
-      })
-      .catch((error) => {
-        console.error('Error opening YouTube:', error);
-        Alert.alert('Error', 'Failed to open YouTube');
-      });
-  };
+  if (!movie) return;
+  
+  const searchQuery = encodeURIComponent(`${movie.title} trailer`);
+  
+  // Try YouTube app-specific URL first
+  const youtubeAppUrl = `youtube://results?search_query=${searchQuery}`;
+  // Fallback to web URL
+  const youtubeWebUrl = `https://www.youtube.com/results?search_query=${searchQuery}`;
+  
+  // Try to open YouTube app first
+  Linking.canOpenURL(youtubeAppUrl)
+    .then(supported => {
+      if (supported) {
+        // YouTube app is installed, open it
+        return Linking.openURL(youtubeAppUrl);
+      } else {
+        // YouTube app is not installed, try web URL
+        console.log('YouTube app not installed, trying web URL');
+        return Linking.openURL(youtubeWebUrl);
+      }
+    })
+    .catch(error => {
+      console.error('Error opening YouTube:', error);
+      
+      // Fallback to direct web URL if all else fails
+      Linking.openURL(youtubeWebUrl)
+        .catch(webError => {
+          console.error('Error opening browser:', webError);
+          Alert.alert(
+            'Error',
+            'Could not open YouTube. Please make sure you have a browser installed.'
+          );
+        });
+    });
+};
 
   // Dynamic header opacity based on scroll position
   const headerOpacity = scrollY.interpolate({
