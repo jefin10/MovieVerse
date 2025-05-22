@@ -9,7 +9,6 @@ export const moodStyles = StyleSheet.create({
   resultHeaderContainer: {
     marginBottom: 24,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF5500',
     paddingLeft: 16,
   },
   moodResultTitle: {
@@ -225,7 +224,6 @@ changeMoodButtonText: {
     marginTop: 10,
     alignItems: 'flex-start',
     borderLeftWidth: 4,
-    borderLeftColor: '#FF5500',
     paddingLeft: 16,
   },
   
