@@ -20,8 +20,8 @@ import styles from '@/styles/LoginPage';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const LoginScreen = () => {
-  const [username, setUsername] = useState('foxpotato71');
-  const [password, setPassword] = useState('password123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -69,7 +69,6 @@ const LoginScreen = () => {
       const setCookie = res.headers['set-cookie'] || res.headers['Set-Cookie'];
       await storeSessionCookie(setCookie);
       await AsyncStorage.setItem('username', username);
-      Alert.alert('Success', 'Logged in and session stored');
       setAuthenticated(true);
       router.push('/(tabs)'); 
 
@@ -164,7 +163,7 @@ const LoginScreen = () => {
               <Text style={styles.title}>Login</Text>
               <View style={styles.bottomSection}>
                 <View style={styles.form}>
-                  <Text style={emailLabelStyle}>Email</Text>
+                  <Text style={emailLabelStyle}>Username</Text>
                   <View style={[
                     styles.inputContainer,
                     emailFocused && styles.inputContainerFocused
