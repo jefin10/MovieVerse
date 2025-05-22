@@ -6,6 +6,7 @@ import ProtectedRoute from '../auth/protectedRoute';
 import { useRouter } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../auth/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfilePage = () => {
     const router = useRouter()
@@ -55,6 +56,7 @@ const ProfilePage = () => {
 
     return (
         <ProtectedRoute>
+        <SafeAreaView style={{flex: 1, backgroundColor: '#000',paddingVertical:20}}>
         <ScrollView style={styles.container}
         showsVerticalScrollIndicator={false}
         >
@@ -62,7 +64,7 @@ const ProfilePage = () => {
                 flexDirection: 'row',
                 alignItems: 'center',  // This ensures vertical alignment
                 paddingVertical: 20,
-                paddingTop: 24,
+                paddingTop: 0,
                 paddingHorizontal: 0,
                 marginBottom: 15
             }}>
@@ -158,6 +160,7 @@ const ProfilePage = () => {
             </TouchableOpacity>
             
         </ScrollView>
+        </SafeAreaView>
         </ProtectedRoute>
     )
 }

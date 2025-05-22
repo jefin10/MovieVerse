@@ -153,23 +153,30 @@ endOfListText: {
     borderRadius: 4,
   },
   movieInfo: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
+  flex: 1,
+  overflow: 'hidden', // Add this to prevent content from overflowing
+},
+ titleRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 4,
+  width: '100%', // Ensure the row takes full width of parent
+},
   movieTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  deleteButton: {
-    padding: 6,
-  },
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#fff',
+  marginBottom: 4,
+  flex: 1, // Allow title to take available space
+  paddingRight: 10, // Add padding to prevent text from touching the delete button
+},
+deleteButton: {
+  padding: 6,
+  marginLeft: 10, // Add left margin to separate from title
+  width: 32, // Fixed width to ensure consistent positioning
+  alignItems: 'center', // Center the icon horizontally
+},
   movieDetail: {
     fontSize: 14,
     color: '#fff',

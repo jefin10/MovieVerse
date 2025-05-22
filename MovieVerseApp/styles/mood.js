@@ -208,7 +208,7 @@ changeMoodButtonText: {
   // General layout
   container: {
     flex: 1,
-    marginTop: 50,
+    marginTop: 30,
     backgroundColor: '#000',
   },
   scrollContent: {
@@ -232,7 +232,7 @@ changeMoodButtonText: {
     color: '#fff',
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'left',
   },
   

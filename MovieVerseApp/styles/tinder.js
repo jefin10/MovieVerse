@@ -7,16 +7,21 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#000000',
     },
+    safeArea:{
+        flex: 1,
+        backgroundColor: '#000000',
+        paddingVertical: 20,
+    },
     header: {
-        marginTop: 60,
+        marginTop: 0,
         marginBottom: 10,
         paddingHorizontal: 15
     },
     label: {
-        fontSize: 36,
+        fontSize: 30,
         fontWeight: 'bold',
         color: '#FFFFFF',
-        marginBottom: 5,
+        marginBottom: 0,
     },
     swipeIndicator: {
         flexDirection: 'row',
@@ -25,8 +30,9 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     label_desc: {
-        fontSize: 20,
-        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'light',
+        color: '#999999',
         marginRight: 10,
     },
     swiperContainer: {
@@ -70,13 +76,13 @@ const styles = StyleSheet.create({
     },
     movieCard: {
         width: width - 40,
-        height: 650,
+        height: 670,
         borderRadius: 15,
         overflow: 'hidden',
         elevation: 5,
         backgroundColor: '#333333',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowColor: '#777',
+        shadowOffset: { width: 2, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
     },
