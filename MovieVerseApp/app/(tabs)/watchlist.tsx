@@ -134,59 +134,63 @@ const WatchList = () => {
   );
   
   // Render visible item
-  const renderItem = (data) => (
-    <TouchableOpacity 
-      style={styles.rowFront}
-      onPress={() => router.push({
-        pathname: '/pages/MovieDetailPage',
-        params: { movieId: data.item.movie_id }
-      })}
-    >
-      <View style={styles.movieItem}>
-        <View style={styles.movieImageContainer}>
-          {data.item.poster_url ? (
-            <Image 
-              source={{ uri: data.item.poster_url }} 
-              style={styles.movieImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.movieImagePlaceholder} />
-          )}
+  // In your watchlist.tsx file, update the renderItem function:
+
+const renderItem = (data) => (
+  <TouchableOpacity 
+    style={styles.rowFront}
+    onPress={() => router.push({
+      pathname: '/pages/MovieDetailPage',
+      params: { movieId: data.item.movie_id }
+    })}
+  >
+    <View style={styles.movieItem}>
+      <View style={styles.movieImageContainer}>
+        {data.item.poster_url ? (
+          <Image 
+            source={{ uri: data.item.poster_url }} 
+            style={styles.movieImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.movieImagePlaceholder} />
+        )}
+      </View>
+      
+      <View style={styles.movieInfo}>
+        <View style={styles.titleRow}>
+          <Text numberOfLines={1} style={styles.movieTitle}>
+            {data.item.title}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => removeFromWatchlist(data.item.id)}
+            style={styles.deleteButton}
+          >
+            <Feather name="trash-2" size={18} color="#ff5252" />
+          </TouchableOpacity>
         </View>
         
-        <View style={styles.movieInfo}>
-          <View style={styles.titleRow}>
-            <Text style={styles.movieTitle}>{data.item.title}</Text>
-            <TouchableOpacity 
-              onPress={() => removeFromWatchlist(data.item.id)}
-              style={styles.deleteButton}
-            >
-              <Feather name="trash-2" size={18} color="#ff5252" />
-            </TouchableOpacity>
-          </View>
-          
-          {data.item.genres && (
-            <Text style={styles.movieDetail}>
-              Genre: {data.item.genres.join(', ')}
-            </Text>
-          )}
-          
-          {data.item.description && (
-            <Text style={styles.movieDescription} numberOfLines={2}>
-              {data.item.description}
-            </Text>
-          )}
-          
-          {data.item.added_on && (
-            <Text style={styles.dateAdded}>
-              Added: {new Date(data.item.added_on).toLocaleDateString()}
-            </Text>
-          )}
-        </View>
+        {data.item.genres && (
+          <Text style={styles.movieDetail} numberOfLines={1}>
+            Genre: {data.item.genres.join(', ')}
+          </Text>
+        )}
+        
+        {data.item.description && (
+          <Text style={styles.movieDescription} numberOfLines={2}>
+            {data.item.description}
+          </Text>
+        )}
+        
+        {data.item.added_on && (
+          <Text style={styles.dateAdded}>
+            Added: {new Date(data.item.added_on).toLocaleDateString()}
+          </Text>
+        )}
       </View>
-    </TouchableOpacity>
-  );
+    </View>
+  </TouchableOpacity>
+);
   
   if (loading) {
     return (
