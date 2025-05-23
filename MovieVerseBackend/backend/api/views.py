@@ -389,8 +389,9 @@ def trending_movies(request):
     """
     # Get distinct movies from recent ratings, ordered by most recent
     rated_movies = Movie.objects.filter(
-        id__in=Ratings.objects.values_list('movie', flat=True)
-    ).distinct().order_by('-ratings__created_at')[:10]
+    id__in=Ratings.objects.values_list('movie_id', flat=True)
+    ).order_by('id', '-ratings__created_at').distinct('id')[:10]
+    
     
     # If we don't have enough rated movies, supplement with random movies
     if rated_movies.count() < 10:
