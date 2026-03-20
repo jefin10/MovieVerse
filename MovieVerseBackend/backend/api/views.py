@@ -127,7 +127,9 @@ class MovieSerializer(serializers.ModelSerializer):
             'director', 'star1', 'star2', 'poster_url', 'backdrop_url',
             'genres', 'original_language', 'spoken_languages', 'origin_countries', 'production_countries',
             'imdb_rating', 'our_rating', 'tmdb_vote_average', 'vote_count',
-            'runtime', 'status', 'tagline', 'homepage', 'imdb_id', 'budget', 'revenue',
+            'runtime', 'status', 'tagline', 'homepage', 'imdb_id',
+            'trailer_key', 'trailer_url', 'trailer_name',
+            'budget', 'revenue',
         ]
     
     def get_genres(self, obj):

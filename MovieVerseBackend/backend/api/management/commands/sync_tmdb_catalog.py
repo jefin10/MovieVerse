@@ -103,7 +103,7 @@ class Command(BaseCommand):
                     if not skip_details:
                         details = client.get(
                             f"/movie/{item['id']}",
-                            params={"append_to_response": "credits,release_dates"},
+                            params={"append_to_response": "credits,release_dates,videos"},
                         )
 
                         details_original_language = (details.get("original_language") or "").strip().lower()
@@ -242,6 +242,10 @@ class Command(BaseCommand):
         movie.tagline = details.get("tagline") or ""
         movie.homepage = details.get("homepage") or ""
         movie.imdb_id = details.get("imdb_id") or ""
+        trailer = self.pick_best_trailer(details.get("videos", {}).get("results", []))
+        movie.trailer_key = trailer.get("key", "")
+        movie.trailer_name = trailer.get("name", "")
+        movie.trailer_url = f"https://www.youtube.com/watch?v={trailer['key']}" if trailer.get("key") else ""
         movie.budget = int(details.get("budget") or 0)
         movie.revenue = int(details.get("revenue") or 0)
         movie.adult = bool(details.get("adult", movie.adult))
@@ -259,3 +263,26 @@ class Command(BaseCommand):
             movie.genres.set(Genre.objects.filter(id__in=genre_ids))
 
         movie.save()
+
+    def pick_best_trailer(self, videos):
+        youtube = [
+            v for v in videos
+            if (v.get("site") or "").lower() == "youtube" and (v.get("type") or "") in {"Trailer", "Teaser"}
+        ]
+        if not youtube:
+            return {}
+
+        official = [v for v in youtube if bool(v.get("official"))]
+        trailer = [v for v in official if v.get("type") == "Trailer"]
+        teaser = [v for v in official if v.get("type") == "Teaser"]
+
+        if trailer:
+            return trailer[0]
+        if teaser:
+            return teaser[0]
+
+        trailer = [v for v in youtube if v.get("type") == "Trailer"]
+        if trailer:
+            return trailer[0]
+
+        return youtube[0]
