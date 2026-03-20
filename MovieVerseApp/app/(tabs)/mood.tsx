@@ -45,7 +45,7 @@ const Mood = () => {
     const csrftoken = await AsyncStorage.getItem('csrftoken');
     
     try {
-      const response = await api.post('https://mvbackend-6fr8.onrender.com/ai/recommend/', {
+      const response = await api.post('ai/recommend/', {
         mood: mood
       },
       {

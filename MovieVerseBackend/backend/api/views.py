@@ -115,16 +115,52 @@ class GenreSerializer(serializers.ModelSerializer):
 class MovieSerializer(serializers.ModelSerializer):
     # Add a serialized field for genres that returns the names
     genres = serializers.SerializerMethodField()
+    original_language = serializers.SerializerMethodField()
+    spoken_languages = serializers.SerializerMethodField()
+    origin_countries = serializers.SerializerMethodField()
+    production_countries = serializers.SerializerMethodField()
     
     class Meta:
         model = Movie
-        fields = ['id', 'title', 'description', 'release_date', 'director','star1','star2', 'poster_url', 'genres', 'imdb_rating', 'our_rating']
+        fields = [
+            'id', 'tmdb_id', 'title', 'original_title', 'description', 'release_date',
+            'director', 'star1', 'star2', 'poster_url', 'backdrop_url',
+            'genres', 'original_language', 'spoken_languages', 'origin_countries', 'production_countries',
+            'imdb_rating', 'our_rating', 'tmdb_vote_average', 'vote_count',
+            'runtime', 'status', 'tagline', 'homepage', 'imdb_id', 'budget', 'revenue',
+        ]
     
     def get_genres(self, obj):
         """
         Return a list of genre names instead of genre objects or IDs
         """
         return [genre.name for genre in obj.genres.all()]
+
+    def get_original_language(self, obj):
+        if not obj.original_language:
+            return None
+        return {
+            'code': obj.original_language.iso_639_1,
+            'name': obj.original_language.name or obj.original_language.english_name,
+        }
+
+    def get_spoken_languages(self, obj):
+        return [
+            {'code': lang.iso_639_1, 'name': lang.name or lang.english_name}
+            for lang in obj.spoken_languages.all()
+        ]
+
+    def get_origin_countries(self, obj):
+        return [
+            {'code': country.iso_3166_1, 'name': country.name}
+            for country in obj.origin_countries.all()
+        ]
+
+    def get_production_countries(self, obj):
+        return [
+            {'code': country.iso_3166_1, 'name': country.name}
+            for country in obj.production_countries.all()
+        ]
 
 @api_view(['GET'])
 def tinder_movies(request):

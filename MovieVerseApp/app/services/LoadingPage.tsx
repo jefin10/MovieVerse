@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 import { facts } from '../data/loadingFact';
 import { useRouter } from 'expo-router';
+import api from '../auth/api';
 
 export const useLoadingLogic = (fontsLoaded: boolean) => {
   const fillHeight = useRef(new Animated.Value(0)).current;
@@ -92,8 +93,8 @@ export const useLoadingLogic = (fontsLoaded: boolean) => {
   // Check if backend is online
   const checkOnlineStatus = async () => {
     try {
-      const response = await fetch('https://mvbackend-6fr8.onrender.com/api/auth/csrf/');
-      if(response.ok){
+      const response = await api.get('api/auth/csrf/');
+      if(response.status === 200){
         router.replace('/(tabs)');
       }
     } catch (error) {

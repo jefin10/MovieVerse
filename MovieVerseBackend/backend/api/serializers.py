@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import UserProfile, Movie, Watchlist, Ratings,RecommendedMovies,Genre,Actor,Director
+from .models import UserProfile, Movie, Watchlist, Ratings,RecommendedMovies,Genre,Actor,Director,Language,Country
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,3 +40,13 @@ class DirectorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Director
         fields = '__all__' 
+
+class LanguageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Language
+        fields = '__all__'
+
+class CountrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Country
+        fields = '__all__'

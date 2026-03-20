@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'https://mvbackend-6fr8.onrender.com/', // Update to match your backend IP
+  baseURL: 'http://10.0.2.2:8000/', // Update to match your backend IP
   withCredentials: true,
   headers:{
     'Content-Type': 'application/json',

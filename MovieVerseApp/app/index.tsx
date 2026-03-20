@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import AppLoading from 'expo-app-loading';
 import { useRouter } from 'expo-router';
 import { facts } from './data/loadingFact';  // Import the facts array
+import api from './auth/api';
 
 const LoadingPage = () => {
   const fillHeight = useRef(new Animated.Value(0)).current;
@@ -100,9 +101,8 @@ const LoadingPage = () => {
 
   const checkOnlineStatus = async () => {
     try {
-      // Fix URL - remove the trailing '/s'
-      const response = await fetch('https://mvbackend-6fr8.onrender.com/api/auth/csrf/');
-      if(response.ok){
+      const response = await api.get('api/auth/csrf/');
+      if(response.status === 200){
         router.replace('/(tabs)/');
       }
     } catch (error) {

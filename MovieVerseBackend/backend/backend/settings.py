@@ -11,15 +11,16 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import environ
 from pathlib import Path
-# Add these at the top of your settings.py
 import os
 from dotenv import load_dotenv
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 load_dotenv()
 
-# Replace the DATABASES section of your settings.py with this
-tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
+database_url = os.getenv("DATABASE_URL", "postgres://movieverse:movieverse@localhost:5432/movieverse")
+tmpPostgres = urlparse(database_url)
+db_query = parse_qs(tmpPostgres.query)
+db_sslmode = (db_query.get('sslmode', [os.getenv('POSTGRES_SSLMODE', '')])[0] or '').strip()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,12 +31,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_tma*jp=&t#ayy=a=vtv71ua555-^=^11z!$&ix+6l%qw&!m6+'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-_tma*jp=&t#ayy=a=vtv71ua555-^=^11z!$&ix+6l%qw&!m6+')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 TMDB_ACCESS="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2ZmYxYjQxOGZmNzViN2NlZDlmOWE5ODViNjMyMWEzMCIsIm5iZiI6MTc0Njk5NTM3Mi4zMTcsInN1YiI6IjY4MjEwOGFjMzQxOTRkNDBkMDRiNDJlMSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.BQeIxpy0b0tr0rZ-dwfMNcWiyxkdfjHh5CB_ilvx-7c"\
 
@@ -96,11 +97,12 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmpPostgres.path.replace('/', ''),
-        'USER': tmpPostgres.username,
-        'PASSWORD': tmpPostgres.password,
-        'HOST': tmpPostgres.hostname,
-        'PORT': 5432,
+        'NAME': tmpPostgres.path.replace('/', '') or os.getenv('POSTGRES_DB', 'movieverse'),
+        'USER': tmpPostgres.username or os.getenv('POSTGRES_USER', 'movieverse'),
+        'PASSWORD': tmpPostgres.password or os.getenv('POSTGRES_PASSWORD', 'movieverse'),
+        'HOST': tmpPostgres.hostname or os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': tmpPostgres.port or os.getenv('POSTGRES_PORT', '5432'),
+        'OPTIONS': {'sslmode': db_sslmode} if db_sslmode else {},
     }
 }
 

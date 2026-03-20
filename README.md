@@ -411,6 +411,33 @@ python manage.py runserver
 # Server will start at: http://127.0.0.1:8000/
 ```
 
+### Start Backend With Docker
+
+```bash
+cd MovieVerseBackend
+
+# First time setup (if needed)
+copy .env.example .env
+
+# Build and run backend + postgres
+docker compose up --build
+```
+
+Backend will be available at `http://127.0.0.1:8000/`.
+
+Useful Docker commands:
+
+```bash
+# Run in detached mode
+docker compose up -d
+
+# Stop services
+docker compose down
+
+# Stop services and remove database volume
+docker compose down -v
+```
+
 ### Start Frontend App
 
 ```bash
