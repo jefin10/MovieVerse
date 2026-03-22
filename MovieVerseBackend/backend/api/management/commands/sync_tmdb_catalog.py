@@ -4,7 +4,7 @@ from datetime import datetime
 
 import requests
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import transaction, OperationalError, close_old_connections
 
 from api.models import Country, Genre, Language, Movie
 
@@ -51,6 +51,11 @@ class TMDBClient:
 class Command(BaseCommand):
     help = "Sync movies and metadata from TMDB into local database"
 
+    @staticmethod
+    def _fit(value, limit):
+        text = "" if value is None else str(value)
+        return text[:limit]
+
     def add_arguments(self, parser):
         parser.add_argument("--start-year", type=int, default=1950)
         parser.add_argument("--end-year", type=int, default=datetime.utcnow().year)
@@ -58,6 +63,7 @@ class Command(BaseCommand):
         parser.add_argument("--max-movies", type=int, default=0)
         parser.add_argument("--skip-details", action="store_true")
         parser.add_argument("--sleep", type=float, default=0.2)
+        parser.add_argument("--db-retries", type=int, default=3)
 
     def handle(self, *args, **options):
         bearer = os.getenv("TMDB_BEARER_TOKEN") or os.getenv("TMDB_ACCESS")
@@ -76,6 +82,7 @@ class Command(BaseCommand):
         total_synced = 0
         max_movies = options["max_movies"]
         skip_details = options["skip_details"]
+        db_retries = max(1, options["db_retries"])
 
         for year in range(options["start_year"], options["end_year"] + 1):
             pages = self.discover_pages_for_year(client, year, options["max_pages_per_year"])
@@ -99,18 +106,41 @@ class Command(BaseCommand):
                     if original_language not in ALLOWED_LANGUAGE_CODES:
                         continue
 
-                    movie = self.upsert_movie_from_summary(item)
-                    if not skip_details:
-                        details = client.get(
-                            f"/movie/{item['id']}",
-                            params={"append_to_response": "credits,release_dates,videos"},
-                        )
+                    completed = False
+                    for retry in range(db_retries):
+                        try:
+                            if total_synced and total_synced % 200 == 0:
+                                close_old_connections()
 
-                        details_original_language = (details.get("original_language") or "").strip().lower()
-                        if details_original_language not in ALLOWED_LANGUAGE_CODES:
-                            continue
+                            movie = self.upsert_movie_from_summary(item)
+                            if not skip_details:
+                                details = client.get(
+                                    f"/movie/{item['id']}",
+                                    params={"append_to_response": "credits,release_dates,videos"},
+                                )
 
-                        self.apply_movie_details(movie, details)
+                                details_original_language = (details.get("original_language") or "").strip().lower()
+                                if details_original_language not in ALLOWED_LANGUAGE_CODES:
+                                    completed = True
+                                    break
+
+                                self.apply_movie_details(movie, details)
+
+                            completed = True
+                            break
+                        except OperationalError as db_error:
+                            close_old_connections()
+                            wait = min(10, 2 * (retry + 1))
+                            self.stdout.write(self.style.WARNING(
+                                f"DB connection issue for TMDB id {item.get('id')} (retry {retry + 1}/{db_retries}): {db_error}. Waiting {wait}s..."
+                            ))
+                            time.sleep(wait)
+
+                    if not completed:
+                        self.stdout.write(self.style.WARNING(
+                            f"Skipping TMDB id {item.get('id')} after {db_retries} DB retries"
+                        ))
+                        continue
 
                     total_synced += 1
                     if total_synced % 100 == 0:
@@ -173,8 +203,8 @@ class Command(BaseCommand):
         backdrop_path = item.get("backdrop_path")
 
         defaults = {
-            "title": item.get("title") or item.get("name") or "",
-            "original_title": item.get("original_title") or item.get("title") or "",
+            "title": self._fit(item.get("title") or item.get("name") or "", 255),
+            "original_title": self._fit(item.get("original_title") or item.get("title") or "", 255),
             "description": item.get("overview") or "",
             "poster_url": f"{TMDB_IMAGE_BASE}{poster_path}" if poster_path else "",
             "backdrop_url": f"{TMDB_IMAGE_BASE}{backdrop_path}" if backdrop_path else "",
@@ -219,17 +249,17 @@ class Command(BaseCommand):
         director_name = ""
         for person in crew:
             if person.get("job") == "Director":
-                director_name = person.get("name") or ""
+                director_name = self._fit(person.get("name") or "", 255)
                 break
 
-        star1 = cast[0].get("name", "") if len(cast) > 0 else ""
-        star2 = cast[1].get("name", "") if len(cast) > 1 else ""
+        star1 = self._fit(cast[0].get("name", ""), 255) if len(cast) > 0 else ""
+        star2 = self._fit(cast[1].get("name", ""), 255) if len(cast) > 1 else ""
 
         poster_path = details.get("poster_path")
         backdrop_path = details.get("backdrop_path")
 
-        movie.title = details.get("title") or movie.title
-        movie.original_title = details.get("original_title") or movie.original_title
+        movie.title = self._fit(details.get("title") or movie.title, 255)
+        movie.original_title = self._fit(details.get("original_title") or movie.original_title, 255)
         movie.description = details.get("overview") or movie.description
         movie.release_date = details.get("release_date") or movie.release_date
         movie.poster_url = f"{TMDB_IMAGE_BASE}{poster_path}" if poster_path else movie.poster_url
@@ -238,13 +268,13 @@ class Command(BaseCommand):
         movie.vote_count = int(details.get("vote_count") or movie.vote_count or 0)
         movie.tmdb_vote_average = float(details.get("vote_average") or movie.tmdb_vote_average or 0)
         movie.runtime = details.get("runtime")
-        movie.status = details.get("status") or ""
+        movie.status = self._fit(details.get("status") or "", 100)
         movie.tagline = details.get("tagline") or ""
         movie.homepage = details.get("homepage") or ""
-        movie.imdb_id = details.get("imdb_id") or ""
+        movie.imdb_id = self._fit(details.get("imdb_id") or "", 30)
         trailer = self.pick_best_trailer(details.get("videos", {}).get("results", []))
-        movie.trailer_key = trailer.get("key", "")
-        movie.trailer_name = trailer.get("name", "")
+        movie.trailer_key = self._fit(trailer.get("key", ""), 100)
+        movie.trailer_name = self._fit(trailer.get("name", ""), 255)
         movie.trailer_url = f"https://www.youtube.com/watch?v={trailer['key']}" if trailer.get("key") else ""
         movie.budget = int(details.get("budget") or 0)
         movie.revenue = int(details.get("revenue") or 0)

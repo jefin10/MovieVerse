@@ -1,17 +1,18 @@
+import 'react-native-gesture-handler';
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { Stack } from "expo-router";
-//import { StatusBar } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from './auth/AuthContext';
-import { SafeAreaView } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 export default function RootLayout() {
   return (
-    <AuthProvider>
-    <ScreenWrapper>
-      <SafeAreaView />
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </ScreenWrapper>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <ScreenWrapper>
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false }} />
+        </ScreenWrapper>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

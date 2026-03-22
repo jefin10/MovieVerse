@@ -51,13 +51,14 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
+      {/* SHORTS TAB - COMMENTED OUT - NOT NEEDED CURRENTLY */}
+      {/* <Tabs.Screen
         name="shorts"
         options={{
           title: 'Shorts',
           tabBarIcon: ({ color, size }) => <Feather name="play-circle" color={color} size={size} />,
         }}
-      />
+      /> */}
       
       <Tabs.Screen
         name="tinder"

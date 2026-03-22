@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   View, 
   Text, 
   Image, 
-  ScrollView, 
   TouchableOpacity, 
   StatusBar, 
   StyleSheet,
@@ -12,15 +11,14 @@ import {
   Animated,
   ImageBackground,
   Linking,
-  Alert
 } from 'react-native';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
-import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
+import CustomAlert from '../components/CustomAlert';
 
 interface MovieDetail {
   id: number;
@@ -46,9 +44,16 @@ export default function MovieDetailPage() {
   const [username, setUsername] = useState('');
   const [inWatchlist, setInWatchlist] = useState(false);
   const [watchlistItemId, setWatchlistItemId] = useState<number | null>(null);
-  const scrollY = new Animated.Value(0);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [userRating, setUserRating] = useState<number | null>(null);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    showCancel: false,
+    onConfirm: () => {},
+  });
 
 
   // Fetch movie details and check if in watchlist
@@ -87,7 +92,13 @@ export default function MovieDetailPage() {
         }
       } catch (error) {
         console.error('Error fetching movie details:', error);
-        Alert.alert('Error', 'Failed to load movie details. Please try again.');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'Failed to load movie details. Please try again.',
+          showCancel: false,
+          onConfirm: () => {},
+        });
       } finally {
         setLoading(false);
       }
@@ -119,7 +130,7 @@ export default function MovieDetailPage() {
       );
       
       // Check if current movie is in watchlist
-      const watchlistItem = response.data.find(item => item.movie_id === movieId);
+      const watchlistItem = response.data.find((item: any) => item.movie_id === movieId);
       if (watchlistItem) {
         setInWatchlist(true);
         setWatchlistItemId(watchlistItem.id);
@@ -172,7 +183,13 @@ export default function MovieDetailPage() {
       const csrftoken = await AsyncStorage.getItem('csrftoken');
       
       if (!sessionid || !csrftoken) {
-        Alert.alert('Error', 'Authentication required. Please login again.');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'Authentication required. Please login again.',
+          showCancel: false,
+          onConfirm: () => {},
+        });
         return;
       }
       
@@ -192,10 +209,22 @@ export default function MovieDetailPage() {
       
       setInWatchlist(true);
       setWatchlistItemId(response.data.id);
-      Alert.alert('Success', 'Added to watchlist');
+      setAlertConfig({
+        visible: true,
+        title: 'Success',
+        message: 'Added to watchlist',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     } catch (error) {
       console.error('Error adding to watchlist:', error);
-      Alert.alert('Error', 'Failed to add to watchlist. Please try again.');
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to add to watchlist. Please try again.',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     }
   };
 
@@ -208,7 +237,13 @@ export default function MovieDetailPage() {
       const csrftoken = await AsyncStorage.getItem('csrftoken');
       
       if (!sessionid || !csrftoken) {
-        Alert.alert('Error', 'Authentication required. Please login again.');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'Authentication required. Please login again.',
+          showCancel: false,
+          onConfirm: () => {},
+        });
         return;
       }
       
@@ -225,10 +260,22 @@ export default function MovieDetailPage() {
       
       setInWatchlist(false);
       setWatchlistItemId(null);
-      Alert.alert('Success', 'Removed from watchlist');
+      setAlertConfig({
+        visible: true,
+        title: 'Success',
+        message: 'Removed from watchlist',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     } catch (error) {
       console.error('Error removing from watchlist:', error);
-      Alert.alert('Error', 'Failed to remove from watchlist. Please try again.');
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to remove from watchlist. Please try again.',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     }
   };
 
@@ -241,7 +288,13 @@ export default function MovieDetailPage() {
       const csrftoken = await AsyncStorage.getItem('csrftoken');
       
       if (!sessionid || !csrftoken) {
-        Alert.alert('Error', 'Authentication required. Please login again.');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'Authentication required. Please login again.',
+          showCancel: false,
+          onConfirm: () => {},
+        });
         return;
       }
       
@@ -262,10 +315,22 @@ export default function MovieDetailPage() {
       
       setUserRating(rating);
       setRatingSubmitted(true);
-      Alert.alert('Thank You!', 'Your rating has been submitted.');
+      setAlertConfig({
+        visible: true,
+        title: 'Thank You!',
+        message: 'Your rating has been submitted.',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     } catch (error) {
       console.error('Error rating movie:', error);
-      Alert.alert('Error', 'Failed to submit rating. Please try again.');
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to submit rating. Please try again.',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     }
   };
 
@@ -311,10 +376,13 @@ export default function MovieDetailPage() {
       Linking.openURL(youtubeWebUrl)
         .catch(webError => {
           console.error('Error opening browser:', webError);
-          Alert.alert(
-            'Error',
-            'Could not open YouTube. Please make sure you have a browser installed.'
-          );
+          setAlertConfig({
+            visible: true,
+            title: 'Error',
+            message: 'Could not open YouTube. Please make sure you have a browser installed.',
+            showCancel: false,
+            onConfirm: () => {},
+          });
         });
     });
 };
@@ -480,7 +548,7 @@ export default function MovieDetailPage() {
               
               {movie?.star2 && (
                 <View style={styles.personRow}>
-                  <Text style={styles.personRole}></Text>
+                  <Text style={styles.personRole}>{' '}</Text>
                   <Text style={styles.personName}>{movie.star2}</Text>
                 </View>
               )}
@@ -519,6 +587,15 @@ export default function MovieDetailPage() {
           <View style={{ height: 40 }} />
         </View>
       </Animated.ScrollView>
+      
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        showCancel={alertConfig.showCancel}
+        onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+        onConfirm={alertConfig.onConfirm}
+      />
     </>
   );
 }

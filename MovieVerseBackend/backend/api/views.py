@@ -12,11 +12,15 @@ import requests
 from django.conf import settings
 from rest_framework import status
 import random
+import time
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import SessionAuthentication
 import requests
 from .models import Ratings,RecommendedMovies
+from django.db import OperationalError, close_old_connections
+from django.db.utils import InterfaceError
+from django.db import models
 
 @api_view(['GET'])
 def hello(request):
@@ -166,10 +170,27 @@ class MovieSerializer(serializers.ModelSerializer):
 
 @api_view(['GET'])
 def tinder_movies(request):
-    movies = list(Movie.objects.all())
-    random.shuffle(movies)
-    serializer = MovieSerializer(movies[:10], many=True)  # Return 10 random movies
-    return Response(serializer.data)
+    # Avoid ORDER BY ? on large tables; pull a ranked candidate pool, then sample in Python.
+    for attempt in range(3):
+        try:
+            close_old_connections()
+            candidates = list(
+                Movie.objects
+                .prefetch_related('genres', 'spoken_languages', 'origin_countries', 'production_countries')
+                .order_by('-popularity', '-tmdb_vote_average', '-vote_count')[:200]
+            )
+            movies = random.sample(candidates, min(10, len(candidates))) if candidates else []
+            serializer = MovieSerializer(movies, many=True)
+            return Response(serializer.data)
+        except (OperationalError, InterfaceError) as exc:
+            close_old_connections()
+            if attempt < 2:
+                time.sleep(1 + attempt)
+                continue
+            return Response(
+                {"error": f"Database connection issue while loading movies: {exc}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
 @api_view(['GET'])
@@ -306,13 +327,17 @@ from django.contrib.auth import get_user_model
 from api.models import UserProfile  # Adjust based on your actual model
 
 # Replace the current view_watchlist function with this:
-@api_view(['POST'])  # <-- Changed from GET to POST to match your frontend
+@api_view(['GET', 'POST'])  # <-- Support both GET and POST
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def view_watchlist(request):
     try:
-        # Get username from request body
-        username = request.data.get('username')
+        # Get username from request body (POST) or query params (GET)
+        if request.method == 'POST':
+            username = request.data.get('username')
+        else:  # GET
+            username = request.query_params.get('username')
+            
         if not username:
             return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -943,6 +968,80 @@ def search_movies(request,query):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
+def web_catalog(request):
+    movies = list(Movie.objects.all())
+    random.shuffle(movies)
+    serializer = MovieSerializer(movies[:50], many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def web_search_catalog(request, query):
+    movies = Movie.objects.filter(title__icontains=query).order_by('-release_date')
+    serializer = MovieSerializer(movies[:100], many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def web_fetch_movie_info(request, query):
+    try:
+        try:
+            movie_id = int(query)
+            movie = Movie.objects.get(id=movie_id)
+        except ValueError:
+            movie = Movie.objects.filter(title__icontains=query).first()
+            if not movie:
+                return Response({"error": f"Movie '{query}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Movie.DoesNotExist:
+            return Response({"error": f"Movie with ID {query} not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        response_data = {
+            'id': movie.id,
+            'title': movie.title,
+            'movie_info': movie.description,
+            'description': movie.description,
+            'director': movie.director,
+            'star1': movie.star1,
+            'star2': movie.star2,
+            'poster_url': movie.poster_url,
+            'release_date': movie.release_date,
+            'imdb_rating': movie.imdb_rating,
+            'our_rating': movie.our_rating,
+            'tmdb_vote_average': movie.tmdb_vote_average,
+            'trailer_url': movie.trailer_url,
+            'trailer_name': movie.trailer_name,
+            'genres': [genre.name for genre in movie.genres.all()]
+        }
+        return Response(response_data)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def mobile_catalog(request):
+    return tinder_movies(request)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def mobile_search_catalog(request, query):
+    return search_movie(request, query)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def mobile_fetch_movie_info(request, query):
+    return fetch_movie_info(request, query)
+
+
+@api_view(['GET'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def get_ratings_based_recommendations(request):
@@ -995,59 +1094,67 @@ def get_ratings_based_recommendations(request):
                 "recommendations": serializer.data
             })
         
-        # Use AI recommendation model
         try:
-            # Import feature matrix and movie data
-            MODEL_DIR = os.path.join(settings.BASE_DIR, 'ai', 'model')
-            X = joblib.load(os.path.join(MODEL_DIR, 'features.pkl'))
-            df = pd.read_csv(os.path.join(MODEL_DIR, 'cleaned_movies.csv'))
-            
-            # Filter features for liked and disliked movies
-            liked_df = X[df['title'].isin(liked_movies)]
-            disliked_df = X[df['title'].isin(disliked_movies)]
-            
-            if liked_df.empty:
+            from ai.views import build_recommendations_from_titles
+
+            recommendations = build_recommendations_from_titles(
+                liked_titles=liked_movies,
+                disliked_titles=disliked_movies,
+                limit=10,
+            )
+
+            if not recommendations:
                 movies = Movie.objects.all().order_by('?')[:10]
                 serializer = MovieSerializer(movies, many=True)
                 return Response({
-                    "info": "No matching liked movies in model, showing trending instead",
-                    "recommendations": serializer.data
+                    "info": "Unable to score from current ratings, showing trending movies instead",
+                    "recommendations": serializer.data,
                 })
-            
-            # Create user profile
-            profile = liked_df.mean()
-            if not disliked_df.empty:
-                profile -= disliked_df.mean()
-            
-            # Calculate similarity
-            sim = cosine_similarity(X, profile.values.reshape(1, -1)).flatten()
-            df['sim'] = sim
-            
-            # Filter out movies user has already rated
-            all_rated_ids = liked_movie_ids + disliked_movie_ids
-            df_filtered = df[~df['title'].isin(liked_movies + disliked_movies)]
-            
-            # Sort by similarity and get top recommendations
-            recommendations_df = df_filtered.sort_values(by='sim', ascending=False).head(10)
-            
-            # Get our Movie objects for these recommendations
-            recommended_titles = recommendations_df['title'].tolist()
-            recommended_movies = Movie.objects.filter(title__in=recommended_titles)
-            
-            # Return as serialized data
-            serializer = MovieSerializer(recommended_movies, many=True)
-            return Response({
-                "recommendations": serializer.data
-            })
-            
+
+            return Response({"recommendations": recommendations})
+
         except Exception as e:
-            # If ML fails, fall back to trending
+            # If recommendation generation fails, fall back to trending
             movies = Movie.objects.all().order_by('?')[:10]
             serializer = MovieSerializer(movies, many=True)
             return Response({
                 "error": f"Error generating recommendations: {str(e)}",
                 "recommendations": serializer.data
             })
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def random_trailers(request):
+    """
+    Get randomized movies that have valid trailer data for the Shorts feature
+    """
+    try:
+        # Filter movies that have trailer_key or trailer_url
+        movies_with_trailers = Movie.objects.filter(
+            models.Q(trailer_key__isnull=False) & ~models.Q(trailer_key='') |
+            models.Q(trailer_url__isnull=False) & ~models.Q(trailer_url='')
+        ).prefetch_related('genres')
+        
+        # Get count and sample randomly
+        total_count = movies_with_trailers.count()
+        
+        if total_count == 0:
+            return Response({"error": "No movies with trailers found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get 30 random movies (or all if less than 30)
+        sample_size = min(30, total_count)
+        
+        # Use order_by('?') for random selection
+        random_movies = list(movies_with_trailers.order_by('?')[:sample_size])
+        
+        # Serialize and return
+        serializer = MovieSerializer(random_movies, many=True)
+        return Response(serializer.data)
         
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

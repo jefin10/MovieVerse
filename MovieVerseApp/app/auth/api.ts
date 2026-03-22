@@ -20,21 +20,48 @@ AsyncStorage.getItem('csrftoken').then(token => {
 
 export const getCSRFToken = async () => {
   try {
-  
     const response = await api.get('api/auth/csrf/');
-;
     const cookieHeader = response.headers['set-cookie'] || response.headers['Set-Cookie'];
     const match = cookieHeader?.toString().match(/csrftoken=([^;]+)/);
     if (match) {
-      
       const token = match[1];
-      axios.defaults.headers.common['X-CSRFToken'] = token;
+      // Set on the local api instance, not global axios
+      api.defaults.headers.common['X-CSRFToken'] = token;
       await AsyncStorage.setItem('csrftoken', token);
       return token;
     }
   } catch (err) {
     console.error('Error fetching CSRF token:', err);
   }
+};
+
+// Validate session with server
+export const validateSession = async (): Promise<boolean> => {
+  try {
+    const sessionid = await AsyncStorage.getItem('sessionid');
+    const csrftoken = await AsyncStorage.getItem('csrftoken');
+    
+    if (!sessionid) {
+      return false;
+    }
+
+    const response = await api.get('api/auth/validate-session/', {
+      headers: {
+        'X-CSRFToken': csrftoken,
+        Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
+      },
+    });
+
+    return response.data.valid === true;
+  } catch (err) {
+    console.error('Session validation failed:', err);
+    return false;
+  }
+};
+
+// Refresh CSRF token
+export const refreshCSRFToken = async (): Promise<string | null> => {
+  return await getCSRFToken();
 };
 
 interface Cookie {
@@ -53,8 +80,39 @@ export const storeSessionCookie = async (setCookieHeader: string | string[] | un
 
   if (csrfMatch) {
     await AsyncStorage.setItem('csrftoken', csrfMatch[1]);
-    axios.defaults.headers.common['X-CSRFToken'] = csrfMatch[1];
+    // Set on the local api instance, not global axios
+    api.defaults.headers.common['X-CSRFToken'] = csrfMatch[1];
   }
 };
+
+// Add response interceptor to handle CSRF token expiration
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If 403 and CSRF token issue, refresh and retry
+    if (error.response?.status === 403 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const newToken = await refreshCSRFToken();
+        if (newToken) {
+          originalRequest.headers['X-CSRFToken'] = newToken;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh CSRF token:', refreshError);
+      }
+    }
+
+    // If 401, session expired - clear storage
+    if (error.response?.status === 401) {
+      await AsyncStorage.multiRemove(['sessionid', 'csrftoken', 'username']);
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;

@@ -35,6 +35,17 @@ const Index = () => {
   const { authenticated } = useAuth();
   const router = useRouter();
 
+  const getErrorDetails = (error: unknown) => {
+    if (typeof error === 'object' && error !== null) {
+      const maybeError = error as {
+        response?: { data?: unknown };
+        message?: string;
+      };
+      return maybeError.response?.data ?? maybeError.message ?? 'Unknown error';
+    }
+    return String(error);
+  };
+
   const goToProfile = () => {
     router.push('/pages/ProfilePage');
   }
@@ -51,7 +62,7 @@ const Index = () => {
   };
 
   // Fetch user info and recommendations when component mounts
-    useEffect(() => {
+  useEffect(() => {
     const fetchUserData = async () => {
       try {
         // Set the greeting when the component mounts
@@ -61,10 +72,17 @@ const Index = () => {
         if (storedUsername) {
           setUsername(storedUsername);
           fetchRecommendations(storedUsername);
-          fetchTrendingMovies();
+        } else {
+          // Fallback: fetch trending movies if no username
+          console.log('No username found, showing trending movies only');
         }
+        
+        // Always fetch trending movies
+        fetchTrendingMovies();
       } catch (error) {
         console.error('Error fetching user data:', error);
+        // Fallback to trending movies on error
+        fetchTrendingMovies();
       }
     };
 
@@ -82,12 +100,12 @@ const Index = () => {
   // Fetch recommended movies for the user
   // Modify the fetchRecommendations function
 const fetchRecommendations = async (username: string) => {
-  const sessionid = await AsyncStorage.getItem('sessionid');
-  const csrftoken = await AsyncStorage.getItem('csrftoken');
+  let sessionid: string | null = null;
+  let csrftoken: string | null = null;
   try {
     setLoading(true);
-    const sessionid = await AsyncStorage.getItem('sessionid');
-    const csrftoken = await AsyncStorage.getItem('csrftoken');
+    sessionid = await AsyncStorage.getItem('sessionid');
+    csrftoken = await AsyncStorage.getItem('csrftoken');
 
     if (!sessionid || !csrftoken) {
       console.warn('Missing authentication tokens');
@@ -108,18 +126,18 @@ const fetchRecommendations = async (username: string) => {
 
     
     // Process poster URLs to ensure they're complete
-    const processedMovies = response.data.recommendations.map(movie => ({
+    const processedMovies = (response.data.recommendations as Movie[]).map((movie: Movie) => ({
       ...movie,
       poster_url: movie.poster_url ? (
         movie.poster_url.startsWith('http') ? 
           movie.poster_url : 
           `https://image.tmdb.org/t/p/w500${movie.poster_url}`
-      ) : null
+      ) : ''
     }));
     
     setRecommendations(processedMovies);
   } catch (error) {
-    console.error('Error fetching recommendations:', error.response?.data || error.message);
+    console.error('Error fetching recommendations:', getErrorDetails(error));
     // Fall back to the original recommendations endpoint if the new one fails
     try {
       const fallbackResponse = await api.post(
@@ -147,11 +165,11 @@ const fetchRecommendations = async (username: string) => {
       const response = await api.get('api/Trending/');
       setTrendingMovies(response.data);
     } catch (error) {
-      console.error('Error fetching trending movies:', error.response?.data || error.message);
+      console.error('Error fetching trending movies:', getErrorDetails(error));
     }
   };
 
-  const handleMoodSelection = (mood) => {
+  const handleMoodSelection = (mood: string) => {
   
     router.push({
       pathname: '/(tabs)/mood',

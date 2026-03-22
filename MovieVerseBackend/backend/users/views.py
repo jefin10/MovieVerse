@@ -88,6 +88,15 @@ def check_username_availability(request):
     exists = User.objects.filter(username=username).exists()
     return JsonResponse({'available': not exists})
 
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def validate_session(request):
+    """
+    Validate if the current session is still active
+    """
+    return JsonResponse({'valid': True})
+
 from django.utils.crypto import get_random_string
 import json
 from django.core.mail import send_mail

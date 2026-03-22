@@ -1,26 +1,130 @@
+import os
+import random
+import time
+
 import joblib
 import pandas as pd
+from django.conf import settings
+from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
-import os 
-from django.conf import settings
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from sklearn.metrics.pairwise import cosine_similarity
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-# Load model and vectorizer once
+from api.models import Genre, Movie
+
+# Load only mood model artifacts at startup; movie retrieval is DB-first.
 MODEL_DIR = os.path.join(settings.BASE_DIR, 'ai', 'model')
 model_path = os.path.join(MODEL_DIR, 'mood_genre_model.pkl')
 vectorizer_path = os.path.join(MODEL_DIR, 'vectorizer.pkl')
-movies_path = os.path.join(MODEL_DIR, 'cleaned_movies.csv')
 
 model = joblib.load(model_path)
 vectorizer = joblib.load(vectorizer_path)
-movies_df = pd.read_csv(movies_path)
+
+
+def _serialize_movie(movie, similarity=None):
+    poster_url = movie.poster_url or ""
+    if poster_url and not (poster_url.startswith('http://') or poster_url.startswith('https://')):
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_url}"
+
+    payload = {
+        'id': movie.id,
+        'title': movie.title,
+        'director': movie.director,
+        'imdb_rating': float(movie.imdb_rating or 0),
+        'poster_url': poster_url,
+        'description': movie.description,
+    }
+    if similarity is not None:
+        payload['similarity'] = float(similarity)
+    return payload
+
+
+def _movie_signature(movie):
+    return {
+        'genres': {genre.name.lower().strip() for genre in movie.genres.all() if genre.name},
+        'director': (movie.director or '').lower().strip(),
+        'stars': {
+            (movie.star1 or '').lower().strip(),
+            (movie.star2 or '').lower().strip(),
+        } - {''},
+        'imdb_rating': float(movie.imdb_rating or 0),
+    }
+
+
+def _score_candidate(candidate_sig, liked_sigs, disliked_sigs, movie):
+    liked_score = 0.0
+    for liked_sig in liked_sigs:
+        current = 0.0
+        if liked_sig['genres'] and candidate_sig['genres']:
+            overlap = len(liked_sig['genres'] & candidate_sig['genres'])
+            current += 2.0 * (overlap / max(1, len(liked_sig['genres'])))
+        if liked_sig['director'] and liked_sig['director'] == candidate_sig['director']:
+            current += 1.2
+        if liked_sig['stars'] and candidate_sig['stars']:
+            current += 0.7 * len(liked_sig['stars'] & candidate_sig['stars'])
+        current += 0.6 * (1 - min(abs(liked_sig['imdb_rating'] - candidate_sig['imdb_rating']) / 10.0, 1.0))
+        liked_score = max(liked_score, current)
+
+    dislike_penalty = 0.0
+    for disliked_sig in disliked_sigs:
+        penalty = 0.0
+        if disliked_sig['genres'] and candidate_sig['genres']:
+            overlap = len(disliked_sig['genres'] & candidate_sig['genres'])
+            penalty += 1.3 * (overlap / max(1, len(disliked_sig['genres'])))
+        if disliked_sig['director'] and disliked_sig['director'] == candidate_sig['director']:
+            penalty += 0.8
+        if disliked_sig['stars'] and candidate_sig['stars']:
+            penalty += 0.45 * len(disliked_sig['stars'] & candidate_sig['stars'])
+        dislike_penalty = max(dislike_penalty, penalty)
+
+    quality_boost = (
+        0.25 * float(movie.our_rating or 0)
+        + 0.08 * float(movie.imdb_rating or 0)
+        + 0.0002 * float(movie.popularity or 0)
+    )
+    return liked_score - dislike_penalty + quality_boost
+
+
+def build_recommendations_from_titles(liked_titles, disliked_titles=None, limit=10):
+    disliked_titles = disliked_titles or []
+
+    liked_titles = [title.strip() for title in liked_titles if isinstance(title, str) and title.strip()]
+    disliked_titles = [title.strip() for title in disliked_titles if isinstance(title, str) and title.strip()]
+
+    liked_movies = list(
+        Movie.objects.filter(title__in=liked_titles)
+        .prefetch_related('genres')
+    )
+    disliked_movies = list(
+        Movie.objects.filter(title__in=disliked_titles)
+        .prefetch_related('genres')
+    )
+
+    if not liked_movies:
+        return []
+
+    excluded_ids = {movie.id for movie in liked_movies + disliked_movies}
+    candidates = list(
+        Movie.objects.exclude(id__in=excluded_ids)
+        .prefetch_related('genres')
+        .order_by('-our_rating', '-imdb_rating', '-tmdb_vote_average', '-popularity')[:1500]
+    )
+
+    liked_sigs = [_movie_signature(movie) for movie in liked_movies]
+    disliked_sigs = [_movie_signature(movie) for movie in disliked_movies]
+
+    scored = []
+    for movie in candidates:
+        candidate_sig = _movie_signature(movie)
+        score = _score_candidate(candidate_sig, liked_sigs, disliked_sigs, movie)
+        scored.append((score, movie))
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    top_items = scored[:limit]
+    return [_serialize_movie(movie, similarity=score) for score, movie in top_items]
 
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
@@ -32,67 +136,49 @@ def predict_genre_and_recommend(request):
         return JsonResponse({"error": "Mood is required"}, status=400)
         
     # Add randomness with time-based seed
-    import random
-    import time
     random.seed(int(time.time()))
 
     mood_input = vectorizer.transform([user_mood])
     predicted_genre = model.predict(mood_input)[0]
 
-    # First try to find movies matching the predicted genre
-    matching_description = movies_df[movies_df['description'].str.contains(predicted_genre, case=False, na=False)]
-    
-    # If we don't have at least 50 matches, include more movies
-    if len(matching_description) < 50:
-        # Sample random movies to fill the gap
-        remaining_needed = 50 - len(matching_description)
-        non_matching = movies_df[~movies_df.index.isin(matching_description.index)]
-        
-        if len(non_matching) >= remaining_needed:
-            # Randomly sample from non-matching movies
-            additional = non_matching.sample(n=remaining_needed)
-            matched = pd.concat([matching_description, additional])
-        else:
-            # If we still don't have enough, just use what we have
-            matched = pd.concat([matching_description, non_matching])
-    else:
-        # If we have enough matches, randomly sample from top rated movies
-        top_matches = matching_description.nlargest(min(100, len(matching_description)), 'imdb_rating')
-        matched = top_matches.sample(min(50, len(top_matches)))
+    genre = Genre.objects.filter(name__iexact=predicted_genre).first()
 
-    # Get all available movies (up to 50)
-    final_count = min(50, len(matched))
-    matched = matched.head(final_count)
-    
-    if not matched.empty:
-        # Include all relevant fields, especially poster_url
-        recommendations = matched[['id', 'title', 'director', 'imdb_rating', 'poster_url', 'description']].head(final_count)
-        
-        # Ensure poster URLs are complete
-        movies = []
-        for _, movie in recommendations.iterrows():
-            poster_url = movie['poster_url']
-            if poster_url and not (str(poster_url).startswith('http://') or str(poster_url).startswith('https://')):
-                poster_url = f"https://image.tmdb.org/t/p/w500{poster_url}"
-                
-            movies.append({
-                'id': int(movie['id']),
-                'title': movie['title'],
-                'director': movie['director'],
-                'imdb_rating': float(movie['imdb_rating']) if pd.notna(movie['imdb_rating']) else 0,
-                'poster_url': poster_url,
-                'description': movie['description']
-            })
+    if genre:
+        matching_movies = list(
+            Movie.objects.filter(genres=genre)
+            .prefetch_related('genres')
+            .order_by('-our_rating', '-imdb_rating', '-popularity')[:200]
+        )
     else:
-        movies = []
+        matching_movies = list(
+            Movie.objects.filter(
+                Q(description__icontains=predicted_genre) |
+                Q(title__icontains=predicted_genre)
+            )
+            .prefetch_related('genres')
+            .order_by('-our_rating', '-imdb_rating', '-popularity')[:200]
+        )
+
+    if len(matching_movies) >= 50:
+        selected = random.sample(matching_movies, 50)
+    else:
+        selected = list(matching_movies)
+        seen_ids = {movie.id for movie in selected}
+        remaining = 50 - len(selected)
+        if remaining > 0:
+            fallback_pool = list(
+                Movie.objects.exclude(id__in=seen_ids)
+                .order_by('-our_rating', '-imdb_rating', '-popularity')[:400]
+            )
+            if fallback_pool:
+                selected.extend(random.sample(fallback_pool, min(remaining, len(fallback_pool))))
+
+    movies = [_serialize_movie(movie) for movie in selected[:50]]
 
     return JsonResponse({
         "genre": predicted_genre,
         "recommendations": movies
     })
-# Load movie features for recommendation system
-X = joblib.load(os.path.join(MODEL_DIR, 'features.pkl'))
-df = pd.read_csv(os.path.join(MODEL_DIR, 'cleaned_movies.csv'))
 
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
@@ -105,41 +191,13 @@ def get_recommendations(request):
     if not isinstance(liked, list) or not liked:
         return Response({"error": "Liked list must be a non-empty list"}, status=400)
 
-    # Filter features for liked and disliked movies
-    liked_df = X[df['title'].isin(liked)]
-    disliked_df = X[df['title'].isin(disliked)]
-
-    if liked_df.empty:
-        return Response({"error": "None of the liked movies were found in the dataset"}, status=400)
-
-    # Create user profile
-    profile = liked_df.mean()
-    if not disliked_df.empty:
-        profile -= disliked_df.mean()
-
-    # Calculate similarity
-    sim = cosine_similarity(X, profile.values.reshape(1, -1)).flatten()
-    df['sim'] = sim
-
-    # Filter out movies user has already rated
-    unseen = df[~df['title'].isin(liked + disliked)]
-    recs = unseen.sort_values(by='sim', ascending=False).head(10)
-
-    # Return recommendations with similarity scores
-    recommendations = []
-    for _, movie in recs.iterrows():
-        recommendations.append({
-            'title': movie['title'],
-            'similarity': float(movie['sim']),
-            'poster_url': movie.get('poster_url', ''),
-            'description': movie.get('description', ''),
-            'imdb_rating': movie.get('imdb_rating', 0)
-        })
+    recommendations = build_recommendations_from_titles(liked, disliked, limit=10)
+    if not recommendations:
+        return Response({"error": "None of the liked movies were found in the live database"}, status=400)
 
     return Response(recommendations)
 
-from api.models import Movie
-from api.models import Genre
+
 @csrf_exempt
 def import_movies_from_csv(request):
     """One-time function to import movies from CSV file"""
@@ -191,9 +249,9 @@ def import_movies_from_csv(request):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def test_recommendation(request):
-    """Test endpoint to verify recommendation system works"""
+    """Test endpoint to verify DB-backed recommendation system works"""
     try:
-        sample_movies = df['title'].sample(3).tolist()
+        sample_movies = list(Movie.objects.values_list('title', flat=True).order_by('?')[:3])
         return JsonResponse({
             "status": "success",
             "message": "Recommendation system is working",

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,18 +9,31 @@ import ProtectedRoute from '../auth/protectedRoute';
 import api from '@/app/auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import CustomAlert from '../components/CustomAlert';
 
 const WatchList = () => {
   const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isFetchingRef = useRef(false);
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    showCancel: false,
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     fetchWatchlist();
   }, []);
 
-  const fetchWatchlist = async () => {
+  const fetchWatchlist = useCallback(async (retryCount = 0) => {
+    if (isFetchingRef.current) {
+      return;
+    }
+    isFetchingRef.current = true;
     setLoading(true);
     try {
       const username = await AsyncStorage.getItem('username');
@@ -33,33 +46,52 @@ const WatchList = () => {
         return;
       }
       
-      const response = await api.post('api/watchlist/', 
-        {
-          username: username
-        },
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
-          }
+      // Changed to GET request with query params (semantically correct)
+      const response = await api.get(`api/watchlist/?username=${username}`, {
+        headers: {
+          'X-CSRFToken': csrftoken,
+          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
         }
-      );
+      });
       
       // Process the response data to ensure complete poster URLs
-      const processedData = response.data.map(item => ({
+      const rawItems = Array.isArray(response.data) ? response.data : [];
+      const processedData = rawItems.map(item => ({
         ...item,
         poster_url: ensureCompleteImageUrl(item.poster_url)
       }));
       
       setWatchlistItems(processedData);
+      setError(null);
       console.log('Watchlist items:', processedData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch watchlist:', err);
-      setError('Failed to load your watchlist. Please try again.');
+
+      const status = err?.response?.status;
+      const isNetworkError = err?.message === 'Network Error' || err?.code === 'ERR_NETWORK';
+      
+      // Retry logic for network errors and 5xx errors
+      if ((isNetworkError || (status >= 500 && status < 600)) && retryCount < 3) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
+        setTimeout(() => {
+          fetchWatchlist(retryCount + 1);
+        }, delay);
+        return;
+      }
+
+      // Handle specific error codes
+      if (status === 401) {
+        setError('Session expired. Please log in again.');
+      } else if (status === 403) {
+        setError('Access denied. Please check your permissions.');
+      } else {
+        setError('Failed to load your watchlist. Please try again.');
+      }
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
-  };
+  }, []);
   
   const ensureCompleteImageUrl = (url) => {
     if (!url) return null;
@@ -79,7 +111,13 @@ const WatchList = () => {
     try {
       const username = await AsyncStorage.getItem('username');
       if (!username) {
-        Alert.alert('Error', 'User not logged in. Please log in first.');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'User not logged in. Please log in first.',
+          showCancel: false,
+          onConfirm: () => {},
+        });
         return;
       }
       
@@ -96,17 +134,31 @@ const WatchList = () => {
       setWatchlistItems(watchlistItems.filter(item => item.id !== id));
     } catch (err) {
       console.error('Failed to remove from watchlist:', err);
-      Alert.alert('Error', 'Failed to remove movie from watchlist');
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to remove movie from watchlist',
+        showCancel: false,
+        onConfirm: () => {},
+      });
     }
   };
 
-  // Automatically delete the item when row is fully swiped
+  // Show confirmation before deleting when row is fully swiped
   const onRowDidOpen = (rowKey, rowMap) => {
     const itemToDelete = watchlistItems.find(item => item.id.toString() === rowKey);
     if (itemToDelete) {
-      removeFromWatchlist(itemToDelete.id);
+      setAlertConfig({
+        visible: true,
+        title: 'Remove from Watchlist',
+        message: `Remove "${itemToDelete.title}" from your watchlist?`,
+        showCancel: true,
+        onConfirm: () => {
+          removeFromWatchlist(itemToDelete.id);
+        },
+      });
       
-      // Close the row (optional, since it will be removed)
+      // Close the row
       if (rowMap[rowKey]) {
         rowMap[rowKey].closeRow();
       }
@@ -248,6 +300,15 @@ const renderItem = (data) => (
               )}
             />
           )}
+          
+          <CustomAlert
+            visible={alertConfig.visible}
+            title={alertConfig.title}
+            message={alertConfig.message}
+            showCancel={alertConfig.showCancel}
+            onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+            onConfirm={alertConfig.onConfirm}
+          />
         </SafeAreaView>
       </ScreenWrapper>
     </ProtectedRoute>

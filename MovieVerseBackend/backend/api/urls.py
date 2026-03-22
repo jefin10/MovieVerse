@@ -2,7 +2,9 @@ from django.urls import path
 from . import views
 from .views import (
    trending_movies, view_watchlist, add_movie_to_watchlist,
-    remove_movie_from_watchlist,get_ratings_based_recommendations,rate_movie,get_movie_rating,add_temp_recommendations,get_user_recommendations, tinder_movies, search_movie, view_watchlist, add_movie_to_watchlist, remove_movie_from_watchlist
+  remove_movie_from_watchlist,get_ratings_based_recommendations,rate_movie,get_movie_rating,add_temp_recommendations,get_user_recommendations, tinder_movies, search_movie, view_watchlist, add_movie_to_watchlist, remove_movie_from_watchlist,
+  web_catalog, web_search_catalog, web_fetch_movie_info,
+  mobile_catalog, mobile_search_catalog, mobile_fetch_movie_info,
 )
 
 urlpatterns = [
@@ -14,6 +16,7 @@ urlpatterns = [
     path('Trending/', trending_movies, name='trending_movies'),
    
     path('TinderMovies/', tinder_movies, name='tinder_movies'),
+    path('shorts/random-trailers/', views.random_trailers, name='random_trailers'),
     path('searchMovie/<str:query>/', search_movie, name='search_movie'),
     path('fetchMovieInfo/<str:query>/', views.fetch_movie_info, name='fetch_movie_info'),
     path('getMoviePoster/<str:query>/', views.get_movie_poster, name='get_movie_poster'),
@@ -28,6 +31,16 @@ urlpatterns = [
     path('movie/<int:movie_id>/rating/', get_movie_rating, name='get_movie_rating'),
     path('searchMovie/<str:query>/',views.search_movie, name='search_movie'),
     path('recommendations/from-ratings/', get_ratings_based_recommendations, name='ratings_based_recommendations'),  # Add this line
+
+    # Website routes (no auth)
+    path('web/catalog/', web_catalog, name='web_catalog'),
+    path('web/search/<str:query>/', web_search_catalog, name='web_search_catalog'),
+    path('web/movie/<str:query>/', web_fetch_movie_info, name='web_fetch_movie_info'),
+
+    # Mobile routes (auth)
+    path('mobile/catalog/', mobile_catalog, name='mobile_catalog'),
+    path('mobile/search/<str:query>/', mobile_search_catalog, name='mobile_search_catalog'),
+    path('mobile/movie/<str:query>/', mobile_fetch_movie_info, name='mobile_fetch_movie_info'),
 
       # Add this line
 

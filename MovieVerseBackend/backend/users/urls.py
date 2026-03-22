@@ -9,6 +9,7 @@ urlpatterns = [
     path('test/', test, name='test'),   
     path('csrf/', get_csrf_token),
     path('check-username/', check_username_availability, name='check_username'),
+    path('validate-session/', views.validate_session, name='validate_session'),
     path('forgot-password/', views.forgot_password),
     path('verify-otp/', views.verify_otp),
     path('reset-password/', views.reset_password),
