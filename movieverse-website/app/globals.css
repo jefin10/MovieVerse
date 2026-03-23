@@ -1,12 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090909;
-  --foreground: #f4f4f4;
-  --card: #151515;
-  --muted: #9a9a9a;
-  --accent: #ff5e00;
-  --accent-soft: #ff8c42;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #0d0d0d;
+  --muted: #888888;
 }
 
 @theme inline {
@@ -17,9 +15,7 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at 90% 0%, #35200e 0%, #141414 35%, #090909 70%),
-    linear-gradient(180deg, #0f0f0f 0%, #090909 100%);
+  background: #000000;
   color: var(--foreground);
   font-family: var(--font-sora), sans-serif;
 }

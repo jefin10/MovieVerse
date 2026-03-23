@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { fetchCatalog, Movie, searchCatalog } from "@/lib/api";
 
 function getPoster(url?: string) {
-  if (!url) return "https://via.placeholder.com/400x600/161616/e5e5e5?text=MovieVerse";
+  if (!url) return "https://via.placeholder.com/400x600/0d0d0d/ffffff?text=No+Poster";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `https://image.tmdb.org/t/p/w500${url}`;
 }
@@ -24,7 +24,7 @@ export default function BrowsePage() {
         const data = await fetchCatalog();
         setMovies(data);
       } catch (e) {
-        setError("Could not load movie catalog. Check backend URL.");
+        setError("Could not load movie catalog. Make sure the backend is running.");
       } finally {
         setLoading(false);
       }
@@ -34,6 +34,21 @@ export default function BrowsePage() {
 
   const onSearch = async (event: FormEvent) => {
     event.preventDefault();
+    if (!query.trim()) {
+      // If empty search, reload catalog
+      try {
+        setLoading(true);
+        setError("");
+        const data = await fetchCatalog();
+        setMovies(data);
+      } catch {
+        setError("Failed to load catalog.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
     try {
       setLoading(true);
       setError("");
@@ -49,46 +64,81 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen py-8 sm:py-12">
       <main className="movieverse-shell">
-        <header className="mb-7 flex flex-col gap-4 rounded-3xl border border-white/10 bg-black/35 p-6 backdrop-blur sm:flex-row sm:items-end sm:justify-between">
+        {/* Header */}
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-orange-300">MovieVerse Web</p>
-            <h1 className="movieverse-title text-5xl text-white">Catalog</h1>
+            <h1 className="movieverse-title text-5xl text-white">Browse Movies</h1>
+            <p className="text-zinc-500 text-sm mt-1">No authentication required</p>
           </div>
-          <Link href="/" className="rounded-full border border-white/25 px-4 py-2 text-sm text-white transition hover:border-orange-300 hover:text-orange-200">
-            Back to Landing
+          <Link 
+            href="/" 
+            className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
+          >
+            ← Back Home
           </Link>
         </header>
 
-        <form onSubmit={onSearch} className="mb-6 flex gap-2">
+        {/* Search Bar */}
+        <form onSubmit={onSearch} className="mb-8 flex gap-3">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by movie title"
-            className="w-full rounded-2xl border border-white/20 bg-black/40 px-4 py-3 text-sm text-white outline-none ring-orange-500/40 placeholder:text-zinc-500 focus:ring"
+            placeholder="Search movies..."
+            className="flex-1 rounded-2xl border border-white/20 bg-zinc-900 px-5 py-3 text-white outline-none placeholder:text-zinc-600 focus:border-white/40"
           />
-          <button type="submit" className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-400">
+          <button 
+            type="submit" 
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
+          >
             Search
           </button>
         </form>
 
-        {error ? <p className="mb-5 rounded-xl border border-red-400/50 bg-red-900/30 p-3 text-sm text-red-100">{error}</p> : null}
-        {loading ? <p className="text-zinc-300">Loading catalog...</p> : null}
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-950/30 p-4 text-red-300">
+            {error}
+          </div>
+        )}
 
-        <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {movies.map((movie) => (
-            <Link
-              key={movie.id}
-              href={`/movie/${movie.id}`}
-              className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111]/80 transition hover:border-orange-300"
-            >
-              <img src={getPoster(movie.poster_url)} alt={movie.title} className="h-56 w-full object-cover transition duration-300 group-hover:scale-105" />
-              <div className="p-3">
-                <p className="line-clamp-2 text-sm font-semibold text-white">{movie.title}</p>
-                <p className="mt-1 text-xs text-zinc-400">{movie.release_date?.slice(0, 4) || "Unknown"}</p>
-              </div>
-            </Link>
-          ))}
-        </section>
+        {/* Loading State */}
+        {loading && (
+          <p className="text-zinc-500 text-center py-12">Loading movies...</p>
+        )}
+
+        {/* Movies Grid */}
+        {!loading && movies.length > 0 && (
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {movies.map((movie) => (
+              <Link
+                key={movie.id}
+                href={`/movie/${movie.id}`}
+                className="group overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 transition hover:border-white/30 hover:scale-105"
+              >
+                <img 
+                  src={getPoster(movie.poster_url)} 
+                  alt={movie.title} 
+                  className="h-64 w-full object-cover"
+                />
+                <div className="p-3">
+                  <p className="line-clamp-2 text-sm font-semibold text-white">
+                    {movie.title}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {movie.release_date?.slice(0, 4) || "Unknown"}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </section>
+        )}
+
+        {/* No Results */}
+        {!loading && movies.length === 0 && !error && (
+          <div className="text-center py-12">
+            <p className="text-zinc-500">No movies found</p>
+          </div>
+        )}
       </main>
     </div>
   );

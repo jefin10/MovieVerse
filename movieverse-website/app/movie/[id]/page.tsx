@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { fetchMovieDetails } from "@/lib/api";
 
 function getPoster(url?: string) {
-  if (!url) return "https://via.placeholder.com/500x750/161616/e5e5e5?text=MovieVerse";
+  if (!url) return "https://via.placeholder.com/500x750/0d0d0d/ffffff?text=No+Poster";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `https://image.tmdb.org/t/p/w500${url}`;
 }
@@ -36,14 +36,22 @@ export default function MovieDetailsPage() {
   }, [params.id]);
 
   if (loading) {
-    return <div className="movieverse-shell py-10 text-zinc-300">Loading movie details...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-zinc-500">Loading movie details...</p>
+      </div>
+    );
   }
 
   if (!movie || error) {
     return (
-      <div className="movieverse-shell py-10">
-        <p className="rounded-xl border border-red-400/40 bg-red-900/30 p-3 text-red-100">{error || "Movie not found."}</p>
-        <Link href="/browse" className="mt-4 inline-block text-orange-300 hover:text-orange-200">Back to catalog</Link>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error || "Movie not found."}</p>
+          <Link href="/browse" className="text-white hover:text-zinc-300">
+            ← Back to catalog
+          </Link>
+        </div>
       </div>
     );
   }
@@ -51,49 +59,100 @@ export default function MovieDetailsPage() {
   return (
     <div className="min-h-screen py-8 sm:py-12">
       <main className="movieverse-shell">
-        <Link href="/browse" className="mb-5 inline-block text-sm text-orange-300 hover:text-orange-200">← Back to catalog</Link>
+        {/* Back Button */}
+        <Link 
+          href="/browse" 
+          className="inline-block mb-6 text-white hover:text-zinc-300 transition"
+        >
+          ← Back to catalog
+        </Link>
 
-        <section className="grid gap-6 rounded-3xl border border-white/10 bg-black/35 p-6 backdrop-blur md:grid-cols-[320px_1fr]">
-          <img src={getPoster(movie.poster_url)} alt={movie.title} className="h-[470px] w-full rounded-2xl object-cover" />
-
+        {/* Movie Details */}
+        <section className="grid gap-8 md:grid-cols-[300px_1fr]">
+          {/* Poster */}
           <div>
-            <h1 className="movieverse-title text-5xl text-white">{movie.title}</h1>
-            <p className="mt-2 text-sm text-zinc-400">
-              {movie.release_date || "Unknown date"}
-              {movie.director ? ` • Directed by ${movie.director}` : ""}
+            <img 
+              src={getPoster(movie.poster_url)} 
+              alt={movie.title} 
+              className="w-full rounded-2xl border border-white/10"
+            />
+          </div>
+
+          {/* Info */}
+          <div>
+            <h1 className="movieverse-title text-5xl sm:text-6xl text-white mb-3">
+              {movie.title}
+            </h1>
+            
+            <div className="flex flex-wrap gap-3 text-sm text-zinc-500 mb-6">
+              {movie.release_date && (
+                <span>{movie.release_date.slice(0, 4)}</span>
+              )}
+              {movie.director && (
+                <span>• Directed by {movie.director}</span>
+              )}
+            </div>
+
+            {/* Genres */}
+            {movie.genres && movie.genres.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {movie.genres.map((genre) => (
+                  <span 
+                    key={genre} 
+                    className="rounded-full border border-white/20 bg-zinc-900 px-4 py-1.5 text-xs text-white"
+                  >
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Description */}
+            <p className="text-zinc-300 leading-relaxed mb-8">
+              {movie.movie_info || movie.description || "No description available."}
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(movie.genres || []).map((genre) => (
-                <span key={genre} className="rounded-full border border-orange-400/40 bg-orange-500/15 px-3 py-1 text-xs text-orange-100">
-                  {genre}
-                </span>
-              ))}
+            {/* Ratings */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              {movie.imdb_rating && (
+                <div className="rounded-2xl border border-white/10 bg-zinc-900 p-4">
+                  <p className="text-zinc-500 text-sm mb-1">IMDb Rating</p>
+                  <p className="text-white text-2xl font-bold">
+                    {movie.imdb_rating.toFixed(1)}
+                  </p>
+                </div>
+              )}
+              {movie.tmdb_vote_average && (
+                <div className="rounded-2xl border border-white/10 bg-zinc-900 p-4">
+                  <p className="text-zinc-500 text-sm mb-1">TMDB Rating</p>
+                  <p className="text-white text-2xl font-bold">
+                    {movie.tmdb_vote_average.toFixed(1)}
+                  </p>
+                </div>
+              )}
             </div>
 
-            <p className="mt-6 leading-7 text-zinc-200">{movie.movie_info || movie.description || "No description available."}</p>
-
-            <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-zinc-400">TMDB Rating</p>
-                <p className="mt-1 text-xl font-bold text-white">{movie.tmdb_vote_average ?? "N/A"}</p>
+            {/* Cast */}
+            {(movie.star1 || movie.star2) && (
+              <div className="mb-8">
+                <p className="text-zinc-500 text-sm mb-2">Cast</p>
+                <p className="text-white">
+                  {[movie.star1, movie.star2].filter(Boolean).join(", ")}
+                </p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-zinc-400">IMDb Rating</p>
-                <p className="mt-1 text-xl font-bold text-white">{movie.imdb_rating ?? "N/A"}</p>
-              </div>
-            </div>
+            )}
 
-            {movie.trailer_url ? (
+            {/* Trailer Button */}
+            {movie.trailer_url && (
               <a
                 href={movie.trailer_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 inline-block rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-400"
+                className="inline-block rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
               >
                 Watch Trailer
               </a>
-            ) : null}
+            )}
           </div>
         </section>
       </main>
