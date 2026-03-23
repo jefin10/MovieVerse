@@ -4,6 +4,8 @@ import time
 
 import joblib
 import pandas as pd
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 from django.conf import settings
 from django.db.models import Q
 from django.http import JsonResponse
@@ -15,13 +17,36 @@ from rest_framework.response import Response
 
 from api.models import Genre, Movie
 
-# Load only mood model artifacts at startup; movie retrieval is DB-first.
+# Load model artifacts at startup
 MODEL_DIR = os.path.join(settings.BASE_DIR, 'ai', 'model')
+
+# Mood model
 model_path = os.path.join(MODEL_DIR, 'mood_genre_model.pkl')
 vectorizer_path = os.path.join(MODEL_DIR, 'vectorizer.pkl')
-
 model = joblib.load(model_path)
 vectorizer = joblib.load(vectorizer_path)
+
+# Movie recommendation features (with genre integration)
+features_path = os.path.join(MODEL_DIR, 'features.pkl')
+cleaned_movies_path = os.path.join(MODEL_DIR, 'cleaned_movies.csv')
+genre_encoder_path = os.path.join(MODEL_DIR, 'genre_encoder.pkl')
+tfidf_vectorizer_path = os.path.join(MODEL_DIR, 'tfidf_vectorizer.pkl')
+
+try:
+    features_matrix = joblib.load(features_path)
+    cleaned_movies_df = pd.read_csv(cleaned_movies_path)
+    genre_encoder = joblib.load(genre_encoder_path)
+    tfidf_vectorizer = joblib.load(tfidf_vectorizer_path)
+    FEATURES_LOADED = True
+    print("✓ Movie recommendation features loaded successfully")
+except Exception as e:
+    print(f"⚠ Could not load movie features: {e}")
+    print("  Falling back to signature-based recommendations")
+    FEATURES_LOADED = False
+    features_matrix = None
+    cleaned_movies_df = None
+    genre_encoder = None
+    tfidf_vectorizer = None
 
 
 def _serialize_movie(movie, similarity=None):
@@ -88,12 +113,102 @@ def _score_candidate(candidate_sig, liked_sigs, disliked_sigs, movie):
     return liked_score - dislike_penalty + quality_boost
 
 
+def _build_recommendations_with_features(liked_titles, disliked_titles, limit=10):
+    """
+    Build recommendations using cosine similarity with genre-enhanced features
+    """
+    from sklearn.metrics.pairwise import cosine_similarity
+    import numpy as np
+    
+    # Find indices of liked and disliked movies in the feature matrix
+    liked_indices = []
+    disliked_indices = []
+    
+    for title in liked_titles:
+        matches = cleaned_movies_df[cleaned_movies_df['title'].str.lower() == title.lower()]
+        if not matches.empty:
+            liked_indices.append(matches.index[0])
+    
+    for title in disliked_titles:
+        matches = cleaned_movies_df[cleaned_movies_df['title'].str.lower() == title.lower()]
+        if not matches.empty:
+            disliked_indices.append(matches.index[0])
+    
+    if not liked_indices:
+        return []
+    
+    # Calculate average feature vector for liked movies
+    liked_features = features_matrix.iloc[liked_indices]
+    avg_liked_features = liked_features.mean(axis=0).values.reshape(1, -1)
+    
+    # Calculate similarity scores for all movies
+    similarities = cosine_similarity(avg_liked_features, features_matrix)[0]
+    
+    # Apply penalty for disliked movies
+    if disliked_indices:
+        disliked_features = features_matrix.iloc[disliked_indices]
+        avg_disliked_features = disliked_features.mean(axis=0).values.reshape(1, -1)
+        dislike_similarities = cosine_similarity(avg_disliked_features, features_matrix)[0]
+        # Reduce score if similar to disliked movies
+        similarities = similarities - (0.5 * dislike_similarities)
+    
+    # Exclude already rated movies
+    excluded_indices = set(liked_indices + disliked_indices)
+    
+    # Get top recommendations
+    scored_indices = []
+    for idx, score in enumerate(similarities):
+        if idx not in excluded_indices:
+            scored_indices.append((idx, score))
+    
+    # Sort by score and get top N
+    scored_indices.sort(key=lambda x: x[1], reverse=True)
+    top_indices = [idx for idx, score in scored_indices[:limit * 2]]  # Get 2x to filter by DB
+    
+    # Get movie IDs from cleaned_movies_df
+    recommended_ids = cleaned_movies_df.iloc[top_indices]['id'].tolist()
+    
+    # Fetch from database with all relations
+    recommended_movies = list(
+        Movie.objects.filter(id__in=recommended_ids)
+        .prefetch_related('genres')
+    )
+    
+    # Sort by original similarity scores
+    id_to_movie = {movie.id: movie for movie in recommended_movies}
+    id_to_score = {
+        cleaned_movies_df.iloc[idx]['id']: score 
+        for idx, score in scored_indices[:limit * 2]
+    }
+    
+    results = []
+    for movie_id in recommended_ids:
+        if movie_id in id_to_movie:
+            movie = id_to_movie[movie_id]
+            score = id_to_score.get(movie_id, 0)
+            results.append((score, movie))
+            if len(results) >= limit:
+                break
+    
+    return [_serialize_movie(movie, similarity=score) for score, movie in results]
+
+
 def build_recommendations_from_titles(liked_titles, disliked_titles=None, limit=10):
     disliked_titles = disliked_titles or []
 
     liked_titles = [title.strip() for title in liked_titles if isinstance(title, str) and title.strip()]
     disliked_titles = [title.strip() for title in disliked_titles if isinstance(title, str) and title.strip()]
 
+    # Try feature-based recommendations first (with genre integration)
+    if FEATURES_LOADED:
+        try:
+            recommendations = _build_recommendations_with_features(liked_titles, disliked_titles, limit)
+            if recommendations:
+                return recommendations
+        except Exception as e:
+            print(f"Feature-based recommendations failed: {e}, falling back to signature-based")
+    
+    # Fallback to signature-based recommendations
     liked_movies = list(
         Movie.objects.filter(title__in=liked_titles)
         .prefetch_related('genres')

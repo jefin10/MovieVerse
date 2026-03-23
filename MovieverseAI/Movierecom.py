@@ -4,8 +4,24 @@ import joblib
 import os
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MultiLabelBinarizer, MinMaxScaler
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
+import sys
+
+# Add Django project to path to access models
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'MovieVerseBackend', 'backend'))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+
+try:
+    import django
+    django.setup()
+    from api.models import Movie as DjangoMovie
+    USE_DJANGO = True
+    print("✓ Django models loaded successfully")
+except Exception as e:
+    print(f"⚠ Could not load Django models: {e}")
+    print("  Will use genre extraction from description as fallback")
+    USE_DJANGO = False
 
 # Create model directory if it doesn't exist
 MODEL_DIR = 'model'
@@ -13,7 +29,7 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 print("Loading movie data...")
 # Load the updated dataset
-df = pd.read_csv('api_movie.csv')
+df = pd.read_csv('model/api_movie.csv')
 
 # ================= MOVIE RECOMMENDATION MODEL =================
 print("Processing movie features...")
@@ -22,30 +38,118 @@ df['title'] = df['title'].fillna('')
 df['director'] = df['director'].fillna('')
 df['star1'] = df['star1'].fillna('')
 df['star2'] = df['star2'].fillna('')
+df['description'] = df['description'].fillna('')
 df['imdb_rating'] = pd.to_numeric(df['imdb_rating'], errors='coerce').fillna(0)
 
-# Extract genres from description (since api_movie.csv doesn't have explicit genres)
-# Let's create a placeholder - in reality you might have a more sophisticated approach
-df['genres'] = df['description'].apply(lambda x: [])  # Empty list as placeholder
+# Extract genres from Django database or description
+print("Extracting genres...")
+if USE_DJANGO:
+    # Get genres from Django database
+    def get_genres_from_db(movie_id):
+        try:
+            movie = DjangoMovie.objects.get(id=movie_id)
+            return list(movie.genres.values_list('name', flat=True))
+        except:
+            return []
+    
+    df['genres'] = df['id'].apply(get_genres_from_db)
+    print(f"  ✓ Extracted genres from database for {df['genres'].apply(len).sum()} genre assignments")
+else:
+    # Fallback: Extract genres from description using keywords
+    genre_keywords = {
+        'Action': ['action', 'fight', 'battle', 'explosion', 'chase', 'combat'],
+        'Comedy': ['comedy', 'funny', 'humor', 'laugh', 'hilarious'],
+        'Drama': ['drama', 'emotional', 'serious', 'intense'],
+        'Horror': ['horror', 'scary', 'terror', 'frightening', 'creepy'],
+        'Romance': ['romance', 'love', 'romantic', 'relationship'],
+        'Thriller': ['thriller', 'suspense', 'mystery', 'tension'],
+        'Sci-Fi': ['sci-fi', 'science fiction', 'space', 'future', 'alien'],
+        'Fantasy': ['fantasy', 'magic', 'magical', 'wizard', 'mythical'],
+        'Animation': ['animation', 'animated', 'cartoon'],
+        'Adventure': ['adventure', 'quest', 'journey', 'expedition'],
+    }
+    
+    def extract_genres_from_description(desc):
+        if not isinstance(desc, str):
+            return []
+        desc_lower = desc.lower()
+        found_genres = []
+        for genre, keywords in genre_keywords.items():
+            if any(keyword in desc_lower for keyword in keywords):
+                found_genres.append(genre)
+        return found_genres if found_genres else ['Unknown']
+    
+    df['genres'] = df['description'].apply(extract_genres_from_description)
+    print(f"  ✓ Extracted genres from descriptions for {df['genres'].apply(len).sum()} genre assignments")
+
+# One-hot encode genres (MOST IMPORTANT FEATURE!)
+print("Creating genre features...")
+mlb = MultiLabelBinarizer()
+genre_matrix = mlb.fit_transform(df['genres'])
+genre_features = pd.DataFrame(
+    genre_matrix,
+    columns=[f'Genre_{genre}' for genre in mlb.classes_],
+    index=df.index
+)
+print(f"  ✓ Created {len(mlb.classes_)} genre features: {list(mlb.classes_)}")
 
 # One-hot encode categorical features
-print("Creating feature matrices...")
+print("Creating cast/crew features...")
 dir_dummies = pd.get_dummies(df['director'], prefix='Dir')
 star1_dummies = pd.get_dummies(df['star1'], prefix='S1')
 star2_dummies = pd.get_dummies(df['star2'], prefix='S2')
 
 # Normalize ratings
+print("Normalizing ratings...")
 scaler = MinMaxScaler()
 ratings = pd.DataFrame(scaler.fit_transform(df[['imdb_rating']]), 
                        columns=['imdb_rating'], index=df.index)
 
-# Combine all features
-X = pd.concat([dir_dummies, star1_dummies, star2_dummies, ratings], axis=1)
+# Add content-based features (TF-IDF on descriptions)
+print("Creating content features from descriptions...")
+tfidf = TfidfVectorizer(max_features=50, stop_words='english', min_df=2)
+description_matrix = tfidf.fit_transform(df['description'])
+description_features = pd.DataFrame(
+    description_matrix.toarray(),
+    columns=[f'Desc_{i}' for i in range(description_matrix.shape[1])],
+    index=df.index
+)
+print(f"  ✓ Created {description_matrix.shape[1]} content features")
+
+# Combine all features with weights
+# Genres get 3x weight (most important!)
+# Ratings get 2x weight
+# Content features get 1.5x weight
+# Cast/crew get 1x weight
+print("Combining features with weights...")
+X = pd.concat([
+    genre_features * 3,           # 3x weight for genres (MOST IMPORTANT)
+    description_features * 1.5,   # 1.5x weight for content similarity
+    ratings * 2,                  # 2x weight for ratings
+    dir_dummies,                  # 1x weight for director
+    star1_dummies,                # 1x weight for star1
+    star2_dummies,                # 1x weight for star2
+], axis=1)
+
+print(f"\n✓ Feature matrix shape: {X.shape}")
+print(f"  - Genre features: {len(genre_features.columns)} (weight: 3x)")
+print(f"  - Content features: {len(description_features.columns)} (weight: 1.5x)")
+print(f"  - Rating features: 1 (weight: 2x)")
+print(f"  - Director features: {len(dir_dummies.columns)} (weight: 1x)")
+print(f"  - Star1 features: {len(star1_dummies.columns)} (weight: 1x)")
+print(f"  - Star2 features: {len(star2_dummies.columns)} (weight: 1x)")
+print(f"  - Total features: {X.shape[1]}")
 
 # Save the feature matrix and processed dataframe
-print("Saving movie recommendation model...")
+print("\nSaving movie recommendation model...")
 joblib.dump(X, os.path.join(MODEL_DIR, 'features.pkl'))
+joblib.dump(mlb, os.path.join(MODEL_DIR, 'genre_encoder.pkl'))
+joblib.dump(tfidf, os.path.join(MODEL_DIR, 'tfidf_vectorizer.pkl'))
 df.to_csv(os.path.join(MODEL_DIR, 'cleaned_movies.csv'), index=False)
+print("  ✓ Saved features.pkl")
+print("  ✓ Saved genre_encoder.pkl")
+print("  ✓ Saved tfidf_vectorizer.pkl")
+print("  ✓ Saved cleaned_movies.csv")
 
 # ================= MOOD-BASED RECOMMENDATION MODEL =================
 print("Training mood-based recommendation model...")
