@@ -51,7 +51,7 @@ export default function Home() {
 
         {/* Footer Note */}
         <p className="text-center text-zinc-600 text-sm mt-12">
-          No authentication required for browsing • Full experience in mobile app
+          Full experience in mobile app
         </p>
       </main>
     </div>

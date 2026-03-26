@@ -68,7 +68,6 @@ export default function BrowsePage() {
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="movieverse-title text-5xl text-white">Browse Movies</h1>
-            <p className="text-zinc-500 text-sm mt-1">No authentication required</p>
           </div>
           <Link 
             href="/" 
