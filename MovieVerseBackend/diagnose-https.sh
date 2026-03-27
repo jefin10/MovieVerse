@@ -21,7 +21,7 @@ echo ""
 
 # 2. Check Docker containers
 echo "2. Checking Docker containers..."
-docker compose ps
+docker-compose ps
 echo ""
 
 # 3. Check if ports are listening
@@ -43,7 +43,7 @@ echo ""
 echo "4. Checking SSL certificate..."
 if [ -d "certbot/conf/live/$DOMAIN" ]; then
     echo "✓ Certificate directory exists"
-    docker compose run --rm certbot certificates
+    docker-compose run --rm certbot certificates
 else
     echo "✗ Certificate directory does NOT exist"
     echo "  You need to run the certificate request"
@@ -72,17 +72,17 @@ echo ""
 
 # 7. Check nginx logs
 echo "7. Recent nginx logs (last 20 lines)..."
-docker compose logs --tail=20 nginx
+docker-compose logs --tail=20 nginx 2>/dev/null || echo "nginx container not running"
 echo ""
 
 # 8. Check certbot logs
 echo "8. Recent certbot logs (last 20 lines)..."
-docker compose logs --tail=20 certbot
+docker-compose logs --tail=20 certbot 2>/dev/null || echo "certbot container not running"
 echo ""
 
 # 9. Check backend logs
 echo "9. Recent backend logs (last 20 lines)..."
-docker compose logs --tail=20 backend
+docker-compose logs --tail=20 backend 2>/dev/null || echo "backend container not running"
 echo ""
 
 echo "=========================================="

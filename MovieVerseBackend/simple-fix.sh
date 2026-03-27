@@ -1,31 +1,29 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "MovieVerse Backend HTTPS Fix Script"
+echo "Simple HTTPS Fix for MovieVerse Backend"
 echo "=========================================="
 echo ""
 
 DOMAIN="movieversebackend.jefin.xyz"
 EMAIL="jefinfrancis11@gmail.com"
 
-# Step 1: Stop all containers
-echo "Step 1: Stopping all containers..."
+# Check if docker-compose is installed
+if ! command -v docker-compose &> /dev/null; then
+    echo "Error: docker-compose is not installed!"
+    echo "Install it with: sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)\" -o /usr/local/bin/docker-compose"
+    echo "Then: sudo chmod +x /usr/local/bin/docker-compose"
+    exit 1
+fi
+
+echo "Step 1: Stopping any running containers..."
 docker-compose down
 echo ""
 
-# Step 2: Clean up old certificates (optional - uncomment if needed)
-# echo "Step 2: Cleaning up old certificates..."
-# rm -rf certbot/conf/*
-# rm -rf certbot/www/*
-# echo ""
-
-# Step 3: Create directories
-echo "Step 2: Creating necessary directories..."
-mkdir -p certbot/conf
-mkdir -p certbot/www
+echo "Step 2: Creating directories..."
+mkdir -p certbot/conf certbot/www
 echo ""
 
-# Step 4: Download TLS parameters
 echo "Step 3: Downloading TLS parameters..."
 if [ ! -f "certbot/conf/options-ssl-nginx.conf" ]; then
     curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "certbot/conf/options-ssl-nginx.conf"
@@ -35,8 +33,7 @@ if [ ! -f "certbot/conf/ssl-dhparams.pem" ]; then
 fi
 echo ""
 
-# Step 5: Create temporary nginx config (HTTP only)
-echo "Step 4: Creating temporary nginx config..."
+echo "Step 4: Creating HTTP-only nginx config..."
 cat > nginx-temp.conf << 'EOF'
 server {
     listen 80;
@@ -63,34 +60,38 @@ server {
     }
 }
 EOF
-echo ""
 
-# Step 6: Backup original config and use temp
-echo "Step 5: Backing up nginx config..."
-if [ -f "nginx.conf" ]; then
+# Backup original config
+if [ -f "nginx.conf" ] && [ ! -f "nginx.conf.ssl-backup" ]; then
     cp nginx.conf nginx.conf.ssl-backup
 fi
 cp nginx-temp.conf nginx.conf
 echo ""
 
-# Step 7: Start services
-echo "Step 6: Starting services..."
+echo "Step 5: Starting services..."
 docker-compose up -d
 echo ""
 
-# Step 8: Wait for services to be ready
-echo "Step 7: Waiting for services to start (30 seconds)..."
+echo "Step 6: Waiting for services to be ready (30 seconds)..."
 sleep 30
 echo ""
 
-# Step 9: Check if services are running
-echo "Step 8: Checking services..."
+echo "Step 7: Checking if services are running..."
 docker-compose ps
 echo ""
 
-# Step 10: Request certificate
-echo "Step 9: Requesting SSL certificate from Let's Encrypt..."
-echo "This may take a minute..."
+echo "Step 8: Testing HTTP connection..."
+HTTP_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/api/web/catalog/ 2>&1)
+if [ "$HTTP_TEST" == "200" ]; then
+    echo "✓ Backend is responding on HTTP"
+else
+    echo "⚠ Backend returned status: $HTTP_TEST"
+    echo "Checking backend logs..."
+    docker-compose logs --tail=20 backend
+fi
+echo ""
+
+echo "Step 9: Requesting SSL certificate..."
 docker-compose run --rm certbot certonly --webroot \
   --webroot-path=/var/www/certbot \
   --email $EMAIL \
@@ -100,45 +101,47 @@ docker-compose run --rm certbot certonly --webroot \
   -d $DOMAIN
 
 if [ $? -eq 0 ]; then
+    echo ""
     echo "✓ Certificate obtained successfully!"
     echo ""
     
-    # Step 11: Restore SSL config
     echo "Step 10: Restoring SSL nginx config..."
     if [ -f "nginx.conf.ssl-backup" ]; then
         cp nginx.conf.ssl-backup nginx.conf
-    else
-        echo "Warning: nginx.conf.ssl-backup not found, using default SSL config"
     fi
     echo ""
     
-    # Step 12: Restart nginx
     echo "Step 11: Restarting nginx with SSL..."
     docker-compose restart nginx
     echo ""
     
-    # Step 13: Wait and test
-    echo "Step 12: Waiting for nginx to restart (10 seconds)..."
+    echo "Step 12: Waiting for nginx to restart..."
     sleep 10
     echo ""
     
-    echo "Step 13: Testing HTTPS connection..."
+    echo "Step 13: Testing HTTPS..."
     curl -I https://$DOMAIN/api/web/catalog/
     echo ""
     
     echo "=========================================="
-    echo "✓ HTTPS setup complete!"
-    echo "Your backend should now be accessible at:"
-    echo "https://$DOMAIN"
+    echo "✓ Setup complete!"
+    echo ""
+    echo "Test your backend:"
+    echo "  https://$DOMAIN/api/web/catalog/"
     echo "=========================================="
 else
+    echo ""
     echo "✗ Certificate request failed!"
     echo ""
-    echo "Common issues:"
-    echo "1. DNS not pointing to correct IP (check: nslookup $DOMAIN)"
-    echo "2. Port 80 blocked in AWS Security Group"
-    echo "3. Domain verification failed"
+    echo "Checking certbot logs..."
+    docker-compose logs certbot
     echo ""
-    echo "Check logs with: docker-compose logs certbot"
+    echo "Common issues:"
+    echo "1. Port 80 blocked in AWS Security Group"
+    echo "2. DNS not pointing correctly"
+    echo "3. Let's Encrypt rate limit (wait 1 hour)"
+    echo ""
+    echo "Your backend is still running on HTTP:"
+    echo "  http://$DOMAIN/api/web/catalog/"
     echo "=========================================="
 fi

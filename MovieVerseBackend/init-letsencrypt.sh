@@ -45,7 +45,7 @@ fi
 cp nginx-temp.conf nginx.conf
 
 echo "### Starting nginx with temporary config ..."
-docker compose up -d nginx
+docker-compose up -d nginx
 
 echo "### Waiting for nginx to start ..."
 sleep 5
@@ -57,7 +57,7 @@ else
   STAGING_ARG=""
 fi
 
-docker compose run --rm certbot certonly --webroot \
+docker-compose run --rm certbot certonly --webroot \
   --webroot-path=/var/www/certbot \
   $STAGING_ARG \
   --email $EMAIL \
@@ -74,6 +74,6 @@ else
 fi
 
 echo "### Restarting nginx with SSL config ..."
-docker compose restart nginx
+docker-compose restart nginx
 
 echo "### Done! Your site should now be accessible via HTTPS"
