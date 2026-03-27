@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { fetchCatalog, Movie, searchCatalog } from "@/lib/api";
+import { fetchCatalog, Movie, PaginatedResponse, searchCatalog } from "@/lib/api";
 
 function getPoster(url?: string) {
   if (!url) return "https://via.placeholder.com/400x600/0d0d0d/ffffff?text=No+Poster";
@@ -15,50 +15,48 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
+
+  const loadMovies = async (pageNum: number, searchQuery: string = "") => {
+    try {
+      setLoading(true);
+      setError("");
+      let data: PaginatedResponse;
+      
+      if (searchQuery.trim()) {
+        data = await searchCatalog(searchQuery, pageNum);
+      } else {
+        data = await fetchCatalog(pageNum);
+      }
+      
+      setMovies(data.results);
+      setPage(data.page);
+      setTotalPages(data.total_pages);
+      setHasNext(data.has_next);
+      setHasPrevious(data.has_previous);
+    } catch (e) {
+      setError("Could not load movies. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const run = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await fetchCatalog();
-        setMovies(data);
-      } catch (e) {
-        setError("Could not load movie catalog. Make sure the backend is running.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    void run();
+    loadMovies(1);
   }, []);
 
   const onSearch = async (event: FormEvent) => {
     event.preventDefault();
-    if (!query.trim()) {
-      // If empty search, reload catalog
-      try {
-        setLoading(true);
-        setError("");
-        const data = await fetchCatalog();
-        setMovies(data);
-      } catch {
-        setError("Failed to load catalog.");
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setError("");
-      const data = await searchCatalog(query);
-      setMovies(data);
-    } catch {
-      setError("Search failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    setPage(1);
+    await loadMovies(1, query);
+  };
+
+  const goToPage = (newPage: number) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    loadMovies(newPage, query);
   };
 
   return (
@@ -107,29 +105,56 @@ export default function BrowsePage() {
 
         {/* Movies Grid */}
         {!loading && movies.length > 0 && (
-          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {movies.map((movie) => (
-              <Link
-                key={movie.id}
-                href={`/movie/${movie.id}`}
-                className="group overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 transition hover:border-white/30 hover:scale-105"
-              >
-                <img 
-                  src={getPoster(movie.poster_url)} 
-                  alt={movie.title} 
-                  className="h-64 w-full object-cover"
-                />
-                <div className="p-3">
-                  <p className="line-clamp-2 text-sm font-semibold text-white">
-                    {movie.title}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {movie.release_date?.slice(0, 4) || "Unknown"}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </section>
+          <>
+            <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mb-8">
+              {movies.map((movie) => (
+                <Link
+                  key={movie.id}
+                  href={`/movie/${movie.id}`}
+                  className="group overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 transition hover:border-white/30 hover:scale-105"
+                >
+                  <img 
+                    src={getPoster(movie.poster_url)} 
+                    alt={movie.title} 
+                    className="h-64 w-full object-cover"
+                  />
+                  <div className="p-3">
+                    <p className="line-clamp-2 text-sm font-semibold text-white">
+                      {movie.title}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {movie.release_date?.slice(0, 4) || "Unknown"}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </section>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={!hasPrevious}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  ← Previous
+                </button>
+                
+                <span className="text-white px-4">
+                  Page {page} of {totalPages}
+                </span>
+                
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={!hasNext}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* No Results */}

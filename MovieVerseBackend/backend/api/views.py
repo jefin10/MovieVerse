@@ -970,18 +970,64 @@ def search_movies(request,query):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def web_catalog(request):
+    # Get pagination parameters
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 24))
+    
+    # Get all movies and shuffle
     movies = list(Movie.objects.all())
     random.shuffle(movies)
-    serializer = MovieSerializer(movies[:50], many=True)
-    return Response(serializer.data)
+    
+    # Calculate pagination
+    start = (page - 1) * page_size
+    end = start + page_size
+    total_movies = len(movies)
+    total_pages = (total_movies + page_size - 1) // page_size
+    
+    # Get page of movies
+    page_movies = movies[start:end]
+    serializer = MovieSerializer(page_movies, many=True)
+    
+    return Response({
+        'results': serializer.data,
+        'page': page,
+        'page_size': page_size,
+        'total_movies': total_movies,
+        'total_pages': total_pages,
+        'has_next': page < total_pages,
+        'has_previous': page > 1
+    })
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def web_search_catalog(request, query):
+    # Get pagination parameters
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 24))
+    
+    # Search movies
     movies = Movie.objects.filter(title__icontains=query).order_by('-release_date')
-    serializer = MovieSerializer(movies[:100], many=True)
-    return Response(serializer.data)
+    total_movies = movies.count()
+    
+    # Calculate pagination
+    start = (page - 1) * page_size
+    end = start + page_size
+    total_pages = (total_movies + page_size - 1) // page_size
+    
+    # Get page of movies
+    page_movies = movies[start:end]
+    serializer = MovieSerializer(page_movies, many=True)
+    
+    return Response({
+        'results': serializer.data,
+        'page': page,
+        'page_size': page_size,
+        'total_movies': total_movies,
+        'total_pages': total_pages,
+        'has_next': page < total_pages,
+        'has_previous': page > 1
+    })
 
 
 @api_view(['GET'])

@@ -14,6 +14,16 @@ export type Movie = {
   trailer_name?: string;
 };
 
+export type PaginatedResponse = {
+  results: Movie[];
+  page: number;
+  page_size: number;
+  total_movies: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+};
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://movieversebackend.jefin.xyz";
 
 async function request<T>(path: string): Promise<T> {
@@ -24,16 +34,16 @@ async function request<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function fetchCatalog(): Promise<Movie[]> {
-  return request<Movie[]>("api/web/catalog/");
+export async function fetchCatalog(page: number = 1, pageSize: number = 24): Promise<PaginatedResponse> {
+  return request<PaginatedResponse>(`api/web/catalog/?page=${page}&page_size=${pageSize}`);
 }
 
-export async function searchCatalog(query: string): Promise<Movie[]> {
+export async function searchCatalog(query: string, page: number = 1, pageSize: number = 24): Promise<PaginatedResponse> {
   if (!query.trim()) {
-    return fetchCatalog();
+    return fetchCatalog(page, pageSize);
   }
   const encoded = encodeURIComponent(query.trim());
-  return request<Movie[]>(`api/web/search/${encoded}/`);
+  return request<PaginatedResponse>(`api/web/search/${encoded}/?page=${page}&page_size=${pageSize}`);
 }
 
 export async function fetchMovieDetails(movieId: string): Promise<Movie & { movie_info?: string }> {
