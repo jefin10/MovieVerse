@@ -23,8 +23,11 @@ services:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-movieverse}:${POSTGRES_PASSWORD:-movieverse}@db:5432/${POSTGRES_DB:-movieverse}}
-      DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-movieversebackend.jefin.xyz,localhost,127.0.0.1,movieverse.jefin.xyz}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
     depends_on:
       db:
         condition: service_healthy

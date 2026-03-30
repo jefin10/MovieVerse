@@ -970,18 +970,29 @@ def search_movies(request,query):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def web_catalog(request):
-    # Get pagination parameters
-    page = int(request.GET.get('page', 1))
-    page_size = int(request.GET.get('page_size', 24))
+    # Parse pagination defensively to avoid invalid values causing heavy queries.
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.GET.get('page_size', 24))
+    except (TypeError, ValueError):
+        page_size = 24
+    page_size = max(1, min(page_size, 100))
     
     # Get total count efficiently (cached by Django)
     total_movies = Movie.objects.count()
     total_pages = (total_movies + page_size - 1) // page_size
     
-    # Use database-level pagination with random ordering
-    # This is MUCH faster than loading all movies into memory
     start = (page - 1) * page_size
-    movies = Movie.objects.all().order_by('?')[start:start + page_size]
+    movies = (
+        Movie.objects
+        .select_related('original_language')
+        .prefetch_related('genres', 'spoken_languages', 'origin_countries', 'production_countries')
+        .order_by('-popularity', '-tmdb_vote_average', '-vote_count', '-id')[start:start + page_size]
+    )
     
     serializer = MovieSerializer(movies, many=True)
     
@@ -999,12 +1010,25 @@ def web_catalog(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def web_search_catalog(request, query):
-    # Get pagination parameters
-    page = int(request.GET.get('page', 1))
-    page_size = int(request.GET.get('page_size', 24))
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.GET.get('page_size', 24))
+    except (TypeError, ValueError):
+        page_size = 24
+    page_size = max(1, min(page_size, 100))
     
     # Search movies
-    movies = Movie.objects.filter(title__icontains=query).order_by('-release_date')
+    movies = (
+        Movie.objects
+        .filter(title__icontains=query)
+        .select_related('original_language')
+        .prefetch_related('genres', 'spoken_languages', 'origin_countries', 'production_countries')
+        .order_by('-release_date', '-id')
+    )
     total_movies = movies.count()
     
     # Calculate pagination
