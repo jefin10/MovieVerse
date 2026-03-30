@@ -968,6 +968,7 @@ def search_movies(request,query):
 
 
 @api_view(['GET'])
+@api_view(['GET'])
 @permission_classes([AllowAny])
 def web_catalog(request):
     # Get pagination parameters
