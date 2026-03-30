@@ -974,19 +974,16 @@ def web_catalog(request):
     page = int(request.GET.get('page', 1))
     page_size = int(request.GET.get('page_size', 24))
     
-    # Get all movies and shuffle
-    movies = list(Movie.objects.all())
-    random.shuffle(movies)
-    
-    # Calculate pagination
-    start = (page - 1) * page_size
-    end = start + page_size
-    total_movies = len(movies)
+    # Get total count efficiently (cached by Django)
+    total_movies = Movie.objects.count()
     total_pages = (total_movies + page_size - 1) // page_size
     
-    # Get page of movies
-    page_movies = movies[start:end]
-    serializer = MovieSerializer(page_movies, many=True)
+    # Use database-level pagination with random ordering
+    # This is MUCH faster than loading all movies into memory
+    start = (page - 1) * page_size
+    movies = Movie.objects.all().order_by('?')[start:start + page_size]
+    
+    serializer = MovieSerializer(movies, many=True)
     
     return Response({
         'results': serializer.data,

@@ -26,8 +26,8 @@ export type PaginatedResponse = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://movieversebackend.jefin.xyz";
 
-async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}/${path}`, { cache: "no-store" });
+async function request<T>(path: string, cache: RequestCache = "no-store"): Promise<T> {
+  const response = await fetch(`${API_BASE}/${path}`, { cache });
   if (!response.ok) {
     throw new Error(`API ${response.status}: ${path}`);
   }
@@ -35,7 +35,8 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export async function fetchCatalog(page: number = 1, pageSize: number = 24): Promise<PaginatedResponse> {
-  return request<PaginatedResponse>(`api/web/catalog/?page=${page}&page_size=${pageSize}`);
+  // Use force-cache for catalog to improve performance
+  return request<PaginatedResponse>(`api/web/catalog/?page=${page}&page_size=${pageSize}`, "force-cache");
 }
 
 export async function searchCatalog(query: string, page: number = 1, pageSize: number = 24): Promise<PaginatedResponse> {
@@ -43,10 +44,10 @@ export async function searchCatalog(query: string, page: number = 1, pageSize: n
     return fetchCatalog(page, pageSize);
   }
   const encoded = encodeURIComponent(query.trim());
-  return request<PaginatedResponse>(`api/web/search/${encoded}/?page=${page}&page_size=${pageSize}`);
+  return request<PaginatedResponse>(`api/web/search/${encoded}/?page=${page}&page_size=${pageSize}`, "no-store");
 }
 
 export async function fetchMovieDetails(movieId: string): Promise<Movie & { movie_info?: string }> {
   const encoded = encodeURIComponent(movieId);
-  return request<Movie & { movie_info?: string }>(`api/web/movie/${encoded}/`);
+  return request<Movie & { movie_info?: string }>(`api/web/movie/${encoded}/`, "force-cache");
 }

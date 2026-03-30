@@ -117,6 +117,10 @@ export default function BrowsePage() {
                     src={getPoster(movie.poster_url)} 
                     alt={movie.title} 
                     className="h-64 w-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
                   />
                   <div className="p-3">
                     <p className="line-clamp-2 text-sm font-semibold text-white">

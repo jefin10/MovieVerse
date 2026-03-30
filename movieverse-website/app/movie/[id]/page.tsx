@@ -75,6 +75,10 @@ export default function MovieDetailsPage() {
               src={getPoster(movie.poster_url)} 
               alt={movie.title} 
               className="w-full rounded-2xl border border-white/10"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
             />
           </div>
 
