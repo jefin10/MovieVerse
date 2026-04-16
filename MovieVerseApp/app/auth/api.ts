@@ -3,13 +3,14 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'https://movieverse.jefin.xyz/', // Update to match your backend IP
+  baseURL: 'https://movieversebackend.jefin.xyz/',
   withCredentials: true,
   headers:{
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   }
 });
+
 
 // Initialize the CSRF token if available
 AsyncStorage.getItem('csrftoken').then(token => {
@@ -84,6 +85,29 @@ export const storeSessionCookie = async (setCookieHeader: string | string[] | un
     api.defaults.headers.common['X-CSRFToken'] = csrfMatch[1];
   }
 };
+
+// Attach stored session/csrf credentials to every request for RN cookie handling.
+api.interceptors.request.use(
+  async (config) => {
+    const sessionid = await AsyncStorage.getItem('sessionid');
+    const csrftoken = await AsyncStorage.getItem('csrftoken');
+
+    config.headers = config.headers || {};
+
+    if (csrftoken && !config.headers['X-CSRFToken']) {
+      config.headers['X-CSRFToken'] = csrftoken;
+    }
+
+    if (sessionid && !config.headers['Cookie']) {
+      config.headers['Cookie'] = csrftoken
+        ? `sessionid=${sessionid}; csrftoken=${csrftoken}`
+        : `sessionid=${sessionid}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Add response interceptor to handle CSRF token expiration
 api.interceptors.response.use(

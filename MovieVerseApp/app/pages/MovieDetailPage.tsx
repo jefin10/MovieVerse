@@ -103,7 +103,6 @@ export default function MovieDetailPage() {
         setLoading(false);
       }
     };
-    getUserRating();
     fetchData();
   }, [movieId]);
 
@@ -165,11 +164,20 @@ export default function MovieDetailPage() {
         }
       );
       
-      if (response.data && response.data.rating) {
+      if (response.data && typeof response.data.rating === 'number') {
         setUserRating(response.data.rating);
-        setRatingSubmitted(true);
+        setRatingSubmitted(response.data.rating > 0);
       }
     } catch (error) {
+      const statusCode = (error as any)?.response?.status;
+
+      // 404 means this user has not rated this movie yet.
+      if (statusCode === 404) {
+        setUserRating(null);
+        setRatingSubmitted(false);
+        return;
+      }
+
       console.log('Error checking user rating:', error);
     }
   };
@@ -334,18 +342,6 @@ export default function MovieDetailPage() {
     }
   };
 
-  const getUserRating= async()=>{
-    try{
-      console.log(username)
-      const username2= await AsyncStorage.getItem('username');
-      const result= await api.get(`api/getRatings/${username2}/${movieId}/`);
-      if(result.data){
-        setUserRating(result.data.rating);
-      }
-    }catch(error){
-      console.error('Error fetching user rating:', error);
-    }
-  }
   // Open YouTube to search for movie trailer
   const watchTrailer = () => {
   if (!movie) return;
@@ -470,10 +466,10 @@ export default function MovieDetailPage() {
           {/* Title and Rating */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{movie?.title}</Text>
-            {movie?.imdb_rating && (
+            {movie?.imdb_rating !== null && movie?.imdb_rating !== undefined && (
               <View style={styles.ratingContainer}>
                 <FontAwesome name="star" size={16} color="#FFD700" />
-                <Text style={styles.rating}>{movie.imdb_rating.toFixed(1)}</Text>
+                <Text style={styles.rating}>{Number(movie.imdb_rating).toFixed(1)}</Text>
               </View>
             )}
           </View>
@@ -569,8 +565,8 @@ export default function MovieDetailPage() {
                   <FontAwesome 
                     name="star" 
                     size={32} 
-                    color={userRating && star <= userRating ? "#FFD700" : "#88888888"} 
-                    solid={userRating && star <= userRating}
+                    color={userRating !== null && star <= userRating ? "#FFD700" : "#88888888"} 
+                    solid={userRating !== null && star <= userRating}
                   />
                 </TouchableOpacity>
               ))}

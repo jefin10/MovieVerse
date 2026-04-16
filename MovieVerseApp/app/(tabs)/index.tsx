@@ -63,6 +63,13 @@ const Index = () => {
 
   // Fetch user info and recommendations when component mounts
   useEffect(() => {
+    if (authenticated !== true) {
+      if (authenticated === false) {
+        setLoading(false);
+      }
+      return;
+    }
+
     const fetchUserData = async () => {
       try {
         // Set the greeting when the component mounts
@@ -95,7 +102,7 @@ const Index = () => {
     
     // Clean up interval on unmount
     return () => clearInterval(greetingInterval);
-  }, []);
+  }, [authenticated]);
 
   // Fetch recommended movies for the user
   // Modify the fetchRecommendations function
