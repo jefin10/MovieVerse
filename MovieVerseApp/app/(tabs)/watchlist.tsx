@@ -10,6 +10,7 @@ import api from '@/app/auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import CustomAlert from '../components/CustomAlert';
+import { getWatchlist, invalidateWatchlistCache } from '../services/movieData';
 
 const WatchList = () => {
   const router = useRouter();
@@ -29,7 +30,7 @@ const WatchList = () => {
     fetchWatchlist();
   }, []);
 
-  const fetchWatchlist = useCallback(async (retryCount = 0) => {
+  const fetchWatchlist = useCallback(async (retryCount = 0, forceRefresh = false) => {
     if (isFetchingRef.current) {
       return;
     }
@@ -37,29 +38,14 @@ const WatchList = () => {
     setLoading(true);
     try {
       const username = await AsyncStorage.getItem('username');
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
       
       if (!username) {
         setError('User not logged in. Please log in first.');
         setLoading(false);
         return;
       }
-      
-      // Changed to GET request with query params (semantically correct)
-      const response = await api.get(`api/watchlist/?username=${username}`, {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`
-        }
-      });
-      
-      // Process the response data to ensure complete poster URLs
-      const rawItems = Array.isArray(response.data) ? response.data : [];
-      const processedData = rawItems.map(item => ({
-        ...item,
-        poster_url: ensureCompleteImageUrl(item.poster_url)
-      }));
+
+      const processedData = await getWatchlist(username, { forceRefresh });
       
       setWatchlistItems(processedData);
       setError(null);
@@ -74,7 +60,7 @@ const WatchList = () => {
       if ((isNetworkError || (status >= 500 && status < 600)) && retryCount < 3) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
         setTimeout(() => {
-          fetchWatchlist(retryCount + 1);
+          fetchWatchlist(retryCount + 1, true);
         }, delay);
         return;
       }
@@ -92,18 +78,6 @@ const WatchList = () => {
       setLoading(false);
     }
   }, []);
-  
-  const ensureCompleteImageUrl = (url) => {
-    if (!url) return null;
-    
-    // If the URL already starts with http/https, it's complete
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    
-    // If it's a relative path or just the path component from TMDB
-    return `https://image.tmdb.org/t/p/w500${url}`;
-  };
   
   const removeFromWatchlist = async (id) => {
     const sessionid = await AsyncStorage.getItem('sessionid');
@@ -129,6 +103,8 @@ const WatchList = () => {
           Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
         },
       });
+
+      await invalidateWatchlistCache(username);
       
       // Update local state
       setWatchlistItems(watchlistItems.filter(item => item.id !== id));
@@ -257,7 +233,7 @@ const renderItem = (data) => (
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity onPress={fetchWatchlist} style={styles.retryButton}>
+        <TouchableOpacity onPress={() => fetchWatchlist(0, true)} style={styles.retryButton}>
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -270,7 +246,7 @@ const renderItem = (data) => (
         <SafeAreaView style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Your Watchlist</Text>
-            <TouchableOpacity onPress={fetchWatchlist} style={styles.refreshButton}>
+            <TouchableOpacity onPress={() => fetchWatchlist(0, true)} style={styles.refreshButton}>
               <Feather name="refresh-cw" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>

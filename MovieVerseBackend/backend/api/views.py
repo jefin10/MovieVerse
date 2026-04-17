@@ -967,10 +967,7 @@ def search_movies(request,query):
     return Response(serializer.data)
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def web_catalog(request):
-    # Parse pagination defensively to avoid invalid values causing heavy queries.
+def _parse_catalog_pagination(request):
     try:
         page = max(1, int(request.GET.get('page', 1)))
     except (TypeError, ValueError):
@@ -980,24 +977,49 @@ def web_catalog(request):
         page_size = int(request.GET.get('page_size', 24))
     except (TypeError, ValueError):
         page_size = 24
-    page_size = max(1, min(page_size, 100))
-    
-    # Get total count efficiently (cached by Django)
-    total_movies = Movie.objects.count()
+
+    # Keep page size bounded to protect DB and response latency.
+    page_size = max(1, min(page_size, 60))
+    return page, page_size
+
+
+def _serialize_catalog_movies(movies):
+    return [
+        {
+            'id': movie.id,
+            'title': movie.title,
+            'poster_url': movie.poster_url,
+            'release_date': movie.release_date,
+            'imdb_rating': movie.imdb_rating,
+            'tmdb_vote_average': movie.tmdb_vote_average,
+        }
+        for movie in movies
+    ]
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def web_catalog(request):
+    page, page_size = _parse_catalog_pagination(request)
+
+    base_qs = Movie.objects.only(
+        'id',
+        'title',
+        'poster_url',
+        'release_date',
+        'imdb_rating',
+        'tmdb_vote_average',
+    ).order_by('-id')
+
+    total_movies = base_qs.count()
     total_pages = (total_movies + page_size - 1) // page_size
-    
+
     start = (page - 1) * page_size
-    movies = (
-        Movie.objects
-        .select_related('original_language')
-        .prefetch_related('genres', 'spoken_languages', 'origin_countries', 'production_countries')
-        .order_by('-popularity', '-tmdb_vote_average', '-vote_count', '-id')[start:start + page_size]
-    )
-    
-    serializer = MovieSerializer(movies, many=True)
+    movies = list(base_qs[start:start + page_size])
+    results = _serialize_catalog_movies(movies)
     
     return Response({
-        'results': serializer.data,
+        'results': results,
         'page': page,
         'page_size': page_size,
         'total_movies': total_movies,
@@ -1010,38 +1032,27 @@ def web_catalog(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def web_search_catalog(request, query):
-    try:
-        page = max(1, int(request.GET.get('page', 1)))
-    except (TypeError, ValueError):
-        page = 1
+    page, page_size = _parse_catalog_pagination(request)
 
-    try:
-        page_size = int(request.GET.get('page_size', 24))
-    except (TypeError, ValueError):
-        page_size = 24
-    page_size = max(1, min(page_size, 100))
-    
-    # Search movies
-    movies = (
-        Movie.objects
-        .filter(title__icontains=query)
-        .select_related('original_language')
-        .prefetch_related('genres', 'spoken_languages', 'origin_countries', 'production_countries')
-        .order_by('-release_date', '-id')
-    )
-    total_movies = movies.count()
-    
-    # Calculate pagination
+    base_qs = Movie.objects.filter(title__icontains=query).only(
+        'id',
+        'title',
+        'poster_url',
+        'release_date',
+        'imdb_rating',
+        'tmdb_vote_average',
+    ).order_by('-id')
+
+    total_movies = base_qs.count()
     start = (page - 1) * page_size
     end = start + page_size
     total_pages = (total_movies + page_size - 1) // page_size
-    
-    # Get page of movies
-    page_movies = movies[start:end]
-    serializer = MovieSerializer(page_movies, many=True)
+
+    page_movies = list(base_qs[start:end])
+    results = _serialize_catalog_movies(page_movies)
     
     return Response({
-        'results': serializer.data,
+        'results': results,
         'page': page,
         'page_size': page_size,
         'total_movies': total_movies,

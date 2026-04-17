@@ -1,6 +1,5 @@
-import { ScrollView, StyleSheet, Text, View, TextInput, Image, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native'
+import { ScrollView, Text, View, TextInput, Image, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {styles} from '@/styles/home'
@@ -9,7 +8,7 @@ import { useRouter } from 'expo-router'
 import ProtectedRoute from '../auth/protectedRoute';
 import {useAuth} from '../auth/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../auth/api';
+import { getRecommendations, getTrendingMovies, prefetchTabData } from '../services/movieData';
 
 // Define the movie type
 interface Movie {
@@ -72,24 +71,32 @@ const Index = () => {
 
     const fetchUserData = async () => {
       try {
+        setLoading(true);
+
         // Set the greeting when the component mounts
         setGreeting(getGreeting());
         
         const storedUsername = await AsyncStorage.getItem('username');
+        const tasks: Promise<unknown>[] = [fetchTrendingMovies()];
+
         if (storedUsername) {
           setUsername(storedUsername);
-          fetchRecommendations(storedUsername);
+          tasks.push(fetchRecommendations(storedUsername));
+
+          // Warm tab data in background to reduce loading time during navigation.
+          void prefetchTabData(storedUsername);
         } else {
           // Fallback: fetch trending movies if no username
           console.log('No username found, showing trending movies only');
         }
-        
-        // Always fetch trending movies
-        fetchTrendingMovies();
+
+        await Promise.all(tasks);
       } catch (error) {
         console.error('Error fetching user data:', error);
         // Fallback to trending movies on error
-        fetchTrendingMovies();
+        await fetchTrendingMovies(true);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -106,71 +113,20 @@ const Index = () => {
 
   // Fetch recommended movies for the user
   // Modify the fetchRecommendations function
-const fetchRecommendations = async (username: string) => {
-  let sessionid: string | null = null;
-  let csrftoken: string | null = null;
+const fetchRecommendations = async (username: string, forceRefresh = false) => {
   try {
-    setLoading(true);
-    sessionid = await AsyncStorage.getItem('sessionid');
-    csrftoken = await AsyncStorage.getItem('csrftoken');
-
-    if (!sessionid || !csrftoken) {
-      console.warn('Missing authentication tokens');
-      return;
-    }
-
-    // Call the new endpoint that uses ratings to generate recommendations
-    const response = await api.get(
-      'api/recommendations/from-ratings/',
-      {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-        },
-        params: { username }
-      }
-    );
-
-    
-    // Process poster URLs to ensure they're complete
-    const processedMovies = (response.data.recommendations as Movie[]).map((movie: Movie) => ({
-      ...movie,
-      poster_url: movie.poster_url ? (
-        movie.poster_url.startsWith('http') ? 
-          movie.poster_url : 
-          `https://image.tmdb.org/t/p/w500${movie.poster_url}`
-      ) : ''
-    }));
-    
-    setRecommendations(processedMovies);
+    const movies = await getRecommendations(username, { forceRefresh });
+    setRecommendations(movies as Movie[]);
   } catch (error) {
     console.error('Error fetching recommendations:', getErrorDetails(error));
-    // Fall back to the original recommendations endpoint if the new one fails
-    try {
-      const fallbackResponse = await api.post(
-        'api/recommendations/',
-        { username },
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-          },
-        }
-      );
-      setRecommendations(fallbackResponse.data);
-    } catch (fallbackError) {
-      console.error('Error with fallback recommendations:', fallbackError);
-    }
-  } finally {
-    setLoading(false);
   }
 };
 
   // Fetch trending movies
-  const fetchTrendingMovies = async () => {
+  const fetchTrendingMovies = async (forceRefresh = false) => {
     try {
-      const response = await api.get('api/Trending/');
-      setTrendingMovies(response.data);
+      const movies = await getTrendingMovies({ forceRefresh });
+      setTrendingMovies(movies as Movie[]);
     } catch (error) {
       console.error('Error fetching trending movies:', getErrorDetails(error));
     }

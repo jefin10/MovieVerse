@@ -5,7 +5,9 @@ import { useFonts } from 'expo-font';
 import AppLoading from 'expo-app-loading';
 import { useRouter } from 'expo-router';
 import { facts } from './data/loadingFact';  // Import the facts array
-import api from './auth/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { validateSession } from './auth/api';
+import { prefetchTabData } from './services/movieData';
 
 const LoadingPage = () => {
   const fillHeight = useRef(new Animated.Value(0)).current;
@@ -18,6 +20,9 @@ const LoadingPage = () => {
   
   // Add state for animated dots
   const [dots, setDots] = useState('.');
+
+  const BOOTSTRAP_TIMEOUT_MS = 4000;
+  const PREFETCH_BLOCKING_MS = 2500;
   
   const [fontsLoaded] = useFonts({
     'StickNoBills-SemiBold': require('../assets/fonts/StickNoBills-Regular.ttf'),
@@ -72,8 +77,8 @@ const LoadingPage = () => {
         });
       }, 10000); // 10 seconds
       
-      // Check online status
-      checkOnlineStatus();
+      // Run startup flow: validate auth, prefetch data into cache, then route.
+      bootstrapApp();
       
       // Set a timeout to show the "taking longer" message after 6 seconds
       const messageTimer = setTimeout(() => {
@@ -99,15 +104,58 @@ const LoadingPage = () => {
     setRandomFact(facts[factIndex]);
   }, [factIndex]);
 
-  const checkOnlineStatus = async () => {
-    try {
-      const response = await api.get('api/auth/csrf/');
-      if(response.status === 200){
-        router.replace('/(tabs)/');
-      }
-    } catch (error) {
-      console.log('Offline');
+  const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
+    return new Promise((resolve) => {
+      let settled = false;
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(fallback);
+        }
+      }, timeoutMs);
+
+      promise
+        .then((value) => {
+          if (!settled) {
+            settled = true;
+            resolve(value);
+          }
+        })
+        .catch(() => {
+          if (!settled) {
+            settled = true;
+            resolve(fallback);
+          }
+        })
+        .finally(() => {
+          clearTimeout(timer);
+        });
+    });
+  };
+
+  const bootstrapApp = async () => {
+    const sessionid = await AsyncStorage.getItem('sessionid');
+    const username = await AsyncStorage.getItem('username');
+
+    if (!sessionid || !username) {
+      router.replace('/pages/LoginPage');
+      return;
     }
+
+    const isValidSession = await withTimeout(validateSession(), BOOTSTRAP_TIMEOUT_MS, false);
+    if (!isValidSession) {
+      await AsyncStorage.multiRemove(['sessionid', 'csrftoken', 'username']);
+      router.replace('/pages/LoginPage');
+      return;
+    }
+
+    const prefetchPromise = prefetchTabData(username);
+    await withTimeout(prefetchPromise.then(() => true), PREFETCH_BLOCKING_MS, false);
+    router.replace('/(tabs)/');
+
+    // Ensure cache warm-up continues even after navigation.
+    void prefetchPromise;
   }
   
   if (!fontsLoaded) {

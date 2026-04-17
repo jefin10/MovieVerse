@@ -33,7 +33,7 @@ export default function Home() {
 
           {/* Download App Button */}
           <a
-            href="https://expo.dev/"
+            href="https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk"
             target="_blank"
             rel="noopener noreferrer"
             className="group relative overflow-hidden rounded-3xl border border-white/20 bg-black p-10 transition hover:border-white/40 hover:scale-105"

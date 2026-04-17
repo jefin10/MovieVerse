@@ -8,20 +8,21 @@ import TinderMovieCard from '../components/tinderMovieCard'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import CustomSwiper from '../components/CustomSwiper'
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getTinderMovies, invalidateWatchlistCache, type AppMovie } from '../services/movieData';
+
+type SwipeDirection = 'left' | 'right';
 
 const Tinder = () => {
-  const swiperRef = useRef(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [currentMovie, setCurrentMovie] = useState(null);
+  const [currentMovie, setCurrentMovie] = useState<AppMovie | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState<AppMovie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [username, setUsername] = useState(null);
-  const [sessionid, setSessionid] = useState(null);
-  const [csrftoken, setCsrfToken] = useState(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const isFetchingMoviesRef = useRef(false);
   
   // Create a ref to store processed IDs
-  const processedMovieIdsRef = useRef(new Set());
+  const processedMovieIdsRef = useRef<Set<number>>(new Set());
   
   // Track the current card index separately
   const currentIndexRef = useRef(0);
@@ -30,36 +31,54 @@ const Tinder = () => {
   const DEBUG = true;
   
   // Debug log function
-  const debug = (...args) => {
+  const debug = (...args: unknown[]) => {
     if (DEBUG) console.log(...args);
   };
 
-  const getMovies = async () => {
+  const getMovies = async (forceRefresh = false) => {
+    if (isFetchingMoviesRef.current) {
+      return;
+    }
+
+    isFetchingMoviesRef.current = true;
     try {
       setIsLoading(true);
-      const response = await api.get('api/TinderMovies/');
-      
-      // Get all processed IDs
-      const processedIds = processedMovieIdsRef.current;
-      debug("Currently processed IDs:", [...processedIds]);
-      
-      // Filter out movies that have already been processed
-      const filteredMovies = response.data.filter(movie => {
-        const isProcessed = processedIds.has(movie.id);
-        debug(`Movie ${movie.id} (${movie.title}) processed? ${isProcessed}`);
-        return !isProcessed;
-      });
-      
-      debug(`Filtered ${response.data.length - filteredMovies.length} movies, showing ${filteredMovies.length}`);
-      
-      // Reset current index when loading new movies
+
+      // Try multiple fresh batches before concluding the unseen pool is exhausted.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const fetchedMovies = await getTinderMovies({ forceRefresh: forceRefresh || attempt > 0 });
+
+        const processedIds = processedMovieIdsRef.current;
+        debug("Currently processed IDs:", [...processedIds]);
+
+        const filteredMovies = fetchedMovies.filter((movie) => {
+          const isProcessed = processedIds.has(movie.id);
+          debug(`Movie ${movie.id} (${movie.title}) processed? ${isProcessed}`);
+          return !isProcessed;
+        });
+
+        debug(`Filtered ${fetchedMovies.length - filteredMovies.length} movies, showing ${filteredMovies.length}`);
+
+        if (filteredMovies.length > 0) {
+          currentIndexRef.current = 0;
+          setMovies(filteredMovies);
+          return;
+        }
+      }
+
+      // If all fetched cards were already seen, reset and show a fresh deck.
+      debug('No unseen movies left. Resetting processed IDs for a fresh deck.');
+      processedMovieIdsRef.current = new Set();
+      const refreshedMovies = await getTinderMovies({ forceRefresh: true });
       currentIndexRef.current = 0;
-      setMovies(filteredMovies);
+      setMovies(refreshedMovies);
     }
     catch (error) {
       console.error('Error fetching movies:', error);
+      setMovies([]);
     } finally {
       setIsLoading(false);
+      isFetchingMoviesRef.current = false;
     }
   };
 
@@ -68,13 +87,7 @@ const Tinder = () => {
       let user2 = await AsyncStorage.getItem('username');
       setUsername(user2);
     }
-    const getSessionCookie = async () => {
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      setSessionid(sessionid);
-      setCsrfToken(csrftoken);
-    }
-    getSessionCookie();
+
     getUsername();
     getMovies();
     
@@ -85,7 +98,7 @@ const Tinder = () => {
     };
   }, []);
 
-  const addToWatchlist = async (movie) => {
+  const addToWatchlist = async (movie: AppMovie) => {
     if (!movie || !movie.id) {
       debug('Invalid movie object');
       return;
@@ -104,14 +117,12 @@ const Tinder = () => {
         { 
           username, 
           movie_id: movie.id 
-        },
-        { 
-          headers: {
-            'X-CSRFToken': csrftoken,
-            'Cookie': `sessionid=${sessionid}; csrftoken=${csrftoken}`
-          }
         }
       );
+
+      if (username) {
+        await invalidateWatchlistCache(username);
+      }
       
       debug(`Successfully added movie ${movie.id} - ${movie.title} to watchlist`);
     } catch (error) {
@@ -121,7 +132,7 @@ const Tinder = () => {
   };
 
   // Core fix: use the event's cardIndex to advance our tracker
-  const handleSwiped = (direction) => {
+  const handleSwiped = (direction: SwipeDirection) => {
     // Get the movie at the current index (before advancing)
     const movieIndex = currentIndexRef.current;
     const swipedMovie = movies[movieIndex];
@@ -178,7 +189,7 @@ const Tinder = () => {
 
   const handleAllSwiped = () => {
     debug("All cards swiped, getting more movies");
-    getMovies();
+    getMovies(true);
   };
 
   return (
@@ -201,9 +212,8 @@ const Tinder = () => {
             </View>
           ) : movies && movies.length > 0 ? (
             <CustomSwiper
-              ref={swiperRef}
               cards={movies}
-              renderCard={(card) => {
+              renderCard={(card: AppMovie) => {
                 if (!card) return null;
                 return <TinderMovieCard {...card} />;
               }}
@@ -272,7 +282,7 @@ const Tinder = () => {
                 onPress={() => {
                   processedMovieIdsRef.current = new Set(); // Clear processed IDs
                   debug("Reset processed movies and refreshing list");
-                  getMovies();
+                  getMovies(true);
                 }}
               >
                 <Text style={styles.refreshButtonText}>Find More Movies</Text>

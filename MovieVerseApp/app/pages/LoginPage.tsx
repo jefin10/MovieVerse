@@ -27,8 +27,6 @@ const LoginScreen = () => {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { setAuthenticated } = useAuth();
   const router = useRouter();
-  const [sessionid, setSessionid] = useState(null);
-  const [csrftoken, setCsrfToken] = useState(null);
   
   // Create refs for inputs and scrollview
   const scrollViewRef = useRef(null);
@@ -37,13 +35,6 @@ const LoginScreen = () => {
   
   useEffect(() => {
     getCSRFToken();
-    const fetchSessionCookie = async () => {
-      const sessionid2 = await AsyncStorage.getItem('sessionid');
-      const csrftoken2 = await AsyncStorage.getItem('csrftoken');
-      setSessionid(sessionid2);
-      setCsrfToken(csrftoken2);
-    };
-    fetchSessionCookie();
   }, []);
 
   const handleLogin = async () => {
@@ -55,16 +46,13 @@ const LoginScreen = () => {
     setIsLoading(true);
     
     try {
-      await getCSRFToken();
+      const freshCsrfToken = await getCSRFToken();
 
       const res = await api.post('api/auth/login/', {
         username, 
         password
       }, {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          'Cookie': `sessionid=${sessionid}; csrftoken=${csrftoken}`
-        }
+        headers: freshCsrfToken ? { 'X-CSRFToken': freshCsrfToken } : undefined,
       });
       const setCookie = res.headers['set-cookie'] || res.headers['Set-Cookie'];
       await storeSessionCookie(setCookie);
@@ -73,8 +61,15 @@ const LoginScreen = () => {
       router.push('/(tabs)'); 
 
     } catch (err) {
-      console.log('Login error:', err.response?.data || err.message);
-      Alert.alert('Login Failed', err.response?.data?.error || 'Error logging in');
+      const errorCode = err?.code;
+      const errorMessage = err?.response?.data?.error || err?.message;
+      console.log('Login error:', err?.response?.data || err?.message);
+
+      if (errorCode === 'ECONNABORTED' || !err?.response) {
+        Alert.alert('Login Failed', 'Request timed out. Please check your internet/backend and try again.');
+      } else {
+        Alert.alert('Login Failed', errorMessage || 'Error logging in');
+      }
     } finally {
       setIsLoading(false);
     }
