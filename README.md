@@ -13,10 +13,7 @@
 
   <h2>Demo</h2>
 
-  <p>
-    <img src="media/Screenshot_20260418-220003_MovieVerseApp.jpg" alt="MovieVerse swipe discovery screen with Tinder-style cards and movie metadata" width="900" />
-  </p>
-
+  
   <p>
     <a href="https://movieverse.jefin.xyz"><strong>View Live Demo →</strong></a>
   </p>
