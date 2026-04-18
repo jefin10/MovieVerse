@@ -33,33 +33,20 @@
 </div>
 
 ## About
-MovieVerse cuts movie selection time by combining mood detection, collaborative filtering, and swipe-first interaction in one product. Users get a public web catalog for frictionless browsing and a mobile app for full personalization, watchlist control, and rating-driven recommendations. This architecture improves discovery quality while keeping the experience fast on real networks and devices.
+MovieVerse helps users decide what to watch faster with AI mood recommendations, swipe-based discovery, and personalized ranking. It combines a public web catalog for quick browsing with a mobile app for full authenticated features.
 
 ## Tech Stack
 | Technology | Why It Was Chosen |
 | --- | --- |
-| React Native | Delivers one codebase for native-feeling iOS and Android UX. |
-| Expo | Speeds mobile iteration, OTA updates, and device testing with minimal setup. |
-| TypeScript | Enforces type safety across mobile, web, and API contracts. |
-| Next.js (App Router) | Provides performant server rendering and SEO-friendly web browsing pages. |
-| React | Enables component-driven UI composition and predictable state updates. |
-| TailwindCSS | Accelerates consistent UI styling with utility-first classes. |
-| Django 5.2 | Offers mature security defaults and strong batteries-included backend tooling. |
-| Django REST Framework | Standardizes REST endpoints with serializers, auth, and pagination primitives. |
-| PostgreSQL | Handles relational movie, rating, and watchlist queries with strong indexing support. |
-| scikit-learn | Supplies production-proven ML algorithms and vectorization utilities. |
-| TF-IDF Vectorization | Converts mood text into weighted numerical features for robust classification. |
-| Multinomial Naive Bayes | Delivers fast and reliable mood-to-genre prediction for short text input. |
-| Cosine Similarity | Powers content and rating similarity scoring for recommendation ranking. |
-| Docker | Creates reproducible local and production runtime environments. |
-| Nginx | Serves as reverse proxy and TLS termination layer in deployment. |
-| Let's Encrypt SSL | Automates trusted HTTPS certificate issuance and renewal. |
-| AWS EC2 | Provides flexible, cost-effective compute for containerized deployment. |
-| Django Session Authentication | Protects user sessions for mobile and web API workflows. |
-| Token-Based Auth | Supports stateless API access patterns where token flow is preferred. |
-| AsyncStorage | Persists sessions and dual-layer cache for resilient mobile behavior. |
-| Browser Cache | Reduces repeat payloads and improves perceived speed on web pages. |
-| TMDB API | Enriches the catalog with high-quality movie metadata and poster assets. |
+| React Native + Expo | Fast cross-platform mobile development with type safety. |
+| Next.js  | Responsive, SEO-friendly web catalog with quick UI iteration. |
+| Django 5.2 + DRF | Secure, scalable REST API with mature backend tooling. |
+| PostgreSQL | Reliable relational storage for users, ratings, and watchlists. |
+| scikit-learn +  Naive Bayes | Lightweight and fast mood-to-genre prediction pipeline. |
+| Cosine Similarity | Powers content-based and rating-based recommendation ranking. |
+| Docker + Nginx + AWS EC2 | Reproducible deployment with HTTPS and reverse proxying. |
+| AsyncStorage + Browser Cache | Improves perceived performance with local caching. |
+| TMDB API | Supplies rich movie metadata and posters. |
 
 ## Key Features
 - 🎯 Accelerate discovery with hybrid recommendations that blend ratings, content similarity, and mood classification.
@@ -88,30 +75,24 @@ git clone https://github.com/jefin10/MovieVerse.git
 cd MovieVerse
 ~~~
 
-2. Configure backend environment variables.
+2. Start backend services.
 ~~~bash
 cd MovieVerseBackend
 cp .env.example .env
-cd ..
-~~~
-
-3. Start backend + PostgreSQL with Docker.
-~~~bash
-cd MovieVerseBackend
 docker compose up --build -d
 cd ..
 ~~~
 
-4. Run the web app.
+3. Run web app.
 ~~~bash
 cd movieverse-website
 npm install
 npm run dev
 ~~~
 
-5. Run the mobile app.
+4. Run mobile app.
 ~~~bash
-cd MovieVerseApp
+cd ../MovieVerseApp
 npm install
 npx expo start
 ~~~
@@ -124,31 +105,24 @@ curl -X POST "https://movieversebackend.jefin.xyz/ai/recommend/" \
   -d '{"mood":"I want something emotional but uplifting"}'
 ~~~
 
-### Example 2: Use MovieVerse dual-layer cache with request deduplication
+### Example 2: Use cached movie fetching on mobile
 ~~~typescript
 import axios from "axios";
 import { fetchWithCache } from "../app/services/cache";
-
-type Movie = {
-  id: number;
-  title: string;
-  poster_url: string;
-};
 
 const api = axios.create({
   baseURL: "https://movieversebackend.jefin.xyz",
   withCredentials: true,
 });
 
-export async function getTrendingMovies(forceRefresh = false): Promise<Movie[]> {
-  return fetchWithCache<Movie[]>({
+export async function getTrendingMovies() {
+  return fetchWithCache({
     key: "trending:v1",
     ttlMs: 5 * 60 * 1000,
-    forceRefresh,
     staleIfError: true,
     fetcher: async () => {
-      const res = await api.get("/api/Trending/");
-      return res.data;
+      const { data } = await api.get("/api/Trending/");
+      return data;
     },
   });
 }
@@ -185,4 +159,4 @@ GitHub: https://github.com/jefin10
 
 LinkedIn: https://www.linkedin.com/in/jefin10/
 
-Built to demonstrate production-grade full-stack engineering, practical ML integration, and polished product delivery.
+Built for production-grade movie discovery across web and mobile.
