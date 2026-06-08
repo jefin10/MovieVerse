@@ -24,7 +24,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-movieverse}:${POSTGRES_PASSWORD:-movieverse}@db:5432/${POSTGRES_DB:-movieverse}}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-movieversebackend.jefin.xyz,localhost,127.0.0.1,movieverse.jefin.xyz}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
+      TMDB_BEARER_TOKEN: ${TMDB_BEARER_TOKEN:-}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}

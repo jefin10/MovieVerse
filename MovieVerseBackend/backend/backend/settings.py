@@ -38,9 +38,6 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
-TMDB_ACCESS="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2ZmYxYjQxOGZmNzViN2NlZDlmOWE5ODViNjMyMWEzMCIsIm5iZiI6MTc0Njk5NTM3Mi4zMTcsInN1YiI6IjY4MjEwOGFjMzQxOTRkNDBkMDRiNDJlMSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.BQeIxpy0b0tr0rZ-dwfMNcWiyxkdfjHh5CB_ilvx-7c"\
-
-TMDB_KEY="6ff1b418ff75b7ced9f9a985b6321a30"
 # Application definition
 
 INSTALLED_APPS = [
