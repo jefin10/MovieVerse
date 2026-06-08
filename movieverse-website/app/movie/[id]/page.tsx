@@ -118,17 +118,17 @@ export default function MovieDetailsPage() {
 
             {/* Ratings */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-              {movie.imdb_rating && (
+              {(movie.star1 || movie.star2) && (
                 <div className="rounded-2xl border border-white/10 bg-zinc-900 p-4">
-                  <p className="text-zinc-500 text-sm mb-1">IMDb Rating</p>
-                  <p className="text-white text-2xl font-bold">
-                    {movie.imdb_rating.toFixed(1)}
+                  <p className="text-zinc-500 text-sm mb-1">Cast</p>
+                  <p className="text-white text-l font-bold">
+                  {[movie.star1, movie.star2].filter(Boolean).join(", ")}
                   </p>
                 </div>
               )}
               {movie.tmdb_vote_average && (
                 <div className="rounded-2xl border border-white/10 bg-zinc-900 p-4">
-                  <p className="text-zinc-500 text-sm mb-1">TMDB Rating</p>
+                  <p className="text-zinc-500 text-sm mb-1">Our Rating</p>
                   <p className="text-white text-2xl font-bold">
                     {movie.tmdb_vote_average.toFixed(1)}
                   </p>
@@ -136,7 +136,7 @@ export default function MovieDetailsPage() {
               )}
             </div>
 
-            {/* Cast */}
+            {/* Cast
             {(movie.star1 || movie.star2) && (
               <div className="mb-8">
                 <p className="text-zinc-500 text-sm mb-2">Cast</p>
@@ -144,7 +144,7 @@ export default function MovieDetailsPage() {
                   {[movie.star1, movie.star2].filter(Boolean).join(", ")}
                 </p>
               </div>
-            )}
+            )} */}
 
             {/* Trailer Button */}
             {movie.trailer_url && (
