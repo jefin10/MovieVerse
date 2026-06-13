@@ -59,19 +59,28 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--mode",
-            choices=("year-range", "top-voted"),
+            choices=("year-range", "top-voted", "top-voted-per-year"),
             default="year-range",
-            help="year-range: sync by release year; top-voted: fetch highest vote_count titles (TMDB proxy for IMDB popularity)",
+            help=(
+                "year-range: all movies by release year; "
+                "top-voted: global top N by vote_count; "
+                "top-voted-per-year: top N by vote_count for each year in range"
+            ),
         )
         parser.add_argument("--start-year", type=int, default=1950)
         parser.add_argument("--end-year", type=int, default=datetime.utcnow().year)
         parser.add_argument("--max-pages-per-year", type=int, default=500)
-        parser.add_argument("--max-movies", type=int, default=0)
+        parser.add_argument(
+            "--max-movies",
+            type=int,
+            default=0,
+            help="Global cap for year-range/top-voted; per-year cap for top-voted-per-year (default 1000)",
+        )
         parser.add_argument(
             "--min-votes",
             type=int,
-            default=500,
-            help="Minimum TMDB vote_count when using --mode top-voted",
+            default=0,
+            help="Minimum TMDB vote_count filter for top-voted modes (default: no minimum)",
         )
         parser.add_argument("--skip-details", action="store_true")
         parser.add_argument("--sleep", type=float, default=0.2)
@@ -94,6 +103,12 @@ class Command(BaseCommand):
         if options["mode"] == "top-voted":
             max_movies = options["max_movies"] or 1000
             total_synced = self.sync_top_voted(client, options, max_movies=max_movies)
+            self.stdout.write(self.style.SUCCESS(f"TMDB sync completed. Total movies processed: {total_synced}"))
+            return
+
+        if options["mode"] == "top-voted-per-year":
+            max_per_year = options["max_movies"] or 1000
+            total_synced = self.sync_top_voted_per_year(client, options, max_per_year=max_per_year)
             self.stdout.write(self.style.SUCCESS(f"TMDB sync completed. Total movies processed: {total_synced}"))
             return
 
@@ -172,65 +187,36 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"TMDB sync completed. Total movies processed: {total_synced}"))
 
     def sync_top_voted(self, client, options, max_movies):
-        skip_details = options["skip_details"]
-        db_retries = max(1, options["db_retries"])
-        min_votes = max(1, options["min_votes"])
+        min_votes = max(0, options["min_votes"])
         total_synced = 0
         page = 1
 
         self.stdout.write(
             self.style.NOTICE(
-                f"Syncing top {max_movies} movies by TMDB vote_count (min {min_votes} votes). "
-                "IMDB vote totals are not available via TMDB; vote_count is the closest catalog metric."
+                f"Syncing top {max_movies} movies by TMDB vote_count"
+                + (f" (min {min_votes} votes)" if min_votes else "")
+                + ". vote_count is TMDB's metric (closest proxy to IMDB popularity)."
             )
         )
 
         while total_synced < max_movies:
-            discover = client.get(
-                "/discover/movie",
-                params={
-                    "language": "en-US",
-                    "include_adult": "false",
-                    "include_video": "false",
-                    "sort_by": "vote_count.desc",
-                    "vote_count.gte": min_votes,
-                    "page": page,
-                },
-            )
+            params = {
+                "language": "en-US",
+                "include_adult": "false",
+                "include_video": "false",
+                "sort_by": "vote_count.desc",
+                "page": page,
+            }
+            if min_votes:
+                params["vote_count.gte"] = min_votes
 
+            discover = client.get("/discover/movie", params=params)
             results = discover.get("results", [])
             if not results:
                 break
 
             for item in results:
-                completed = False
-                for retry in range(db_retries):
-                    try:
-                        if total_synced and total_synced % 200 == 0:
-                            close_old_connections()
-
-                        movie = self.upsert_movie_from_summary(item)
-                        if not skip_details:
-                            details = client.get(
-                                f"/movie/{item['id']}",
-                                params={"append_to_response": "credits,release_dates,videos"},
-                            )
-                            self.apply_movie_details(movie, details)
-
-                        completed = True
-                        break
-                    except OperationalError as db_error:
-                        close_old_connections()
-                        wait = min(10, 2 * (retry + 1))
-                        self.stdout.write(self.style.WARNING(
-                            f"DB connection issue for TMDB id {item.get('id')} (retry {retry + 1}/{db_retries}): {db_error}. Waiting {wait}s..."
-                        ))
-                        time.sleep(wait)
-
-                if not completed:
-                    self.stdout.write(self.style.WARNING(
-                        f"Skipping TMDB id {item.get('id')} after {db_retries} DB retries"
-                    ))
+                if not self.sync_movie_item(client, item, options):
                     continue
 
                 total_synced += 1
@@ -246,6 +232,86 @@ class Command(BaseCommand):
             page += 1
 
         return total_synced
+
+    def sync_top_voted_per_year(self, client, options, max_per_year):
+        min_votes = max(0, options["min_votes"])
+        total_synced = 0
+
+        self.stdout.write(
+            self.style.NOTICE(
+                f"Syncing top {max_per_year} movies per year ({options['start_year']}-{options['end_year']}) "
+                f"by TMDB vote_count"
+                + (f" (min {min_votes} votes)" if min_votes else "")
+                + "."
+            )
+        )
+
+        for year in range(options["start_year"], options["end_year"] + 1):
+            year_synced = 0
+            page = 1
+
+            while year_synced < max_per_year:
+                params = {
+                    "language": "en-US",
+                    "include_adult": "false",
+                    "include_video": "false",
+                    "sort_by": "vote_count.desc",
+                    "primary_release_year": year,
+                    "page": page,
+                }
+                if min_votes:
+                    params["vote_count.gte"] = min_votes
+
+                discover = client.get("/discover/movie", params=params)
+                results = discover.get("results", [])
+                if not results:
+                    break
+
+                for item in results:
+                    if not self.sync_movie_item(client, item, options):
+                        continue
+
+                    year_synced += 1
+                    total_synced += 1
+
+                    if year_synced >= max_per_year:
+                        break
+
+                total_pages = discover.get("total_pages", page)
+                if page >= total_pages:
+                    break
+                page += 1
+
+            self.stdout.write(self.style.SUCCESS(f"Year {year}: synced {year_synced} movies (running total: {total_synced})"))
+
+        return total_synced
+
+    def sync_movie_item(self, client, item, options):
+        skip_details = options["skip_details"]
+        db_retries = max(1, options["db_retries"])
+
+        for retry in range(db_retries):
+            try:
+                movie = self.upsert_movie_from_summary(item)
+                if not skip_details:
+                    details = client.get(
+                        f"/movie/{item['id']}",
+                        params={"append_to_response": "credits,release_dates,videos"},
+                    )
+                    self.apply_movie_details(movie, details)
+                return True
+            except OperationalError as db_error:
+                close_old_connections()
+                wait = min(10, 2 * (retry + 1))
+                self.stdout.write(self.style.WARNING(
+                    f"DB connection issue for TMDB id {item.get('id')} (retry {retry + 1}/{db_retries}): {db_error}. Waiting {wait}s..."
+                ))
+                time.sleep(wait)
+
+        self.stdout.write(self.style.WARNING(
+            f"Skipping TMDB id {item.get('id')} after {db_retries} DB retries"
+        ))
+        return False
 
     def discover_pages_for_year(self, client, year, max_pages):
         data = client.get(
