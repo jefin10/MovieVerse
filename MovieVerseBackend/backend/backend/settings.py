@@ -17,7 +17,19 @@ from urllib.parse import urlparse, parse_qs
 
 load_dotenv()
 
-database_url = os.getenv("DATABASE_URL", "postgres://movieverse:movieverse@localhost:5432/movieverse")
+def _database_url() -> str:
+    url = os.getenv("DATABASE_URL", "").strip()
+    if url:
+        return url
+    db = os.getenv("POSTGRES_DB", "movieverse")
+    user = os.getenv("POSTGRES_USER", "movieverse")
+    password = os.getenv("POSTGRES_PASSWORD", "movieverse")
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    return f"postgres://{user}:{password}@{host}:{port}/{db}"
+
+
+database_url = _database_url()
 tmpPostgres = urlparse(database_url)
 db_query = parse_qs(tmpPostgres.query)
 db_sslmode = (db_query.get('sslmode', [os.getenv('POSTGRES_SSLMODE', '')])[0] or '').strip()

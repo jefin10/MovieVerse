@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.movie.verse"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +18,7 @@
         "backgroundColor": "#00000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.jefin10.MovieVerseApp"
+      "package": "com.movie.verse"
     },
     "web": {
       "bundler": "metro",
