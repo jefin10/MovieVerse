@@ -62,33 +62,40 @@
   inset-block-start: 0;
   inset-inline: 0;
   z-index: 30;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
-  padding: clamp(1.25rem, 3vw, 2rem) clamp(1.5rem, 4vw, 3rem);
+  justify-content: space-between;
+  width: min(90vw, 64rem);
+  margin-inline: auto;
+  padding: clamp(1.25rem, 3vw, 2rem) 0;
 }
 
 .landing-nav-link {
-  font-size: 0.67rem;
-  letter-spacing: 0.26em;
+  font-family: var(--font-bebas), "Bebas Neue", sans-serif;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgb(255 255 255 / 0.68);
-  transition: color 0.3s ease;
+  color: rgb(255 255 255 / 0.52);
+  font-weight: 400;
+  transition: color 0.35s ease;
 }
 
 .landing-nav-link:hover { color: #fff; }
 
-.landing-nav-link:last-child { justify-self: end; }
-
 .landing-brand {
-  justify-self: center;
-  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  font-family: var(--font-bebas), "Bebas Neue", sans-serif;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-weight: 700;
   letter-spacing: 0.06em;
+  color: #fff;
   white-space: nowrap;
+  text-transform: uppercase;
 }
 
-.landing-brand-main { font-weight: 600; }
-.landing-brand-sub  { font-weight: 300; color: rgb(255 255 255 / 0.78); }
+.landing-brand span {
+  font-weight: 700;
+  color: #fff;
+}
 
 /* ── Hero ────────────────────────────────────────────────── */
 
@@ -185,17 +192,9 @@
 
 @media (max-width: 640px) {
   .landing-nav {
-    grid-template-columns: 1fr 1fr;
-    row-gap: 0.75rem;
+    flex-wrap: wrap;
+    gap: clamp(1rem, 3vw, 2rem);
   }
-
-  .landing-brand {
-    grid-column: 1 / -1;
-    order: -1;
-    text-align: center;
-  }
-
-  .landing-nav-link:last-child { justify-self: end; }
 
   .landing-video-panel.is-active {
     inset-block: 0;

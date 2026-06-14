@@ -15,11 +15,9 @@ const LETTER_VIDEOS: Record<(typeof LETTERS)[number], string> = {
   E: "/videos/eee.mp4",
 };
 
-// Panel covers 38 % of the viewport, centered on the hovered letter's
-// natural position.  Letters on the left are pushed left of the panel;
-// letters on the right are pushed right — clamped so nothing exits the screen.
+
 const PANEL_W_FRAC = 0.38;
-const EDGE_GAP = 28; // px breathing room between panel edge and letter edge
+const EDGE_GAP = 28; 
 
 export default function LandingExperience() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -31,18 +29,7 @@ export default function LandingExperience() {
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const titleRef = useRef<HTMLHeadingElement>(null);
 
-  /**
-   * Core layout engine.
-   *
-   * Places letters so they NEVER overlap each other or the video panel.
-   * Works by cascading outward from the panel edge:
-   *   1. Hovered letter  → center on panel center.
-   *   2. Adjacent letter → just outside panel edge.
-   *   3. Each further letter → just outside the previous letter.
-   *
-   * Uses offsetLeft (layout geometry, ignores CSS transforms) so the
-   * natural positions are always correct even while letters are animating.
-   */
+ 
   const compute = useCallback((idx: number) => {
     const titleEl = titleRef.current;
     const hovEl   = letterRefs.current[idx];
@@ -68,7 +55,6 @@ export default function LandingExperience() {
     // 1. Hovered letter → panel center
     pos[idx] = pCenter;
 
-    // 2. Left letters: place each one to the left of the previous
     for (let i = idx - 1; i >= 0; i--) {
       const anchorRight = i === idx - 1
         ? pLeft - EDGE_GAP           // first left letter: clear the panel
@@ -76,8 +62,6 @@ export default function LandingExperience() {
 
       pos[i] = Math.max(hws[i] + 12, anchorRight - hws[i]);
     }
-
-    // 3. Right letters: place each one to the right of the previous
     for (let i = idx + 1; i < 5; i++) {
       const anchorLeft = i === idx + 1
         ? pRight + EDGE_GAP
@@ -133,7 +117,6 @@ export default function LandingExperience() {
   return (
     <div className={`landing-shell${isActive ? " is-active" : ""}`}>
 
-      {/* Video panel — z-index 1, always behind letters (z-index 10) */}
       <div
         className={`landing-video-panel${isActive ? " is-active" : ""}`}
         style={{ left: panelLeft, width: panelWidth }}
@@ -154,8 +137,7 @@ export default function LandingExperience() {
       <header className="landing-nav">
         <Link href="/browse" className="landing-nav-link">View Website</Link>
         <div className="landing-brand" aria-label="MovieVerse">
-          <span className="landing-brand-main">Movie</span>
-          <span className="landing-brand-sub">Verse</span>
+          Movie<span>Verse</span>
         </div>
         <a
           href={APP_URL}
@@ -195,11 +177,7 @@ export default function LandingExperience() {
         </h1>
       </main>
 
-      <p className="landing-hint">Hover each letter</p>
-
-      <footer className="landing-footer">
-        Your story, our lens — MovieVerse brings every frame to life on screen
-      </footer>
+  
 
       <div className="landing-grain" aria-hidden />
     </div>
