@@ -29,3 +29,87 @@ body {
   font-family: var(--font-bebas), sans-serif;
   letter-spacing: 0.04em;
 }
+
+/* ── Privacy Policy ─────────────────────────────────────────── */
+
+.privacy-sub {
+  font-family: var(--font-sora), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.privacy-link-inline {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgb(255 255 255 / 0.3);
+  transition: text-decoration-color 0.25s ease;
+}
+
+.privacy-link-inline:hover {
+  text-decoration-color: #fff;
+}
+
+.privacy-contact-card {
+  border-radius: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(13 13 13 / 0.7);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.privacy-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.privacy-contact-label {
+  font-family: var(--font-sora), sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.5);
+  min-width: 4.5rem;
+  letter-spacing: 0.02em;
+}
+
+/* prose overrides for privacy page lists */
+.prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: rgb(212 212 212 / 1);
+}
+
+.prose ul li {
+  padding-left: 0.25rem;
+  line-height: 1.65;
+}
+
+.prose ul li strong {
+  color: #fff;
+}
+
+.prose p {
+  color: rgb(212 212 212 / 1);
+  line-height: 1.75;
+}
+
+.prose a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgb(255 255 255 / 0.3);
+}
+
+.prose a:hover {
+  text-decoration-color: #fff;
+}

@@ -167,6 +167,15 @@ export default function BrowsePage() {
             <p className="text-zinc-500">No movies found</p>
           </div>
         )}
+
+        {/* Footer */}
+        <footer className="mt-12 pt-6 border-t border-white/10 flex flex-wrap justify-between gap-4 text-sm text-zinc-600">
+          <p>&copy; {new Date().getFullYear()} MovieVerse. All rights reserved.</p>
+          <div className="flex gap-4">
+            <Link href="/" className="hover:text-white transition-colors">Home</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+          </div>
+        </footer>
       </main>
     </div>
   );
