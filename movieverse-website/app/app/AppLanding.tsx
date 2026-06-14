@@ -47,22 +47,26 @@ const SCROLL_FEATURES = [
   },
 ];
 
-const BETTER = [
+const WHY_US = [
   {
-    title: "Mood intelligence",
-    body: "Naive Bayes maps your mood to genres in milliseconds — no heavy cloud AI required.",
+    stat: "10k+",
+    title: "Movies in the catalog",
+    body: "Thousands of titles synced from TMDB — posters, ratings, cast, and trailers ready when you need a pick.",
   },
   {
-    title: "Swipe-native UX",
-    body: "Discovery feels like a game, not a spreadsheet. Decide faster, watch sooner.",
+    stat: "5",
+    title: "Mood profiles, instant matches",
+    body: "Happy, sad, romantic, or action — tell MovieVerse how you feel and get genre-matched recommendations in seconds.",
   },
   {
-    title: "Web + app catalog",
-    body: "Browse on the site, dive deeper in the app. Same MovieVerse universe.",
+    stat: "2",
+    title: "App + web, one universe",
+    body: "Swipe on Android or browse the full catalog on the web. Same taste profile, same watchlists when you're signed in.",
   },
   {
-    title: "Personal ranking",
-    body: "Cosine similarity and your ratings combine to surface picks that actually fit you.",
+    stat: "100%",
+    title: "Free to discover",
+    body: "No subscription to browse, swipe, or get mood-based picks. Download the APK and start exploring tonight.",
   },
 ];
 
@@ -162,14 +166,18 @@ export default function AppLanding() {
         <Link href="/" className="app-nav-brand">
           MOVIEVERSE
         </Link>
-        <nav className="app-nav-links">
-          <a href="#features">Features</a>
-          <a href="#better">Why us</a>
-          <a href="#faq">FAQ</a>
-        </nav>
-        <a href={APK_URL} className="app-nav-cta" target="_blank" rel="noopener noreferrer">
-          Download
-        </a>
+
+        <div className="app-nav-glass">
+          <nav className="app-nav-links" aria-label="App page">
+            <a href="#">Home</a>
+            <a href="#features">Features</a>
+            <a href="#better">Why us</a>
+            <a href="#faq">FAQ</a>
+          </nav>
+          <Link href="/browse" className="app-nav-cta">
+            Website
+          </Link>
+        </div>
       </header>
 
       <section className="app-hero">
@@ -190,19 +198,21 @@ export default function AppLanding() {
             mood AI, watchlists, and a catalog that stays in sync with the web.
           </p>
           <div className="app-store-row">
-            <a href={APK_URL} className="app-store-btn" target="_blank" rel="noopener noreferrer">
-              <Image src="/MVV.png" alt="" width={28} height={28} className="app-store-icon" />
-              <span>
-                <small>Download</small>
-                MovieVerse APK
-              </span>
+            <a
+              href="#"
+              className="app-store-btn"
+              aria-label="Coming soon on Google Play"
+            >
+              Play Store
             </a>
-            <Link href="/browse" className="app-store-btn app-store-btn--ghost">
-              <span>
-                <small>Browse on</small>
-                Web catalog
-              </span>
-            </Link>
+            <a
+              href={APK_URL}
+              className="app-store-btn app-store-btn--ghost"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download Here
+            </a>
           </div>
         </div>
       </section>
@@ -252,22 +262,29 @@ export default function AppLanding() {
         </div>
       </section>
 
-      <section className="app-better" id="better">
-        <div className="app-better-head">
-          <p className="app-kicker">What makes it better</p>
-          <h2 className="app-section-title">
-            More than a catalog —
-            <br />
-            a decision engine
-          </h2>
-        </div>
-        <div className="app-better-grid">
-          {BETTER.map((item) => (
-            <article key={item.title} className="app-better-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </article>
-          ))}
+      <section className="app-why" id="better">
+        <div className="app-why-track">
+          <div className="app-why-pin">
+            <p className="app-kicker">Why us</p>
+            <h2 className="app-why-title">Designed for how you pick movies</h2>
+            <p className="app-why-intro">
+              MovieVerse is built around one problem — too many titles, not enough time.
+              Mood AI, swipe discovery, and a deep catalog work together so you decide faster
+              and watch sooner.
+            </p>
+          </div>
+
+          <div className="app-why-steps">
+            {WHY_US.map((item) => (
+              <article key={item.title} className="app-why-step">
+                <span className="app-why-stat">{item.stat}</span>
+                <div className="app-why-step-body">
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
