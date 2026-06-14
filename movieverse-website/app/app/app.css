@@ -53,28 +53,20 @@
 
 .app-nav-glass {
   position: relative;
-  isolation: isolate;
   overflow: hidden;
   display: flex;
   align-items: center;
   gap: clamp(0.35rem, 1.5vw, 0.75rem);
   padding: 0.35rem 0.35rem 0.35rem clamp(1rem, 2.5vw, 1.75rem);
   border-radius: 999px;
-  background: linear-gradient(
-    180deg,
-    rgb(255 255 255 / 0.16) 0%,
-    rgb(255 255 255 / 0.07) 38%,
-    rgb(0 0 0 / 0.42) 100%
-  );
-  backdrop-filter: blur(40px) saturate(190%);
-  -webkit-backdrop-filter: blur(40px) saturate(190%);
-  border: 1px solid rgb(255 255 255 / 0.16);
+  /* Thin tint — blur does the real glass work */
+  background: rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(48px) saturate(180%) contrast(1.05);
+  -webkit-backdrop-filter: blur(48px) saturate(180%) contrast(1.05);
+  border: 1px solid rgb(255 255 255 / 0.14);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.22),
-    inset 0 -1px 0 rgb(0 0 0 / 0.18),
-    0 0 0 0.5px rgb(255 255 255 / 0.06),
-    0 10px 40px rgb(0 0 0 / 0.45),
-    0 2px 8px rgb(0 0 0 / 0.25);
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 8px 32px rgb(0 0 0 / 0.35);
 }
 
 .app-nav-glass::before {
@@ -83,10 +75,10 @@
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(
-    165deg,
-    rgb(255 255 255 / 0.28) 0%,
-    rgb(255 255 255 / 0.04) 42%,
-    transparent 72%
+    180deg,
+    rgb(255 255 255 / 0.14) 0%,
+    rgb(255 255 255 / 0.02) 45%,
+    transparent 100%
   );
   pointer-events: none;
 }
@@ -94,9 +86,9 @@
 .app-nav-glass::after {
   content: "";
   position: absolute;
-  inset: 1px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
   pointer-events: none;
 }
 
@@ -553,24 +545,21 @@
 .app-why-pin {
   position: sticky;
   top: clamp(6rem, 18vh, 9rem);
-  padding-right: clamp(0.5rem, 3vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-inline: clamp(0.5rem, 2vw, 1.5rem);
 }
 
 .app-why-title {
-  margin: 0 0 1.25rem;
+  margin: 0;
   font-family: var(--font-sora), sans-serif;
   font-size: clamp(2.25rem, 4.5vw, 3.25rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.12;
-}
-
-.app-why-intro {
-  margin: 0;
-  max-width: 26rem;
-  font-size: clamp(1rem, 1.8vw, 1.12rem);
-  line-height: 1.75;
-  color: var(--app-muted);
+  max-width: 16ch;
 }
 
 .app-why-steps {
@@ -601,7 +590,7 @@
   font-weight: 700;
   line-height: 0.95;
   letter-spacing: -0.04em;
-  background: linear-gradient(90deg, #7dd3fc 0%, #c4b5fd 55%, #f0abfc 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #737373 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -631,7 +620,7 @@
 
   .app-why-pin {
     position: static;
-    padding-right: 0;
+    padding-inline: 0;
   }
 
   .app-why-step {

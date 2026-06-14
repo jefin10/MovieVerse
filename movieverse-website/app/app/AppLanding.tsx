@@ -267,11 +267,6 @@ export default function AppLanding() {
           <div className="app-why-pin">
             <p className="app-kicker">Why us</p>
             <h2 className="app-why-title">Designed for how you pick movies</h2>
-            <p className="app-why-intro">
-              MovieVerse is built around one problem — too many titles, not enough time.
-              Mood AI, swipe discovery, and a deep catalog work together so you decide faster
-              and watch sooner.
-            </p>
           </div>
 
           <div className="app-why-steps">
