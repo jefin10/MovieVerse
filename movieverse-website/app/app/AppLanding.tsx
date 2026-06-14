@@ -8,11 +8,7 @@ import PhoneMockup from "./PhoneMockup";
 const APK_URL =
   "https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk";
 
-const SHOWCASE = [
-  { src: "/app-screens/home.jpg", label: "Home feed" },
-  { src: "/app-screens/mood.jpg", label: "Mood picks" },
-  { src: "/app-screens/discover.jpg", label: "Swipe discovery" },
-] as const;
+const DESKTOP_MQ = "(min-width: 900px)";
 
 const SCROLL_FEATURES = [
   {
@@ -119,10 +115,21 @@ function FeaturePhone({ activeIndex }: { activeIndex: number }) {
 export default function AppLanding() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const featuresRef = useRef<HTMLElement>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const stepRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_MQ);
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+
     const nodes = stepRefs.current.filter(Boolean) as HTMLElement[];
     if (!nodes.length) return;
 
@@ -133,12 +140,11 @@ export default function AppLanding() {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
 
         if (visible.length) {
-          const idx = nodes.indexOf(visible[0].target as HTMLDivElement);
+          const idx = nodes.indexOf(visible[0].target as HTMLElement);
           if (idx >= 0) setActiveFeature(idx);
           return;
         }
 
-        // Pick the step closest to viewport center when none are strongly visible
         const mid = window.innerHeight * 0.5;
         let closest = 0;
         let closestDist = Infinity;
@@ -158,23 +164,46 @@ export default function AppLanding() {
 
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, []);
+  }, [isDesktop]);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const close = () => setNavOpen(false);
+    window.addEventListener("resize", close);
+    return () => window.removeEventListener("resize", close);
+  }, [navOpen]);
+
+  const closeNav = () => setNavOpen(false);
 
   return (
     <div className="app-page">
-      <header className="app-nav">
-        <Link href="/" className="app-nav-brand">
+      <header className={`app-nav${navOpen ? " is-open" : ""}`}>
+        <Link href="/" className="app-nav-brand" onClick={closeNav}>
           MOVIEVERSE
         </Link>
 
         <div className="app-nav-glass">
-          <nav className="app-nav-links" aria-label="App page">
+          <button
+            type="button"
+            className="app-nav-menu-btn"
+            aria-expanded={navOpen}
+            aria-controls="app-nav-links"
+            onClick={() => setNavOpen((v) => !v)}
+          >
+            Menu
+          </button>
+          <nav
+            id="app-nav-links"
+            className="app-nav-links"
+            aria-label="App page"
+            onClick={closeNav}
+          >
             <a href="#">Home</a>
             <a href="#features">Features</a>
             <a href="#better">Why us</a>
             <a href="#faq">FAQ</a>
           </nav>
-          <Link href="/browse" className="app-nav-cta">
+          <Link href="/browse" className="app-nav-cta" onClick={closeNav}>
             Website
           </Link>
         </div>
@@ -183,11 +212,6 @@ export default function AppLanding() {
       <section className="app-hero">
         <div className="app-hero-rings" aria-hidden />
         <div className="app-hero-inner">
-          {/* <a href={APK_URL} className="app-pill" target="_blank" rel="noopener noreferrer">
-            <span className="app-pill-dot" aria-hidden />
-            Get the Android app
-            <span aria-hidden>→</span>
-          </a> */}
           <h1 className="app-hero-title">
             Navigate your <span>movies</span>
             <br />
@@ -220,45 +244,63 @@ export default function AppLanding() {
       <section className="app-showcase">
         <p className="app-kicker">Inside the app</p>
         <h2 className="app-section-title">Built for how you actually pick movies</h2>
-        {/* <div className="app-showcase-phones">
-          {SHOWCASE.map((item, i) => (
-            <PhoneMockup
-              key={item.src}
-              src={item.src}
-              alt={item.label}
-              priority={i === 1}
-              className={i === 1 ? "app-phone--lift" : ""}
-            />
-          ))}
-        </div> */}
       </section>
 
-      {/* One sticky center phone — image swaps as you scroll features */}
-      <section className="app-features" id="features" ref={featuresRef}>
+      <section className="app-features" id="features">
         <p className="app-features-watermark" aria-hidden>
           features
         </p>
 
-        <div className="app-features-track">
-          <div className="app-features-phone-pin" aria-hidden={false}>
-            <FeaturePhone activeIndex={activeFeature} />
-          </div>
+        {/* Desktop: sticky phone + scroll-synced features */}
+        <div className="app-features-desktop">
+          <div className="app-features-track">
+            <div className="app-features-phone-pin">
+              <FeaturePhone activeIndex={activeFeature} />
+            </div>
 
-          {SCROLL_FEATURES.map((feature, i) => (
-            <article
-              key={feature.title}
-              ref={(el) => {
-                stepRefs.current[i] = el;
-              }}
-              className={`app-feature-step app-feature-step--${feature.side} app-feature-step--row-${
-                i + 1
-              }${activeFeature === i ? " is-active" : ""}`}
-            >
-              <span className="app-feature-index">0{i + 1}</span>
-              <h3>{feature.title}</h3>
-              <p>{feature.body}</p>
-            </article>
-          ))}
+            {SCROLL_FEATURES.map((feature, i) => (
+              <article
+                key={feature.title}
+                ref={(el) => {
+                  stepRefs.current[i] = el;
+                }}
+                className={`app-feature-step app-feature-step--${feature.side} app-feature-step--row-${
+                  i + 1
+                }${activeFeature === i ? " is-active" : ""}`}
+              >
+                <span className="app-feature-index">0{i + 1}</span>
+                <h3>{feature.title}</h3>
+                <p>{feature.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile: simple stacked cards, no scroll animation */}
+        <div className="app-features-mobile">
+          <div className="app-features-mobile-head">
+            <p className="app-kicker">Features</p>
+            <h2 className="app-section-title">Everything in one app</h2>
+          </div>
+          <ul className="app-features-mobile-list">
+            {SCROLL_FEATURES.map((feature, i) => (
+              <li key={feature.title}>
+                <article className="app-feature-card">
+                  <PhoneMockup
+                    src={feature.image}
+                    alt={feature.title}
+                    priority={i === 0}
+                    className="app-feature-card-phone"
+                  />
+                  <div className="app-feature-card-copy">
+                    <span className="app-feature-index">0{i + 1}</span>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.body}</p>
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
