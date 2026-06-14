@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const APP_URL =
-  "https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk";
 const LETTERS = ["M", "O", "V", "I", "E"] as const;
 
 const LETTER_VIDEOS: Record<(typeof LETTERS)[number], string> = {
@@ -139,14 +137,9 @@ export default function LandingExperience() {
         <div className="landing-brand" aria-label="MovieVerse">
           Movie<span>Verse</span>
         </div>
-        <a
-          href={APP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="landing-nav-link"
-        >
+        <Link href="/app" className="landing-nav-link">
           View App
-        </a>
+        </Link>
       </header>
 
       <main className="landing-hero">
