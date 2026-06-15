@@ -117,7 +117,9 @@ export default function AppLanding() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [isDesktop, setIsDesktop] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [heroReady, setHeroReady] = useState(false);
   const stepRefs = useRef<(HTMLElement | null)[]>([]);
+  const revealRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP_MQ);
@@ -126,6 +128,42 @@ export default function AppLanding() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setHeroReady(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setHeroReady(true), 80);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const nodes = revealRefs.current.filter(Boolean) as HTMLElement[];
+    if (!nodes.length) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      nodes.forEach((node) => node.classList.add("is-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { root: null, rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [isDesktop]);
 
   useEffect(() => {
     if (!isDesktop) return;
@@ -176,7 +214,7 @@ export default function AppLanding() {
   const closeNav = () => setNavOpen(false);
 
   return (
-    <div className="app-page">
+    <div className={`app-page${heroReady ? " is-hero-ready" : ""}`}>
       <header className={`app-nav${navOpen ? " is-open" : ""}`}>
         <Link href="/" className="app-nav-brand" onClick={closeNav}>
           MOVIEVERSE
@@ -211,17 +249,18 @@ export default function AppLanding() {
 
       <section className="app-hero">
         <div className="app-hero-rings" aria-hidden />
+        <div className="app-hero-glow" aria-hidden />
         <div className="app-hero-inner">
-          <h1 className="app-hero-title">
+          <h1 className="app-hero-title app-reveal" data-reveal-order="1">
             Navigate your <span>movies</span>
             <br />
             with precision
           </h1>
-          <p className="app-hero-copy">
+          <p className="app-hero-copy app-reveal" data-reveal-order="2">
             MovieVerse is your pocket guide for what to watch next — swipe discovery,
             mood AI, watchlists, and a catalog that stays in sync with the web.
           </p>
-          <div className="app-store-row">
+          <div className="app-store-row app-reveal" data-reveal-order="3">
             <a
               href="#"
               className="app-store-btn"
@@ -241,7 +280,12 @@ export default function AppLanding() {
         </div>
       </section>
 
-      <section className="app-showcase">
+      <section
+        className="app-showcase app-reveal"
+        ref={(el) => {
+          revealRefs.current[0] = el;
+        }}
+      >
         <p className="app-kicker">Inside the app</p>
         <h2 className="app-section-title">Built for how you actually pick movies</h2>
       </section>
@@ -306,14 +350,26 @@ export default function AppLanding() {
 
       <section className="app-why" id="better">
         <div className="app-why-track">
-          <div className="app-why-pin">
+          <div
+            className="app-why-pin app-reveal"
+            ref={(el) => {
+              revealRefs.current[1] = el;
+            }}
+          >
             <p className="app-kicker">Why us</p>
             <h2 className="app-why-title">Designed for how you pick movies</h2>
           </div>
 
           <div className="app-why-steps">
-            {WHY_US.map((item) => (
-              <article key={item.title} className="app-why-step">
+            {WHY_US.map((item, i) => (
+              <article
+                key={item.title}
+                className="app-why-step app-reveal"
+                data-reveal-order={String(i + 1)}
+                ref={(el) => {
+                  revealRefs.current[2 + i] = el;
+                }}
+              >
                 <span className="app-why-stat">{item.stat}</span>
                 <div className="app-why-step-body">
                   <h3>{item.title}</h3>
@@ -326,7 +382,12 @@ export default function AppLanding() {
       </section>
 
       <section className="app-faq" id="faq">
-        <div className="app-faq-head">
+        <div
+          className="app-faq-head app-reveal"
+          ref={(el) => {
+            revealRefs.current[6] = el;
+          }}
+        >
           <p className="app-kicker">FAQ</p>
           <h2 className="app-section-title">Questions, answered</h2>
         </div>
@@ -334,7 +395,14 @@ export default function AppLanding() {
           {FAQS.map((item, i) => {
             const open = openFaq === i;
             return (
-              <div key={item.q} className={`app-faq-item${open ? " is-open" : ""}`}>
+              <div
+                key={item.q}
+                className={`app-faq-item app-reveal${open ? " is-open" : ""}`}
+                data-reveal-order={String(i + 1)}
+                ref={(el) => {
+                  revealRefs.current[7 + i] = el;
+                }}
+              >
                 <button
                   type="button"
                   className="app-faq-trigger"
@@ -355,7 +423,12 @@ export default function AppLanding() {
         </div>
       </section>
 
-      <footer className="app-footer">
+      <footer
+        className="app-footer app-reveal"
+        ref={(el) => {
+          revealRefs.current[12] = el;
+        }}
+      >
         <div className="app-footer-top">
           <div>
             <p className="app-footer-brand">MOVIEVERSE</p>

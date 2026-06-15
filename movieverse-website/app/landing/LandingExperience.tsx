@@ -15,7 +15,10 @@ const LETTER_VIDEOS: Record<(typeof LETTERS)[number], string> = {
 
 
 const PANEL_W_FRAC = 0.38;
-const EDGE_GAP = 28; 
+const EDGE_GAP = 28;
+const V_INDEX = LETTERS.indexOf("V");
+const INTRO_STORAGE_KEY = "mv-landing-v-intro";
+const INTRO_HOLD_MS = 3200;
 
 export default function LandingExperience() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -109,6 +112,40 @@ export default function LandingExperience() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [activeIndex, compute]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(INTRO_STORAGE_KEY)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let holdTimer: number | undefined;
+    let cancelled = false;
+
+    const startIntro = () => {
+      if (cancelled) return;
+      const letter = letterRefs.current[V_INDEX];
+      if (!letter || !titleRef.current) {
+        window.requestAnimationFrame(startIntro);
+        return;
+      }
+
+      activate(V_INDEX);
+      holdTimer = window.setTimeout(() => {
+        deactivate();
+        window.localStorage.setItem(INTRO_STORAGE_KEY, "1");
+      }, INTRO_HOLD_MS);
+    };
+
+    const delayTimer = window.setTimeout(() => {
+      window.requestAnimationFrame(startIntro);
+    }, 520);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(delayTimer);
+      if (holdTimer) window.clearTimeout(holdTimer);
+    };
+  }, [activate, deactivate]);
 
   const isActive = activeIndex !== null;
 

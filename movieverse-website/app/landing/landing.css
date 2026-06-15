@@ -201,3 +201,11 @@
     height: auto;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-letter,
+  .landing-video-panel,
+  .landing-video {
+    transition: none;
+  }
+}
