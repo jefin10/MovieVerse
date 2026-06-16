@@ -170,7 +170,7 @@ export default function LandingExperience() {
       </div>
 
       <header className="landing-nav">
-        <Link href="/browse" className="landing-nav-link">View Website</Link>
+        <Link href="/website" className="landing-nav-link">View Website</Link>
         <div className="landing-brand" aria-label="MovieVerse">
           Movie<span>Verse</span>
         </div>

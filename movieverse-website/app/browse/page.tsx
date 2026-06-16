@@ -68,10 +68,10 @@ export default function BrowsePage() {
             <h1 className="movieverse-title text-5xl text-white">Browse Movies</h1>
           </div>
           <Link 
-            href="/" 
+            href="/website" 
             className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
           >
-            ← Back Home
+            ← Back to Website
           </Link>
         </header>
 

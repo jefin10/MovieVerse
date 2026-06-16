@@ -241,7 +241,7 @@ export default function AppLanding() {
             <a href="#better">Why us</a>
             <a href="#faq">Faq</a>
           </nav>
-          <Link href="/browse" className="app-nav-cta" onClick={closeNav}>
+          <Link href="/website" className="app-nav-cta" onClick={closeNav}>
             Website
           </Link>
         </div>
@@ -436,7 +436,7 @@ export default function AppLanding() {
           </div>
           <div className="app-footer-links">
             <Link href="/">Home</Link>
-            <Link href="/browse">Browse</Link>
+            <Link href="/website">Browse</Link>
             <Link href="/privacy">Privacy</Link>
             <a href={APK_URL} target="_blank" rel="noopener noreferrer">
               Download APK
