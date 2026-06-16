@@ -114,7 +114,7 @@ function FeaturePhone({ activeIndex }: { activeIndex: number }) {
 
 export default function AppLanding() {
   const [activeFeature, setActiveFeature] = useState(0);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [heroReady, setHeroReady] = useState(false);
@@ -391,18 +391,16 @@ export default function AppLanding() {
           <p className="app-kicker">FAQ</p>
           <h2 className="app-section-title">Questions, answered</h2>
         </div>
-        <div className="app-faq-list">
+        <div
+          className="app-faq-list app-reveal"
+          ref={(el) => {
+            revealRefs.current[7] = el;
+          }}
+        >
           {FAQS.map((item, i) => {
             const open = openFaq === i;
             return (
-              <div
-                key={item.q}
-                className={`app-faq-item app-reveal${open ? " is-open" : ""}`}
-                data-reveal-order={String(i + 1)}
-                ref={(el) => {
-                  revealRefs.current[7 + i] = el;
-                }}
-              >
+              <div key={item.q} className={`app-faq-item${open ? " is-open" : ""}`}>
                 <button
                   type="button"
                   className="app-faq-trigger"
@@ -426,7 +424,7 @@ export default function AppLanding() {
       <footer
         className="app-footer app-reveal"
         ref={(el) => {
-          revealRefs.current[12] = el;
+          revealRefs.current[8] = el;
         }}
       >
         <div className="app-footer-top">

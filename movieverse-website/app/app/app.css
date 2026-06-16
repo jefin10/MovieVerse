@@ -1167,12 +1167,6 @@
   --reveal-order: 2;
 }
 
-.app-faq-item.app-reveal[data-reveal-order="1"] { --reveal-order: 0; }
-.app-faq-item.app-reveal[data-reveal-order="2"] { --reveal-order: 1; }
-.app-faq-item.app-reveal[data-reveal-order="3"] { --reveal-order: 2; }
-.app-faq-item.app-reveal[data-reveal-order="4"] { --reveal-order: 3; }
-.app-faq-item.app-reveal[data-reveal-order="5"] { --reveal-order: 4; }
-
 .app-why-step.app-reveal[data-reveal-order="1"] { --reveal-order: 0; }
 .app-why-step.app-reveal[data-reveal-order="2"] { --reveal-order: 1; }
 .app-why-step.app-reveal[data-reveal-order="3"] { --reveal-order: 2; }
