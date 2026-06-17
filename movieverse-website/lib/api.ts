@@ -39,6 +39,11 @@ export async function fetchCatalog(page: number = 1, pageSize: number = 24): Pro
   return request<PaginatedResponse>(`api/web/catalog/?page=${page}&page_size=${pageSize}`, "force-cache");
 }
 
+export async function fetchCatalogByGenre(genre: string, page: number = 1, pageSize: number = 48): Promise<PaginatedResponse> {
+  const encoded = encodeURIComponent(genre);
+  return request<PaginatedResponse>(`api/web/catalog/?page=${page}&page_size=${pageSize}&genre=${encoded}`, "force-cache");
+}
+
 export async function searchCatalog(query: string, page: number = 1, pageSize: number = 24): Promise<PaginatedResponse> {
   if (!query.trim()) {
     return fetchCatalog(page, pageSize);

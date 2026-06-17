@@ -992,6 +992,7 @@ def _serialize_catalog_movies(movies):
             'release_date': movie.release_date,
             'imdb_rating': movie.imdb_rating,
             'tmdb_vote_average': movie.tmdb_vote_average,
+            'genres': [g.name for g in movie.genres.all()],
         }
         for movie in movies
     ]
@@ -1001,6 +1002,7 @@ def _serialize_catalog_movies(movies):
 @permission_classes([AllowAny])
 def web_catalog(request):
     page, page_size = _parse_catalog_pagination(request)
+    genre_filter = request.GET.get('genre', '').strip()
 
     base_qs = Movie.objects.only(
         'id',
@@ -1009,7 +1011,12 @@ def web_catalog(request):
         'release_date',
         'imdb_rating',
         'tmdb_vote_average',
-    ).order_by('-id')
+    )
+
+    if genre_filter:
+        base_qs = base_qs.filter(genres__name__iexact=genre_filter)
+
+    base_qs = base_qs.order_by('-id').distinct()
 
     total_movies = base_qs.count()
     total_pages = (total_movies + page_size - 1) // page_size

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchCatalog, searchCatalog, type Movie } from "@/lib/api";
+import { fetchCatalog, fetchCatalogByGenre, searchCatalog, type Movie } from "@/lib/api";
 import MovieCard from "./MovieCard";
 import SliderArrow from "./SliderArrow";
 import {
@@ -43,13 +43,7 @@ export default function WebsiteExperience() {
     [movies],
   );
 
-  const browseMovies = useMemo(() => {
-    const mapped = movies.map(toWebMovie);
-    if (genre === "All") return mapped;
-    return mapped.filter((movie) =>
-      movie.genres.some((g) => g.toLowerCase() === genre.toLowerCase()),
-    );
-  }, [movies, genre]);
+  const browseMovies = useMemo(() => movies.map(toWebMovie), [movies]);
 
   const hero = FEATURED_SLIDES[heroIndex];
   const titleParts = splitFeaturedTitle(hero);
@@ -63,7 +57,9 @@ export default function WebsiteExperience() {
         setError("");
         const data = query.trim()
           ? await searchCatalog(query, 1, 48)
-          : await fetchCatalog(1, 48);
+          : genre !== "All"
+            ? await fetchCatalogByGenre(genre, 1, 48)
+            : await fetchCatalog(1, 48);
         if (!cancelled) {
           setMovies(data.results);
         }
@@ -83,7 +79,7 @@ export default function WebsiteExperience() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, genre]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
