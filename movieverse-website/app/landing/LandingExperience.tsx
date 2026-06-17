@@ -17,7 +17,6 @@ const LETTER_VIDEOS: Record<(typeof LETTERS)[number], string> = {
 const PANEL_W_FRAC = 0.38;
 const EDGE_GAP = 28;
 const V_INDEX = LETTERS.indexOf("V");
-const INTRO_STORAGE_KEY = "mv-landing-v-intro";
 const INTRO_HOLD_MS = 3200;
 
 export default function LandingExperience() {
@@ -115,7 +114,6 @@ export default function LandingExperience() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.localStorage.getItem(INTRO_STORAGE_KEY)) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     let holdTimer: number | undefined;
@@ -132,7 +130,6 @@ export default function LandingExperience() {
       activate(V_INDEX);
       holdTimer = window.setTimeout(() => {
         deactivate();
-        window.localStorage.setItem(INTRO_STORAGE_KEY, "1");
       }, INTRO_HOLD_MS);
     };
 
