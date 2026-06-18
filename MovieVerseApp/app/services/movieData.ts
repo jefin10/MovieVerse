@@ -96,9 +96,7 @@ export const getWatchlist = async (
     ttlMs: CACHE_TTL.watchlist,
     forceRefresh,
     fetcher: async () => {
-      const response = await api.get('api/watchlist/', {
-        params: { username },
-      });
+      const response = await api.get('api/watchlist/');
 
       const items = Array.isArray(response.data) ? (response.data as WatchlistItem[]) : [];
       return items.map(normalizeWatchlistItem);
@@ -116,15 +114,13 @@ export const getRecommendations = async (
     forceRefresh,
     fetcher: async () => {
       try {
-        const response = await api.get('api/recommendations/from-ratings/', {
-          params: { username },
-        });
+        const response = await api.get('api/recommendations/from-ratings/');
 
         const recommendations = response?.data?.recommendations;
         const items = Array.isArray(recommendations) ? (recommendations as AppMovie[]) : [];
         return items.map(normalizeMovie);
       } catch {
-        const fallbackResponse = await api.post('api/recommendations/', { username });
+        const fallbackResponse = await api.post('api/recommendations/', {});
         const fallbackItems = Array.isArray(fallbackResponse.data)
           ? (fallbackResponse.data as AppMovie[])
           : [];

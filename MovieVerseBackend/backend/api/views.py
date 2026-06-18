@@ -21,6 +21,7 @@ from .models import Ratings,RecommendedMovies
 from django.db import OperationalError, close_old_connections
 from django.db.utils import InterfaceError
 from django.db import models
+from users.models import CustomUser
 
 @api_view(['GET'])
 def hello(request):
@@ -323,31 +324,12 @@ def get_movie_poster(request, query):
         return Response({"error he": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-from django.contrib.auth import get_user_model
-from api.models import UserProfile  # Adjust based on your actual model
-
-# Replace the current view_watchlist function with this:
 @api_view(['GET', 'POST'])  # <-- Support both GET and POST
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def view_watchlist(request):
     try:
-        # Get username from request body (POST) or query params (GET)
-        if request.method == 'POST':
-            username = request.data.get('username')
-        else:  # GET
-            username = request.query_params.get('username')
-            
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Find the user by username - UPDATED to use CustomUser
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-        # The rest stays the same
+        user = request.user
         watchlist_items = Watchlist.objects.filter(user=user).select_related('movie')
         
         result = []
@@ -365,28 +347,19 @@ def view_watchlist(request):
         return Response(result)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-from users.models import CustomUser
+
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def add_movie_to_watchlist(request):
 
     try:
-        # Get username and movie_id from request
-        username = request.data.get('username')
         movie_id = request.data.get('movie_id')
-        
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
         
         if not movie_id:
             return Response({"error": "Movie ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Find the user and movie
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
         
         try:
             movie = Movie.objects.get(id=movie_id)
@@ -422,15 +395,7 @@ def remove_movie_from_watchlist(request, pk):
     Remove a movie from a user's watchlist
     """
     try:
-        username = request.data.get('username')
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Find the user - UPDATED to use CustomUser
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
         
         # Find the watchlist item
         try:
@@ -482,17 +447,11 @@ def add_temp_recommendations(request):
     Temporary route to add first 5 movies in the database to a user's recommendations
     """
     try:
-        # Get username from request
-        username = request.data.get('username')
-        
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Find the user
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        submitted_username = (request.data.get('username') or '').strip()
+        if submitted_username and submitted_username != request.user.username:
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        user = request.user
         
         # Get first 5 movies
         movies = Movie.objects.all()[:5]
@@ -528,48 +487,66 @@ def add_temp_recommendations(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def add_rating(request):
-    username=request.data.get('username')
-    rating=float(request.data.get('rating'))
-    movie_id=request.data.get('movie_id')
-    userid=CustomUser.objects.get(username=username).id
+    submitted_username = (request.data.get('username') or '').strip()
+    if submitted_username and submitted_username != request.user.username:
+        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+    rating_raw = request.data.get('rating')
+    movie_id = request.data.get('movie_id')
+
+    if rating_raw is None or movie_id is None:
+        return Response({"error": "Movie ID and rating are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        movie=Movie.objects.get(id=movie_id)
-        if Ratings.objects.filter(user_id=userid,movie_id=movie_id).exists():
-            rating_obj=Ratings.objects.get(user_id=userid,movie_id=movie_id)
-            oldRating=rating_obj.rating
-            rating_obj.rating=rating
+        rating = float(rating_raw)
+    except (TypeError, ValueError):
+        return Response({"error": "Rating must be a number"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if rating < 0 or rating > 5:
+        return Response({"error": "Rating must be between 0 and 5"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        movie = Movie.objects.get(id=movie_id)
+        user = request.user
+        if Ratings.objects.filter(user=user, movie=movie).exists():
+            rating_obj = Ratings.objects.get(user=user, movie=movie)
+            old_rating = rating_obj.rating
+            rating_obj.rating = rating
             rating_obj.save()
-            noOfRaters=Ratings.objects.filter(movie=movie).count()
-            movie.our_rating=(movie.our_rating+rating-oldRating)/(noOfRaters)
+            no_of_raters = Ratings.objects.filter(movie=movie).count()
+            movie.our_rating = (movie.our_rating + rating - old_rating) / (no_of_raters)
             movie.save()
-            return Response({"message":"Rating updated successfully"},status=200)
-        else:
-            rating_obj=Ratings(user_id=userid,movie=movie,rating=rating)
-            rating_obj.save()
-            noOfRaters=Ratings.objects.filter(movie=movie).count()
-            movie.our_rating=(movie.our_rating+rating)/(noOfRaters)
-            movie.save()
-            return Response({"message":"Rating added successfully"},status=200)
+            return Response({"message": "Rating updated successfully"}, status=200)
+
+        rating_obj = Ratings(user=user, movie=movie, rating=rating)
+        rating_obj.save()
+        no_of_raters = Ratings.objects.filter(movie=movie).count()
+        movie.our_rating = (movie.our_rating + rating) / (no_of_raters)
+        movie.save()
+        return Response({"message": "Rating added successfully"}, status=200)
     except Movie.DoesNotExist:
-        return Response({"error":"Movie not found"},status=404)
+        return Response({"error": "Movie not found"}, status=404)
     except Ratings.DoesNotExist:
-        return Response({"error":"Rating not found"},status=404)
+        return Response({"error": "Rating not found"}, status=404)
+
 
 @api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def get_rating(request,username, movie_id):
-
-    userid=CustomUser.objects.get(username=username).id
+    if username != request.user.username:
+        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
     try:
-        if Ratings.objects.filter(user_id=userid,movie_id=movie_id).exists():
-            rating_obj=Ratings.objects.get(user_id=userid,movie_id=movie_id)
-            return Response({"rating":(rating_obj.rating)/2},status=200)
-        else:
-            return Response({"rating":0},status=200)
+        if Ratings.objects.filter(user=request.user, movie_id=movie_id).exists():
+            rating_obj = Ratings.objects.get(user=request.user, movie_id=movie_id)
+            return Response({"rating": (rating_obj.rating) / 2}, status=200)
+        return Response({"rating": 0}, status=200)
     except Movie.DoesNotExist:
-        return Response({"error":"Movie not found"},status=404)
+        return Response({"error": "Movie not found"}, status=404)
 
 
 @api_view(['POST'])
@@ -580,17 +557,11 @@ def get_user_recommendations(request):
     Get recommended movies for a user
     """
     try:
-        # Get username from request
-        username = request.data.get('username')
-        
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Find the user
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        submitted_username = (request.data.get('username') or '').strip()
+        if submitted_username and submitted_username != request.user.username:
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        user = request.user
         
         # Get user's recommended movies
         recommended = RecommendedMovies.objects.filter(user=user).select_related('movie').order_by('-recommended_on')
@@ -857,11 +828,14 @@ def rate_movie(request, movie_id):
     Rate a movie (add or update rating)
     """
     try:
-        username = request.data.get('username')
+        username = (request.data.get('username') or '').strip()
         rating_value = request.data.get('rating')
-        
-        if not username or rating_value is None:
-            return Response({"error": "Username and rating are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if username and username != request.user.username:
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        if rating_value is None:
+            return Response({"error": "Rating is required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             rating_value = float(rating_value)
@@ -869,11 +843,8 @@ def rate_movie(request, movie_id):
                 return Response({"error": "Rating must be between 0 and 5"}, status=status.HTTP_400_BAD_REQUEST)
         except ValueError:
             return Response({"error": "Rating must be a number"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
         
         try:
             movie = Movie.objects.get(id=movie_id)
@@ -917,15 +888,11 @@ def get_movie_rating(request, movie_id):
     Get a user's rating for a specific movie
     """
     try:
-        username = request.query_params.get('username')
-        
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        username = (request.query_params.get('username') or '').strip()
+        if username and username != request.user.username:
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        user = request.user
         
         try:
             movie = Movie.objects.get(id=movie_id)
@@ -1134,15 +1101,11 @@ def get_ratings_based_recommendations(request):
     Get movie recommendations based on a user's movie ratings
     """
     try:
-        username = request.query_params.get('username')
-        
-        if not username:
-            return Response({"error": "Username is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
-            return Response({"error": f"User '{username}' not found"}, status=status.HTTP_404_NOT_FOUND)
+        username = (request.query_params.get('username') or '').strip()
+        if username and username != request.user.username:
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        user = request.user
         
         # Get all user ratings
         user_ratings = Ratings.objects.filter(user=user)

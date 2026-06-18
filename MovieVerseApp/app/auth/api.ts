@@ -2,16 +2,21 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URLS = [
-  'https://movieversebackend.jefin.xyz/',
-  'http://51.20.60.134/',
-];
+const DEFAULT_HTTPS_API_BASE_URL = 'https://movieversebackend.jefin.xyz/';
+const configuredApiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
+const API_BASE_URL =
+  configuredApiBaseUrl && configuredApiBaseUrl.startsWith('https://')
+    ? configuredApiBaseUrl
+    : DEFAULT_HTTPS_API_BASE_URL;
 
-let activeBaseUrlIndex = 0;
+if (configuredApiBaseUrl && !configuredApiBaseUrl.startsWith('https://')) {
+  console.warn('Ignoring non-HTTPS EXPO_PUBLIC_API_BASE_URL for security.');
+}
+
 let csrfFetchPromise: Promise<string | null> | null = null;
 
 const api = axios.create({
-  baseURL: API_BASE_URLS[activeBaseUrlIndex],
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 12000,
   headers:{
@@ -19,18 +24,6 @@ const api = axios.create({
     'Accept': 'application/json',
   }
 });
-
-const switchToNextBaseURL = (): boolean => {
-  const nextIndex = activeBaseUrlIndex + 1;
-  if (nextIndex >= API_BASE_URLS.length) {
-    return false;
-  }
-
-  activeBaseUrlIndex = nextIndex;
-  api.defaults.baseURL = API_BASE_URLS[activeBaseUrlIndex];
-  console.warn('Switched API base URL to:', api.defaults.baseURL);
-  return true;
-};
 
 
 // Initialize the CSRF token if available
@@ -114,11 +107,6 @@ export const refreshCSRFToken = async (): Promise<string | null> => {
   return await getCSRFToken();
 };
 
-interface Cookie {
-  sessionid?: string;
-  csrftoken?: string;
-}
-
 export const storeSessionCookie = async (setCookieHeader: string | string[] | undefined): Promise<void> => {
   const cookieString: string = setCookieHeader?.toString() || '';
   const sessionMatch: RegExpMatchArray | null = cookieString.match(/sessionid=([^;]+)/);
@@ -172,12 +160,6 @@ api.interceptors.response.use(
 
       if (!noisyAuthProbe) {
         console.warn(isTimeout ? 'Request timed out:' : 'Network error:', error.message);
-      }
-
-      // Try next base URL once for network-level failures.
-      if (originalRequest && !originalRequest._baseRetried && switchToNextBaseURL()) {
-        originalRequest._baseRetried = true;
-        return api(originalRequest);
       }
     }
 

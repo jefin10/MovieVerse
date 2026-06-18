@@ -3,7 +3,6 @@ import {
   View, 
   Text, 
   TextInput, 
-  StyleSheet, 
   TouchableOpacity, 
   Alert,
   KeyboardAvoidingView,
@@ -17,7 +16,6 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '../auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 import styles from '@/styles/NewPassword';
 
 const NewPasswordPage = () => {
@@ -30,18 +28,25 @@ const NewPasswordPage = () => {
   const [doPasswordsMatch, setDoPasswordsMatch] = useState(false);
   const router = useRouter();
   const [username, setUsername] = useState('');
-  // Get token from URL params
-  const { token, email } = useLocalSearchParams();
+  const [resetToken, setResetToken] = useState('');
+  const { resetToken: resetTokenFromParams } = useLocalSearchParams<{ resetToken?: string }>();
   const scrollViewRef = useRef(null);
+
+  useEffect(() => {
+    const loadResetContext = async () => {
+      const storedUsername = await AsyncStorage.getItem('username');
+      const storedResetToken = await AsyncStorage.getItem('passwordResetToken');
+      setUsername(storedUsername || '');
+      setResetToken((resetTokenFromParams as string) || storedResetToken || '');
+    };
+
+    loadResetContext();
+  }, [resetTokenFromParams]);
+
   // Validate password strength (min 6 chars)
   useEffect(() => {
     setIsPasswordValid(password.length >= 6);
     setDoPasswordsMatch(password === confirmPassword && password !== '');
-    const getUsername = async () => {
-        const storedUsername = await AsyncStorage.getItem('username');
-        setUsername(storedUsername);
-    }
-    getUsername();
   }, [password, confirmPassword]);
 
   useEffect(() => {
@@ -86,16 +91,24 @@ const NewPasswordPage = () => {
       return;
     }
 
+    if (!username || !resetToken) {
+      Alert.alert('Error', 'Reset session expired. Please request a new OTP.');
+      router.replace('/pages/ForgotPassUsername');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
    
       const res=await api.post('api/auth/reset-password/', { 
         username,
-        password
+        password,
+        reset_token: resetToken,
       });
       
       if(res.status === 200) {
+        await AsyncStorage.removeItem('passwordResetToken');
         Alert.alert('Success', 'Password reset successfully. You can now log in.', [
           { text: 'OK', onPress: () => router.push('/pages/LoginPage') }
         ]);
@@ -105,6 +118,7 @@ const NewPasswordPage = () => {
       
     } catch (err) {
       console.log('Password reset error:', err.response?.data || err.message);
+      await AsyncStorage.removeItem('passwordResetToken');
       Alert.alert(
         'Error',
         'Failed to reset password. The link may be invalid or expired.',

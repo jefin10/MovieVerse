@@ -115,7 +115,6 @@ const Tinder = () => {
       
       await api.post('api/watchlist/add/', 
         { 
-          username, 
           movie_id: movie.id 
         }
       );

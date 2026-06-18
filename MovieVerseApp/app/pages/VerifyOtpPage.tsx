@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  Platform,
   SafeAreaView,
   ActivityIndicator,
   TextInput,
@@ -19,7 +18,6 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 
 const VerifyOtpPage = () => {
   const router = useRouter();
-  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); 
@@ -40,30 +38,21 @@ const VerifyOtpPage = () => {
   }, [timeLeft]);
 
   useEffect(() => {
-    const getUsername = async () => {
+    const loadUsername = async () => {
       try {
-        const res = await AsyncStorage.getItem('username');
-        setUsername(res);
-        const result = await api.post('api/auth/getEmail/', {
-          username: res // Use res instead of username to avoid stale state
-        });
-        console.log(result.data);
-        setEmail(result.data.email);
+        const storedUsername = await AsyncStorage.getItem('username');
+        if (!storedUsername) {
+          router.replace('/pages/ForgotPassUsername');
+          return;
+        }
+        setUsername(storedUsername);
       } catch (error) {
-        console.error('Error getting username or email:', error);
+        console.error('Error getting username:', error);
       }
     };
 
-    // Run getUsername with shorter retries
-    const runMultipleTimes = async () => {
-      for (let i = 0; i < 3; i++) {
-        await getUsername();
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    };
-
-    runMultipleTimes();
-  }, []);
+    loadUsername();
+  }, [router]);
 
   const handleOtpChange = (text, index) => {
     const numericValue = text.replace(/[^0-9]/g, '');
@@ -99,6 +88,12 @@ const VerifyOtpPage = () => {
       });
       
       if (result.status === 200) {
+        const resetToken = result.data?.reset_token;
+        if (!resetToken) {
+          Alert.alert('Error', 'Verification succeeded but reset token was missing.');
+          return;
+        }
+        await AsyncStorage.setItem('passwordResetToken', resetToken);
         Alert.alert('Success', 'OTP verified successfully!');
         router.replace('/pages/NewPasswordPage');
       } else {
@@ -169,11 +164,11 @@ const VerifyOtpPage = () => {
             
             <View style={styles.form}>
               <Text style={styles.instructions}>
-                We've sent a verification code to:
+                We&apos;ve sent a verification code to:
               </Text>
               
               <Text style={styles.emailDisplay}>
-                {email || ''}
+                your registered email address
               </Text>
               
               <Text style={styles.subtitle}>
@@ -219,7 +214,7 @@ const VerifyOtpPage = () => {
               
               <View style={styles.resendContainer}>
                 <Text style={styles.resendText}>
-                  Didn't receive the code? {!canResend && `Resend in ${timeLeft}s`}
+                  Didn&apos;t receive the code? {!canResend && `Resend in ${timeLeft}s`}
                 </Text>
                 
                 {canResend && (

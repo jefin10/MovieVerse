@@ -36,18 +36,18 @@ const ForgotPasswordScreen = () => {
     setIsLoading(true);
     
     try {
-      const res = await api.post('api/auth/forgot-password/s', { username });
+      await AsyncStorage.removeItem('passwordResetToken');
+      const res = await api.post('api/auth/forgot-password/', { username });
       await AsyncStorage.setItem('username', username);
-      if(res.status === 200){
+      if (res.status === 200) {
         router.push('/pages/VerifyOtpPage');
+        return;
       }
-      else {
-        router.push('/pages/VerifyOtpPage');
-        Alert.alert('Error', 'Failed to send password reset request. Please try again.');
-      }
+
+      Alert.alert('Error', 'Failed to send password reset request. Please try again.');
     } catch (err) {
-      router.push('/pages/VerifyOtpPage');
       console.log('Password reset request error:', err.response?.data || err.message);
+      Alert.alert('Error', 'Failed to send password reset request. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -41,7 +41,6 @@ export default function MovieDetailPage() {
   const router = useRouter();
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [username, setUsername] = useState('');
   const [inWatchlist, setInWatchlist] = useState(false);
   const [watchlistItemId, setWatchlistItemId] = useState<number | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -63,7 +62,6 @@ export default function MovieDetailPage() {
       try {
         setLoading(true);
         const storedUsername = await AsyncStorage.getItem('username');
-        setUsername(storedUsername || '');
         
         // Fetch movie details
         const response = await api.get(`api/fetchMovieInfo/${movieId}`);
@@ -86,8 +84,8 @@ export default function MovieDetailPage() {
           
           // Check if movie is in user's watchlist
           if (storedUsername) {
-            checkWatchlist(Number(movieId), storedUsername);
-            checkUserRating(Number(movieId), storedUsername);
+            checkWatchlist(Number(movieId));
+            checkUserRating(Number(movieId));
           }
         }
       } catch (error) {
@@ -107,7 +105,7 @@ export default function MovieDetailPage() {
   }, [movieId]);
 
   // Check if movie is in user's watchlist
-  const checkWatchlist = async (movieId: number, username: string) => {
+  const checkWatchlist = async (movieId: number) => {
     try {
       const sessionid = await AsyncStorage.getItem('sessionid');
       const csrftoken = await AsyncStorage.getItem('csrftoken');
@@ -119,7 +117,7 @@ export default function MovieDetailPage() {
       
       const response = await api.post(
         'api/watchlist/',
-        { username },
+        {},
         {
           headers: {
             'X-CSRFToken': csrftoken,
@@ -143,7 +141,7 @@ export default function MovieDetailPage() {
   };
 
   // Check if user has already rated this movie
-  const checkUserRating = async (movieId: number, username: string) => {
+  const checkUserRating = async (movieId: number) => {
     try {
       const sessionid = await AsyncStorage.getItem('sessionid');
       const csrftoken = await AsyncStorage.getItem('csrftoken');
@@ -160,7 +158,6 @@ export default function MovieDetailPage() {
             'X-CSRFToken': csrftoken,
             Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
           },
-          params: { username }
         }
       );
       
@@ -184,7 +181,7 @@ export default function MovieDetailPage() {
 
   // Add movie to watchlist
   const addToWatchlist = async () => {
-    if (!movie || !username) return;
+    if (!movie) return;
     
     try {
       const sessionid = await AsyncStorage.getItem('sessionid');
@@ -204,7 +201,6 @@ export default function MovieDetailPage() {
       const response = await api.post(
         'api/watchlist/add/',
         {
-          username: username,
           movie_id: movie.id
         },
         {
@@ -258,7 +254,7 @@ export default function MovieDetailPage() {
       await api.delete(
         `api/watchlist/remove/${watchlistItemId}/`,
         {
-          data: { username },
+          data: {},
           headers: {
             'X-CSRFToken': csrftoken,
             Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
@@ -289,7 +285,7 @@ export default function MovieDetailPage() {
 
   // Rate movie
   const rateMovie = async (rating: number) => {
-    if (!movie || !username) return;
+    if (!movie) return;
     
     try {
       const sessionid = await AsyncStorage.getItem('sessionid');
@@ -306,10 +302,9 @@ export default function MovieDetailPage() {
         return;
       }
       
-      const response = await api.post(
+      await api.post(
         `api/addRatings/`,
         {
-          username: username,
           rating: rating,
           movie_id: movie.id
         },

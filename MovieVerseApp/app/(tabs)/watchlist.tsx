@@ -95,9 +95,7 @@ const WatchList = () => {
         return;
       }
       
-      await api.post(`api/watchlist/remove/${id}/`, {
-        username: username
-      }, {
+      await api.post(`api/watchlist/remove/${id}/`, {}, {
         headers: {
           'X-CSRFToken': csrftoken,
           Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,

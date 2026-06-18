@@ -23,9 +23,7 @@ const ProfilePage = () => {
         const getUsername=async()=>{
             const res=await AsyncStorage.getItem('username')
             setUsername(res)
-            const result=await api.post('api/auth/getEmail/',{
-                username:res
-            })
+            const result = await api.get('api/auth/getEmail/')
             console.log(result.data)
             setEmail(result.data.email)
         }
