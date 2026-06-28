@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import PhoneMockup from "./PhoneMockup";
 
 const APK_URL =
-  "https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk";
+  "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
 
 const DESKTOP_MQ = "(min-width: 900px)";
 
@@ -118,6 +118,7 @@ export default function AppLanding() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [heroReady, setHeroReady] = useState(false);
+  const [playStoreOpen, setPlayStoreOpen] = useState(false);
   const stepRefs = useRef<(HTMLElement | null)[]>([]);
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
 
@@ -138,6 +139,15 @@ export default function AppLanding() {
     const timer = window.setTimeout(() => setHeroReady(true), 80);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!playStoreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlayStoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [playStoreOpen]);
 
   useEffect(() => {
     const nodes = revealRefs.current.filter(Boolean) as HTMLElement[];
@@ -261,13 +271,14 @@ export default function AppLanding() {
             mood AI, watchlists, and a catalog that stays in sync with the web.
           </p>
           <div className="app-store-row app-reveal" data-reveal-order="3">
-            <a
-              href="#"
+            <button
+              type="button"
               className="app-store-btn"
-              aria-label="Coming soon on Google Play"
+              aria-label="MovieVerse on Google Play — closed testing"
+              onClick={() => setPlayStoreOpen(true)}
             >
               Play Store
-            </a>
+            </button>
             <a
               href={APK_URL}
               className="app-store-btn app-store-btn--ghost"
@@ -443,6 +454,58 @@ export default function AppLanding() {
         </div>
         <p className="app-footer-copy">© {new Date().getFullYear()} MovieVerse. All rights reserved.</p>
       </footer>
+
+      {playStoreOpen && (
+        <div
+          className="app-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ps-modal-title"
+          onClick={() => setPlayStoreOpen(false)}
+        >
+          <div className="app-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="app-modal-close"
+              aria-label="Close"
+              onClick={() => setPlayStoreOpen(false)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+            <div className="app-modal-badge" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 20.5v-17A1.5 1.5 0 0 1 5.3 2.3l13.4 8.5a1.5 1.5 0 0 1 0 2.4L5.3 21.7A1.5 1.5 0 0 1 3 20.5z" />
+              </svg>
+            </div>
+            <h3 id="ps-modal-title" className="app-modal-title">Almost there</h3>
+            <p className="app-modal-text">
+              MovieVerse is currently in <strong>closed testing</strong> on the Google Play Store
+              and will be released publicly shortly. In the meantime, you can install the Android
+              APK directly.
+            </p>
+            <div className="app-modal-actions">
+              <a
+                href={APK_URL}
+                className="app-modal-btn app-modal-btn--primary"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setPlayStoreOpen(false)}
+              >
+                Download APK
+              </a>
+              <button
+                type="button"
+                className="app-modal-btn app-modal-btn--ghost"
+                onClick={() => setPlayStoreOpen(false)}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

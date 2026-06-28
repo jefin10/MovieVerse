@@ -4,13 +4,32 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchMovieDetails } from "@/lib/api";
-import { getPoster } from "@/app/website/website-data";
+import { getPoster, getTempMovie, type TempMovie } from "@/app/website/website-data";
 import "./movie-detail.css";
 
 const APK_URL =
-  "https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk";
+  "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
 
 type MovieDetail = Awaited<ReturnType<typeof fetchMovieDetails>>;
+
+function tempToDetail(t: TempMovie): MovieDetail {
+  return {
+    id: 0,
+    title: t.title,
+    description: t.synopsis,
+    movie_info: t.synopsis,
+    poster_url: t.poster,
+    release_date: t.releaseDate,
+    imdb_rating: t.rating,
+    tmdb_vote_average: t.rating,
+    genres: t.genres,
+    director: t.director || undefined,
+    star1: t.cast[0],
+    star2: t.cast[1],
+    trailer_url: t.trailerUrl,
+    trailer_name: t.trailerName,
+  };
+}
 
 function splitTitle(title: string) {
   const parts = title.split(" ");
@@ -31,6 +50,13 @@ export default function MovieDetailsPage() {
 
   useEffect(() => {
     const run = async () => {
+      const temp = getTempMovie(params.id);
+      if (temp) {
+        setMovie(tempToDetail(temp));
+        setError("");
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         setError("");

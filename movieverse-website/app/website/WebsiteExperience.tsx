@@ -16,7 +16,7 @@ import {
 } from "./website-data";
 
 const APK_URL =
-  "https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk";
+  "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
 
 const HERO_INTERVAL_MS = 7000;
 
@@ -214,19 +214,19 @@ export default function WebsiteExperience() {
           <p className="web-hero-copy">{hero.synopsis}</p>
 
           <div className="web-hero-actions">
-            <a href="#browse" className="web-btn web-btn--primary">
+            <Link href={`/movie/${hero.id}`} className="web-btn web-btn--primary">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <path d="M8 5v14l11-7z" />
               </svg>
               Watch Now
-            </a>
-            <a href="#browse" className="web-btn web-btn--glass">
+            </Link>
+            <Link href={`/movie/${hero.id}`} className="web-btn web-btn--glass">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 10v6M12 8h.01" />
               </svg>
               More Info
-            </a>
+            </Link>
           </div>
         </div>
 
