@@ -8,10 +8,6 @@ from .views import (
 )
 
 urlpatterns = [
-    path('hello/', views.hello),
-    path('get_movies/', views.get_movies),
-    path('register', views.register_user),
-    path('login', views.login_user),
     #API ROUTES
     path('Trending/', trending_movies, name='trending_movies'),
    
