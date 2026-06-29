@@ -13,7 +13,18 @@ export const tmdbService = {
     const { data } = await client.get('/search/movie', { params: { query } });
     return data;
   },
+  async getMovie(id: number) {
+    const { data } = await client.get(`/movie/${id}`);
+    return data;
+  },
+  async getCredits(id: number) {
+    const { data } = await client.get(`/movie/${id}/credits`);
+    return data as { crew?: { job?: string; name?: string }[]; cast?: { name?: string }[] };
+  },
   imageUrl(path: string) {
     return path ? `${env.tmdb.imageBaseUrl}${path}` : '';
+  },
+  enabled() {
+    return Boolean(env.tmdb.bearer || env.tmdb.apiKey);
   },
 };

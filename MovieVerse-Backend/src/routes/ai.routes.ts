@@ -2,8 +2,8 @@ import { Router } from 'express';
 import * as c from '../controllers/ai.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 
-// Proxy to the MovieverseAI Flask service, attaching DB-backed movie data.
+// Mounted at /ai (app root) to mirror Django's ai.urls.
 export const aiRouter = Router();
 
-aiRouter.post('/mood', requireAuth, c.mood);
-aiRouter.post('/recommend', requireAuth, c.recommend);
+aiRouter.post('/recommend', requireAuth, c.mood); // mood text -> genre -> movies
+aiRouter.post('/rec', requireAuth, c.recommend); // liked/disliked -> recommendations

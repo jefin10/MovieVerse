@@ -5,5 +5,5 @@ import { requireAuth } from '../middleware/auth.js';
 export const recommendationsRouter = Router();
 
 recommendationsRouter.post('/temp-add', requireAuth, c.tempAdd);
-recommendationsRouter.get('/', requireAuth, c.list);
-recommendationsRouter.post('/from-ratings', requireAuth, c.fromRatings);
+recommendationsRouter.post('/', requireAuth, c.list);
+recommendationsRouter.get('/from-ratings', requireAuth, c.fromRatings);
