@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   findNodeHandle
 } from 'react-native';
-import api, { getCSRFToken } from '../auth/api';
+import api from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useRouter } from 'expo-router';
 import debounce from 'lodash.debounce';
@@ -49,10 +49,6 @@ const RegisterScreen = () => {
   const usernameInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const confirmPasswordInputRef = useRef(null);
-
-  useEffect(() => {
-    getCSRFToken();
-  }, []);
 
   // Validate email format
   useEffect(() => {
@@ -129,10 +125,9 @@ const RegisterScreen = () => {
     setIsLoading(true);
 
     try {
-      await getCSRFToken();
-      await api.post('api/auth/register/', { 
+      await api.post('api/auth/register/', {
         email,
-        username, 
+        username,
         password,
       });
       Alert.alert('Success', 'Account created successfully!');

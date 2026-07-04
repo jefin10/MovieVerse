@@ -14,7 +14,9 @@ RUN npx prisma generate && npm run build
 
 FROM base AS runtime
 ENV NODE_ENV=production
-COPY --from=deps /app/node_modules ./node_modules
+# Copy node_modules from the build stage so the generated Prisma Client
+# (node_modules/.prisma + @prisma/client) is present at runtime.
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY package.json ./

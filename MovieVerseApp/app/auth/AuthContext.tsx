@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (!isValid) {
         // Clear invalid session
-        await AsyncStorage.multiRemove(['sessionid', 'csrftoken', 'username']);
+        await AsyncStorage.multiRemove(['authToken', 'username']);
       }
     } catch (error) {
       console.error('Session revalidation failed:', error);
@@ -34,9 +34,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const sessionid = await AsyncStorage.getItem('sessionid');
+      const token = await AsyncStorage.getItem('authToken');
       
-      if (!sessionid) {
+      if (!token) {
         setAuthenticated(false);
         return;
       }

@@ -35,7 +35,18 @@ npm run dev
 docker compose up --build       # db + ai (flask) + backend
 ```
 
+## Smoke test
+With the dev server running and `db` up:
+```bash
+pwsh -File scripts/smoke-test.ps1
+```
+
 ## Status
-Auth (register/login/logout) is wired end-to-end as the reference. All other
-controllers return `501` with a TODO marker — port logic from the Django
-`api/views.py` and `users/views.py`. Endpoint paths mirror the originals.
+Fully implemented and smoke-tested end-to-end against Postgres + the Flask AI
+service: auth (register/login/logout/check-username/validate-session/getEmail
+and the full OTP reset flow), movies (Trending/Tinder/search/fetchMovieInfo/
+poster/random-trailers), watchlist, ratings, recommendations (stored, from
+ratings, temp-add), the public website catalog/search/detail, and the AI mood +
+liked/disliked endpoints (which proxy to `../MovieverseAI/server`, with an
+in-process signature-scoring fallback when the AI service is offline).
+Endpoint paths mirror the original Django API.

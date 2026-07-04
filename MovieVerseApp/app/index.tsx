@@ -2,12 +2,15 @@ import { View, Text, StyleSheet, Animated } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import styles from '@/styles/loadingPage'
 import { useFonts } from 'expo-font';
-import AppLoading from 'expo-app-loading';
+import * as SplashScreen from 'expo-splash-screen';
 import { useRouter } from 'expo-router';
 import { facts } from './data/loadingFact';  // Import the facts array
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { validateSession } from './auth/api';
 import { prefetchTabData } from './services/movieData';
+
+// Keep the native splash visible until fonts are ready; replaces deprecated expo-app-loading.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const LoadingPage = () => {
   const fillHeight = useRef(new Animated.Value(0)).current;
@@ -46,6 +49,9 @@ const LoadingPage = () => {
   // Select initial random fact and start cycling
   useEffect(() => {
     if (fontsLoaded) {
+      // Fonts ready: dismiss native splash so the custom loader shows.
+      SplashScreen.hideAsync().catch(() => {});
+
       // Select a random starting index
       const startIndex = Math.floor(Math.random() * facts.length);
       setFactIndex(startIndex);
@@ -135,17 +141,17 @@ const LoadingPage = () => {
   };
 
   const bootstrapApp = async () => {
-    const sessionid = await AsyncStorage.getItem('sessionid');
+    const token = await AsyncStorage.getItem('authToken');
     const username = await AsyncStorage.getItem('username');
 
-    if (!sessionid || !username) {
+    if (!token || !username) {
       router.replace('/pages/LoginPage');
       return;
     }
 
     const isValidSession = await withTimeout(validateSession(), BOOTSTRAP_TIMEOUT_MS, false);
     if (!isValidSession) {
-      await AsyncStorage.multiRemove(['sessionid', 'csrftoken', 'username']);
+      await AsyncStorage.multiRemove(['authToken', 'username']);
       router.replace('/pages/LoginPage');
       return;
     }
@@ -159,7 +165,7 @@ const LoadingPage = () => {
   }
   
   if (!fontsLoaded) {
-    return <AppLoading />;
+    return null;
   }
   
   return (

@@ -7,7 +7,6 @@ import { moodStyles } from '@/styles/mood'
 import MovieGrid from '@/components/MovieGrid'
 import ProtectedRoute from '../auth/protectedRoute'
 import api from '../auth/api';
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useLocalSearchParams } from 'expo-router';
 
 const Mood = () => {
@@ -41,18 +40,10 @@ const Mood = () => {
   const getMoodRecommendations = async (mood) => {
     setLoading(true)
     setError('')
-    const sessionid = await AsyncStorage.getItem('sessionid');
-    const csrftoken = await AsyncStorage.getItem('csrftoken');
-    
+
     try {
       const response = await api.post('ai/recommend/', {
         mood: mood
-      },
-      {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-        },
       });
       
       const genre = response.data.genre || 'Unknown';
