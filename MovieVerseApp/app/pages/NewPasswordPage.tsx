@@ -43,9 +43,9 @@ const NewPasswordPage = () => {
     loadResetContext();
   }, [resetTokenFromParams]);
 
-  // Validate password strength (min 6 chars)
+  // Validate password strength (min 8 chars — matches backend validatePassword)
   useEffect(() => {
-    setIsPasswordValid(password.length >= 6);
+    setIsPasswordValid(password.length >= 8);
     setDoPasswordsMatch(password === confirmPassword && password !== '');
   }, [password, confirmPassword]);
 
@@ -82,7 +82,7 @@ const NewPasswordPage = () => {
     }
 
     if (!isPasswordValid) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Error', 'Password must be at least 8 characters');
       return;
     }
 

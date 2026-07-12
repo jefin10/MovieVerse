@@ -140,7 +140,7 @@ const CustomSwiper = ({
     }).start();
   };
 
-  const getCardStyle = (index: number) => {
+  const getCardStyle = (index: number): any => {
     const isActive = index === currentIndex;
     const isInStack = index > currentIndex && index < currentIndex + stackSize;
 

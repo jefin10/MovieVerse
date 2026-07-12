@@ -1,0 +1,157 @@
+// Prisma schema ported from the Django api/users models.
+// Run: npm run prisma:generate && npm run prisma:migrate
+// To adopt an existing DB instead, use: prisma db pull
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  isActive  Boolean  @default(true) @map("is_active")
+  isStaff   Boolean  @default(false) @map("is_staff")
+  createdAt DateTime @default(now()) @map("date_joined")
+
+  watchlist    Watchlist[]
+  ratings      Rating[]
+  recommended  RecommendedMovie[]
+  resetOtps    PasswordResetOTP[]
+
+  @@map("users")
+}
+
+model PasswordResetOTP {
+  id             Int       @id @default(autoincrement())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int       @map("user_id")
+  otpHash        String    @map("otp_hash")
+  resetTokenHash String    @default("") @map("reset_token_hash")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  expiresAt      DateTime  @map("expires_at")
+  verifiedAt     DateTime? @map("verified_at")
+  usedAt         DateTime? @map("used_at")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  requestIp      String?   @map("request_ip")
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@map("password_reset_otps")
+}
+
+model Genre {
+  id     Int     @id
+  name   String
+  movies Movie[]
+
+  @@map("genres")
+}
+
+model Language {
+  iso6391     String  @id @map("iso_639_1")
+  englishName String  @default("") @map("english_name")
+  name        String  @default("")
+  originalFor Movie[] @relation("OriginalLanguage")
+  spokenIn    Movie[] @relation("SpokenLanguages")
+
+  @@map("languages")
+}
+
+model Country {
+  iso31661     String  @id @map("iso_3166_1")
+  name         String
+  originFor    Movie[] @relation("OriginCountries")
+  productionFor Movie[] @relation("ProductionCountries")
+
+  @@map("countries")
+}
+
+model Movie {
+  id                  Int       @id @default(autoincrement())
+  tmdbId              Int?      @unique @map("tmdb_id")
+  title               String
+  originalTitle       String    @default("") @map("original_title")
+  description         String    @default("")
+  director            String    @default("")
+  star1               String    @default("")
+  star2               String    @default("")
+  posterUrl           String    @default("") @map("poster_url")
+  backdropUrl         String    @default("") @map("backdrop_url")
+  releaseDate         DateTime? @map("release_date")
+  adult               Boolean   @default(false)
+  popularity          Float     @default(0)
+  voteCount           Int       @default(0) @map("vote_count")
+  tmdbVoteAverage     Float     @default(0) @map("tmdb_vote_average")
+  runtime             Int?
+  status              String    @default("")
+  tagline             String    @default("")
+  homepage            String    @default("")
+  imdbId              String    @default("") @map("imdb_id")
+  trailerKey          String    @default("") @map("trailer_key")
+  trailerUrl          String    @default("") @map("trailer_url")
+  trailerName         String    @default("") @map("trailer_name")
+  budget              BigInt    @default(0)
+  revenue             BigInt    @default(0)
+  imdbRating          Float     @default(0) @map("imdb_rating")
+  ourRating           Float     @default(0) @map("our_rating")
+  tmdbPayload         Json      @default("{}") @map("tmdb_payload")
+
+  originalLanguage     Language?  @relation("OriginalLanguage", fields: [originalLanguageId], references: [iso6391])
+  originalLanguageId   String?    @map("original_language_id")
+  spokenLanguages      Language[] @relation("SpokenLanguages")
+  originCountries      Country[]  @relation("OriginCountries")
+  productionCountries  Country[]  @relation("ProductionCountries")
+  genres               Genre[]
+
+  watchlist   Watchlist[]
+  ratings     Rating[]
+  recommended RecommendedMovie[]
+
+  @@index([popularity, tmdbVoteAverage, voteCount])
+  @@map("movies")
+}
+
+model Watchlist {
+  id      Int      @id @default(autoincrement())
+  movie   Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId Int      @map("movie_id")
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int      @map("user_id")
+  addedOn DateTime @default(now()) @map("added_on")
+
+  @@index([userId, movieId])
+  @@map("watchlist")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int      @map("user_id")
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId   Int      @map("movie_id")
+  rating    Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, movieId])
+  @@index([movieId])
+  @@map("ratings")
+}
+
+model RecommendedMovie {
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int      @map("user_id")
+  movie         Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId       Int      @map("movie_id")
+  recommendedOn DateTime @default(now()) @map("recommended_on")
+
+  @@unique([userId, movieId])
+  @@map("recommended_movies")
+}

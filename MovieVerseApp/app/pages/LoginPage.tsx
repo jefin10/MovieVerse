@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -13,7 +13,7 @@ import {
   findNodeHandle
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api, { getCSRFToken, storeSessionCookie } from '../auth/api';
+import api, { saveAuthToken } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useRouter } from 'expo-router';
 import styles from '@/styles/LoginPage';
@@ -33,10 +33,6 @@ const LoginScreen = () => {
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   
-  useEffect(() => {
-    getCSRFToken();
-  }, []);
-
   const handleLogin = async () => {
     if (!username || !password) {
       Alert.alert('Error', 'Please enter both username and password');
@@ -46,19 +42,11 @@ const LoginScreen = () => {
     setIsLoading(true);
     
     try {
-      const freshCsrfToken = await getCSRFToken();
-
-      const res = await api.post('api/auth/login/', {
-        username, 
-        password
-      }, {
-        headers: freshCsrfToken ? { 'X-CSRFToken': freshCsrfToken } : undefined,
-      });
-      const setCookie = res.headers['set-cookie'] || res.headers['Set-Cookie'];
-      await storeSessionCookie(setCookie);
+      const res = await api.post('api/auth/login/', { username, password });
+      await saveAuthToken(res.data?.token);
       await AsyncStorage.setItem('username', username);
       setAuthenticated(true);
-      router.push('/(tabs)'); 
+      router.push('/(tabs)');
 
     } catch (err) {
       const errorCode = err?.code;

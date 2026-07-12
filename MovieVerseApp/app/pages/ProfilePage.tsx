@@ -21,11 +21,14 @@ const ProfilePage = () => {
 
     useEffect(()=>{
         const getUsername=async()=>{
-            const res=await AsyncStorage.getItem('username')
-            setUsername(res)
-            const result = await api.get('api/auth/getEmail/')
-            console.log(result.data)
-            setEmail(result.data.email)
+            try {
+                const res=await AsyncStorage.getItem('username')
+                if (res) setUsername(res)
+                const result = await api.get('api/auth/getEmail/')
+                setEmail(result.data.email)
+            } catch (error) {
+                console.warn('Failed to load profile info:', error)
+            }
         }
 
         getUsername()

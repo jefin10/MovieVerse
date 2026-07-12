@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../auth/api'; 
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import api, { clearAuth } from '../auth/api';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../auth/AuthContext'; 
 
@@ -11,34 +10,13 @@ const LogoutScreen = () => {
   useEffect(() => {
     const performLogout = async () => {
       try {
-        const csrftoken = await AsyncStorage.getItem('csrftoken');
-        const sessionid = await AsyncStorage.getItem('sessionid');
-
-        if (!csrftoken || !sessionid) {
-          throw new Error('Missing authentication info.');
-        }
-
-        await api.post(
-          'api/auth/logout/',
-          {},
-          {
-            headers: {
-              'X-CSRFToken': csrftoken,
-              Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-            },
-          }
-        );
-
-        await AsyncStorage.multiRemove(['sessionid', 'csrftoken']);
-
-        Alert.alert('Success', 'You have been logged out.');
-        setAuthenticated(false);
-
-        router.replace('/pages/LoginPage'); 
-
+        await api.post('api/auth/logout/', {});
       } catch (error) {
-        console.error(error);
-        Alert.alert('Error', 'Logout failed.');
+        console.warn('Logout request failed; clearing local session anyway.', error);
+      } finally {
+        await clearAuth();
+        setAuthenticated(false);
+        router.replace('/pages/LoginPage');
       }
     };
 

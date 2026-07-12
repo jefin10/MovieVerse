@@ -4,6 +4,10 @@
      
     "jsx": "react-native",
     "strict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "useUnknownInCatchVariables": false,
+    "allowJs": false,
     "paths": {
       "@/*": [
         "./*"

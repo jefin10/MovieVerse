@@ -80,8 +80,6 @@ const WatchList = () => {
   }, []);
   
   const removeFromWatchlist = async (id) => {
-    const sessionid = await AsyncStorage.getItem('sessionid');
-    const csrftoken = await AsyncStorage.getItem('csrftoken');
     try {
       const username = await AsyncStorage.getItem('username');
       if (!username) {
@@ -95,12 +93,7 @@ const WatchList = () => {
         return;
       }
       
-      await api.post(`api/watchlist/remove/${id}/`, {}, {
-        headers: {
-          'X-CSRFToken': csrftoken,
-          Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-        },
-      });
+      await api.delete(`api/watchlist/remove/${id}/`);
 
       await invalidateWatchlistCache(username);
       
