@@ -2,15 +2,22 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-function required(name: string, fallback?: string): string {
-  const value = process.env[name] ?? fallback;
-  if (value === undefined) throw new Error(`Missing required env var: ${name}`);
-  return value;
+const isProd = process.env.NODE_ENV === 'production';
+
+/**
+ * Reads an env var. In production a missing value is fatal (no insecure
+ * fallbacks); in development the provided fallback keeps local setup simple.
+ */
+function required(name: string, devFallback: string): string {
+  const value = process.env[name];
+  if (value !== undefined && value !== '') return value;
+  if (isProd) throw new Error(`Missing required env var in production: ${name}`);
+  return devFallback;
 }
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  isProd: process.env.NODE_ENV === 'production',
+  isProd,
   port: Number(process.env.PORT ?? 8080),
   corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
     .split(',')
@@ -21,7 +28,7 @@ export const env = {
     secret: required('JWT_SECRET', 'dev-secret'),
     expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   },
-  cookieSecret: process.env.COOKIE_SECRET ?? 'dev-cookie-secret',
+  cookieSecret: required('COOKIE_SECRET', 'dev-cookie-secret'),
   tmdb: {
     apiKey: process.env.TMDB_API_KEY ?? '',
     bearer: process.env.TMDB_BEARER_TOKEN ?? '',

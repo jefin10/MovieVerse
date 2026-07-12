@@ -4,9 +4,11 @@ services:
     environment:
       POSTGRES_DB: movieverse
       POSTGRES_USER: movieverse
-      POSTGRES_PASSWORD: movieverse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-movieverse}
+    # Bind to loopback only: reachable from the host for local dev, but never
+    # from the network/internet (don't expose Postgres publicly in production).
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,8 +25,10 @@ services:
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
     volumes:
       - ../MovieverseAI/model:/model:ro
+    # Loopback-only: the backend reaches it over the compose network (http://ai:5001);
+    # the host mapping is just for local debugging, never public.
     ports:
-      - '5001:5001'
+      - '127.0.0.1:5001:5001'
     healthcheck:
       test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
       interval: 10s
@@ -36,7 +40,7 @@ services:
     build: .
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://movieverse:movieverse@db:5432/movieverse?schema=public
+      DATABASE_URL: postgresql://movieverse:${POSTGRES_PASSWORD:-movieverse}@db:5432/movieverse?schema=public
       AI_SERVICE_URL: http://ai:5001
     depends_on:
       db:
