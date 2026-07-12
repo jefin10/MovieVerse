@@ -24,7 +24,14 @@ export type PaginatedResponse = {
   has_previous: boolean;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://movieversebackend.jefin.xyz";
+const PROD_API_BASE = "https://movieversebackend.jefin.xyz";
+const configuredApiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? PROD_API_BASE;
+// In production always talk to the HTTPS backend; never ship a localhost/http
+// override (e.g. from a stray .env.local) to the deployed site.
+const API_BASE =
+  process.env.NODE_ENV === "production" && !configuredApiBase.startsWith("https://")
+    ? PROD_API_BASE
+    : configuredApiBase;
 
 async function request<T>(path: string, cache: RequestCache = "no-store"): Promise<T> {
   const response = await fetch(`${API_BASE}/${path}`, { cache });
