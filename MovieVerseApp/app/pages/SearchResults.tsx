@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import api from '../auth/api';
+import { ensureCompleteImageUrl } from '../utils/imageUtils';
 
 interface Movie {
   id: number;
@@ -73,7 +74,7 @@ export default function SearchResults() {
               >
                 {item.poster_url ? (
                   <Image 
-                    source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_url}` }} 
+                    source={{ uri: ensureCompleteImageUrl(item.poster_url) || undefined }} 
                     style={styles.posterImage}
                   />
                 ) : (

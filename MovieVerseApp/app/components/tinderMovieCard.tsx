@@ -1,6 +1,7 @@
 import { View, Text, ImageBackground, TouchableOpacity } from 'react-native'
 import React, { useState } from 'react'
 import styles from '@/styles/tinder'
+import { ensureCompleteImageUrl } from '../utils/imageUtils'
 
 // Fix: Make the component a proper function that receives card as a parameter
 const TinderMovieCard = (card) => {
@@ -47,7 +48,7 @@ const TinderMovieCard = (card) => {
     return (
         <View style={styles.movieCard}>
           <ImageBackground 
-            source={{ uri: card.poster_url ? `https://image.tmdb.org/t/p/original${card.poster_url}` : 'https://via.placeholder.com/300x450?text=No+Image' }} 
+            source={{ uri: ensureCompleteImageUrl(card.poster_url) || 'https://via.placeholder.com/300x450?text=No+Image' }} 
             style={styles.movieImage}
             resizeMode="cover"
           >

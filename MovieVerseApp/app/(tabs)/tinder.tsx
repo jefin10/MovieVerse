@@ -28,7 +28,7 @@ const Tinder = () => {
   const currentIndexRef = useRef(0);
   
   // Debug flag
-  const DEBUG = true;
+  const DEBUG = false;
   
   // Debug log function
   const debug = (...args: unknown[]) => {

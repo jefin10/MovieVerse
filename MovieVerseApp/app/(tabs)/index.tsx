@@ -9,6 +9,7 @@ import ProtectedRoute from '../auth/protectedRoute';
 import {useAuth} from '../auth/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRecommendations, getTrendingMovies, prefetchTabData } from '../services/movieData';
+import { ensureCompleteImageUrl } from '../utils/imageUtils';
 
 // Define the movie type
 interface Movie {
@@ -324,7 +325,7 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
                   >
                     {movie.poster_url ? (
                       <Image 
-                        source={{ uri: `https://image.tmdb.org/t/p/original/${movie.poster_url}` }} 
+                        source={{ uri: ensureCompleteImageUrl(movie.poster_url) || undefined }} 
                         style={styles.movieThumbnail}
                         resizeMode="cover"
                       />

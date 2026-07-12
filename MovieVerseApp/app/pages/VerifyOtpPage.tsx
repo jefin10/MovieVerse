@@ -179,7 +179,7 @@ const VerifyOtpPage = () => {
                 {otp.map((digit, index) => (
                   <TextInput
                     key={index}
-                    ref={el => inputRefs.current[index] = el}
+                    ref={el => { inputRefs.current[index] = el; }}
                     style={styles.otpInput}
                     value={digit}
                     onChangeText={(text) => handleOtpChange(text, index)}

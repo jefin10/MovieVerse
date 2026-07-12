@@ -18,6 +18,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
+import { ensureCompleteImageUrl } from '../utils/imageUtils';
 import CustomAlert from '../components/CustomAlert';
 
 interface MovieDetail {
@@ -71,7 +72,7 @@ export default function MovieDetailPage() {
             id: Number(movieId),
             title: response.data.title || 'Unknown Title',
             description: response.data.movie_info || 'No description available',
-            poster_url: response.data.poster_url || '',
+            poster_url: ensureCompleteImageUrl(response.data.poster_url) || '',
             director: response.data.director,
             star1: response.data.star1,
             star2: response.data.star2,
@@ -107,24 +108,7 @@ export default function MovieDetailPage() {
   // Check if movie is in user's watchlist
   const checkWatchlist = async (movieId: number) => {
     try {
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      
-      if (!sessionid || !csrftoken) {
-        console.warn('Missing authentication tokens');
-        return;
-      }
-      
-      const response = await api.post(
-        'api/watchlist/',
-        {},
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-          },
-        }
-      );
+      const response = await api.get('api/watchlist/');
       
       // Check if current movie is in watchlist
       const watchlistItem = response.data.find((item: any) => item.movie_id === movieId);
@@ -143,23 +127,7 @@ export default function MovieDetailPage() {
   // Check if user has already rated this movie
   const checkUserRating = async (movieId: number) => {
     try {
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      
-      if (!sessionid || !csrftoken) {
-        console.warn('Missing authentication tokens');
-        return;
-      }
-      
-      const response = await api.get(
-        `api/movie/${movieId}/rating/`,
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-          },
-        }
-      );
+      const response = await api.get(`api/movie/${movieId}/rating/`);
       
       if (response.data && typeof response.data.rating === 'number') {
         setUserRating(response.data.rating);
@@ -184,32 +152,9 @@ export default function MovieDetailPage() {
     if (!movie) return;
     
     try {
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      
-      if (!sessionid || !csrftoken) {
-        setAlertConfig({
-          visible: true,
-          title: 'Error',
-          message: 'Authentication required. Please login again.',
-          showCancel: false,
-          onConfirm: () => {},
-        });
-        return;
-      }
-      
-      const response = await api.post(
-        'api/watchlist/add/',
-        {
-          movie_id: movie.id
-        },
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-          },
-        }
-      );
+      const response = await api.post('api/watchlist/add/', {
+        movie_id: movie.id,
+      });
       
       setInWatchlist(true);
       setWatchlistItemId(response.data.id);
@@ -237,30 +182,7 @@ export default function MovieDetailPage() {
     if (!watchlistItemId) return;
     
     try {
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      
-      if (!sessionid || !csrftoken) {
-        setAlertConfig({
-          visible: true,
-          title: 'Error',
-          message: 'Authentication required. Please login again.',
-          showCancel: false,
-          onConfirm: () => {},
-        });
-        return;
-      }
-      
-      await api.delete(
-        `api/watchlist/remove/${watchlistItemId}/`,
-        {
-          data: {},
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-          },
-        }
-      );
+      await api.delete(`api/watchlist/remove/${watchlistItemId}/`);
       
       setInWatchlist(false);
       setWatchlistItemId(null);
@@ -288,33 +210,10 @@ export default function MovieDetailPage() {
     if (!movie) return;
     
     try {
-      const sessionid = await AsyncStorage.getItem('sessionid');
-      const csrftoken = await AsyncStorage.getItem('csrftoken');
-      
-      if (!sessionid || !csrftoken) {
-        setAlertConfig({
-          visible: true,
-          title: 'Error',
-          message: 'Authentication required. Please login again.',
-          showCancel: false,
-          onConfirm: () => {},
-        });
-        return;
-      }
-      
-      await api.post(
-        `api/addRatings/`,
-        {
-          rating: rating,
-          movie_id: movie.id
-        },
-        {
-          headers: {
-            'X-CSRFToken': csrftoken,
-            Cookie: `sessionid=${sessionid}; csrftoken=${csrftoken}`,
-          },
-        }
-      );
+      await api.post('api/addRatings/', {
+        rating: rating,
+        movie_id: movie.id,
+      });
       
       setUserRating(rating);
       setRatingSubmitted(true);

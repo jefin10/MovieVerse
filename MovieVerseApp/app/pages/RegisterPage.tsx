@@ -60,9 +60,9 @@ const RegisterScreen = () => {
     setIsEmailValid(emailRegex.test(email));
   }, [email]);
   
-  // Validate password (min 6 chars)
+  // Validate password (min 8 chars — matches backend validatePassword)
   useEffect(() => {
-    setIsPasswordValid(password.length >= 6);
+    setIsPasswordValid(password.length >= 8);
     setDoPasswordsMatch(password === confirmPassword && password !== '');
   }, [password, confirmPassword]);
 

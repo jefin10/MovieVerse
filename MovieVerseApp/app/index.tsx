@@ -28,7 +28,7 @@ const LoadingPage = () => {
   const PREFETCH_BLOCKING_MS = 2500;
   
   const [fontsLoaded] = useFonts({
-    'StickNoBills-SemiBold': require('../assets/fonts/StickNoBills-Regular.ttf'),
+    'StickNoBills-SemiBold': require('../assets/fonts/StickNoBills-SemiBold.ttf'),
   });
 
   // Effect for cycling through dot patterns
@@ -158,7 +158,7 @@ const LoadingPage = () => {
 
     const prefetchPromise = prefetchTabData(username);
     await withTimeout(prefetchPromise.then(() => true), PREFETCH_BLOCKING_MS, false);
-    router.replace('/(tabs)/');
+    router.replace('/(tabs)');
 
     // Ensure cache warm-up continues even after navigation.
     void prefetchPromise;

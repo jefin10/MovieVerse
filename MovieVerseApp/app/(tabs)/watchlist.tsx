@@ -93,7 +93,7 @@ const WatchList = () => {
         return;
       }
       
-      await api.post(`api/watchlist/remove/${id}/`, {});
+      await api.delete(`api/watchlist/remove/${id}/`);
 
       await invalidateWatchlistCache(username);
       

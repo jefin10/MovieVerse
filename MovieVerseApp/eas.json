@@ -9,12 +9,20 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://movieversebackend.jefin.xyz",
+        "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz"
+      }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://movieversebackend.jefin.xyz",
+        "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz"
       }
     }
   },
