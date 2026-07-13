@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TextInput, Image, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native'
+import { ScrollView, Text, View, TextInput, Image, TouchableOpacity, StatusBar, ActivityIndicator, RefreshControl } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -10,6 +10,7 @@ import {useAuth} from '../auth/AuthContext'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRecommendations, getTrendingMovies, prefetchTabData } from '../services/movieData';
 import { ensureCompleteImageUrl } from '../utils/imageUtils';
+import { MovieRowSkeleton } from '../components/Skeleton';
 
 // Define the movie type
 interface Movie {
@@ -27,6 +28,7 @@ const Index = () => {
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [greeting, setGreeting] = useState('');
 
@@ -133,6 +135,20 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
     }
   };
 
+  // Pull-to-refresh: force-refresh trending + recommendations.
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const storedUsername = await AsyncStorage.getItem('username');
+      await Promise.all([
+        fetchTrendingMovies(true),
+        storedUsername ? fetchRecommendations(storedUsername, true) : Promise.resolve(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleMoodSelection = (mood: string) => {
   
     router.push({
@@ -169,6 +185,15 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#ffffff"
+                colors={['#ffffff']}
+                progressBackgroundColor="#1a1a1a"
+              />
+            }
           >
             <View style={styles.header}>
               <View>
@@ -279,7 +304,7 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
               </View>
             </View>
             {loading ? (
-              <ActivityIndicator size="large" color="#fff" style={{marginVertical: 20}} />
+              <MovieRowSkeleton />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
                 {recommendations.length > 0 ? (
@@ -316,7 +341,9 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
             </View>
           </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
-              {trendingMovies.length > 0 ? (
+              {loading ? (
+                <MovieRowSkeleton />
+              ) : trendingMovies.length > 0 ? (
                 trendingMovies.map((movie, index) => (
                   <TouchableOpacity 
                     key={`trending-${movie.id}-${index}`} // Added index to ensure uniqueness

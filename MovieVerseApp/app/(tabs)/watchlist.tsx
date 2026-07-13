@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,11 +11,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import CustomAlert from '../components/CustomAlert';
 import { getWatchlist, invalidateWatchlistCache } from '../services/movieData';
+import { WatchlistSkeleton } from '../components/Skeleton';
 
 const WatchList = () => {
   const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const isFetchingRef = useRef(false);
   const [alertConfig, setAlertConfig] = useState({
@@ -29,6 +31,23 @@ const WatchList = () => {
   useEffect(() => {
     fetchWatchlist();
   }, []);
+
+  // Pull-to-refresh: force a fresh fetch without swapping to the full-screen skeleton.
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const username = await AsyncStorage.getItem('username');
+      if (username) {
+        const data = await getWatchlist(username, { forceRefresh: true });
+        setWatchlistItems(data);
+        setError(null);
+      }
+    } catch {
+      // Keep the current list if the refresh fails.
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const fetchWatchlist = useCallback(async (retryCount = 0, forceRefresh = false) => {
     if (isFetchingRef.current) {
@@ -213,10 +232,16 @@ const renderItem = (data) => (
   
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#FF5500" />
-        <Text style={styles.loadingText}>Loading your watchlist...</Text>
-      </View>
+      <ProtectedRoute>
+        <ScreenWrapper>
+          <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Your Watchlist</Text>
+            </View>
+            <WatchlistSkeleton />
+          </SafeAreaView>
+        </ScreenWrapper>
+      </ProtectedRoute>
     );
   }
 
@@ -252,6 +277,15 @@ const renderItem = (data) => (
               data={watchlistItems}
               renderItem={renderItem}
               renderHiddenItem={renderHiddenItem}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#ffffff"
+                  colors={['#ffffff']}
+                  progressBackgroundColor="#1a1a1a"
+                />
+              }
               rightOpenValue={-75}
               disableRightSwipe
               closeOnRowOpen={true}

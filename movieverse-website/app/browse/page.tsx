@@ -98,9 +98,22 @@ export default function BrowsePage() {
           </div>
         )}
 
-        {/* Loading State */}
+        {/* Loading State — skeleton grid */}
         {loading && (
-          <p className="text-zinc-500 text-center py-12">Loading movies...</p>
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mb-8">
+            {Array.from({ length: 18 }).map((_, i) => (
+              <div
+                key={i}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900"
+              >
+                <div className="h-64 w-full animate-pulse bg-zinc-800" />
+                <div className="p-3">
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-zinc-800" />
+                  <div className="mt-2 h-2 w-1/3 animate-pulse rounded bg-zinc-800" />
+                </div>
+              </div>
+            ))}
+          </section>
         )}
 
         {/* Movies Grid */}

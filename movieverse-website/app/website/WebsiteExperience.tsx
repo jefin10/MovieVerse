@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCatalog, fetchCatalogByGenre, searchCatalog, type Movie } from "@/lib/api";
 import MovieCard from "./MovieCard";
+import MovieCardSkeleton from "./MovieCardSkeleton";
 import SliderArrow from "./SliderArrow";
 import {
   BROWSE_GENRES,
@@ -267,7 +268,7 @@ export default function WebsiteExperience() {
           <div className="web-trending-track-wrap">
             <div className="web-trending-track" ref={trendingRef}>
               {loading && trendingMovies.length === 0 ? (
-                <p className="web-section-loading">Loading trending titles...</p>
+                Array.from({ length: 6 }).map((_, i) => <MovieCardSkeleton key={`sk-${i}`} />)
               ) : (
                 trendingMovies.map((movie) => <MovieCard key={movie.id} movie={movie} />)
               )}
@@ -324,7 +325,11 @@ export default function WebsiteExperience() {
         </div>
 
         {loading && browseMovies.length === 0 ? (
-          <p className="web-section-loading">Loading catalog...</p>
+          <div className="web-browse-grid">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <MovieCardSkeleton key={`sk-${i}`} />
+            ))}
+          </div>
         ) : (
           <div className="web-browse-grid">
             {browseMovies.map((movie) => (
