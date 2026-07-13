@@ -33,12 +33,45 @@ const API_BASE =
     ? PROD_API_BASE
     : configuredApiBase;
 
+// In-memory cache keyed by request path. It lives in the module (browser JS)
+// scope, so it SURVIVES client-side navigation between sections, but is wiped on
+// a full page reload or a new tab (fresh JS context). Net effect:
+//   • navigate to another section and come back → served from cache (no re-fetch)
+//   • manual refresh (F5) / open in a new tab      → fetched fresh
+// Only reads marked "force-cache" are cached; "no-store" (search) always fetches.
+const memoryCache = new Map<string, unknown>();
+const inFlight = new Map<string, Promise<unknown>>();
+
 async function request<T>(path: string, cache: RequestCache = "no-store"): Promise<T> {
-  const response = await fetch(`${API_BASE}/${path}`, { cache });
-  if (!response.ok) {
-    throw new Error(`API ${response.status}: ${path}`);
+  const useCache = cache === "force-cache";
+
+  if (useCache) {
+    const cached = memoryCache.get(path);
+    if (cached !== undefined) return cached as T;
+    const pending = inFlight.get(path);
+    if (pending) return pending as Promise<T>;
   }
-  return response.json() as Promise<T>;
+
+  const promise = (async () => {
+    // Always hit the network with no-store; caching is handled explicitly above
+    // so behavior is deterministic and not dependent on backend cache headers.
+    const response = await fetch(`${API_BASE}/${path}`, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`API ${response.status}: ${path}`);
+    }
+    const data = (await response.json()) as T;
+    if (useCache) memoryCache.set(path, data);
+    return data;
+  })();
+
+  if (!useCache) return promise;
+
+  inFlight.set(path, promise);
+  try {
+    return (await promise) as T;
+  } finally {
+    inFlight.delete(path);
+  }
 }
 
 export async function fetchCatalog(page: number = 1, pageSize: number = 24): Promise<PaginatedResponse> {
