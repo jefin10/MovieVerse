@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   findNodeHandle
 } from 'react-native';
-import api from '../auth/api';
+import api, { saveAuthToken } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useRouter } from 'expo-router';
 import debounce from 'lodash.debounce';
@@ -130,9 +130,22 @@ const RegisterScreen = () => {
         username,
         password,
       });
-      Alert.alert('Success', 'Account created successfully!');
-      await AsyncStorage.setItem('username', username);
-      router.push('/pages/LoginPage');
+
+      // Auto sign-in right after the first sign-up so the user lands on Home
+      // without having to log in again.
+      try {
+        const res = await api.post('api/auth/login/', { username, password });
+        await saveAuthToken(res.data?.token);
+        await AsyncStorage.setItem('username', username);
+        setAuthenticated(true);
+        router.replace('/(tabs)');
+      } catch {
+        // Account was created, but auto sign-in failed (e.g. network) —
+        // fall back to the login screen.
+        await AsyncStorage.setItem('username', username);
+        Alert.alert('Account created', 'Please log in to continue.');
+        router.replace('/pages/LoginPage');
+      }
     } catch (err) {
       console.log('Registration error:', err.response?.data || err.message);
       Alert.alert('Registration Failed', err.response?.data?.error || 'Error creating account');
