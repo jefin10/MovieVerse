@@ -5,6 +5,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { moodStyles } from '@/styles/mood'
 import MovieGrid from '@/components/MovieGrid'
+import { MovieGridSkeleton } from '../components/Skeleton'
 import ProtectedRoute from '../auth/protectedRoute'
 import api from '../auth/api';
 import { useLocalSearchParams } from 'expo-router';
@@ -116,12 +117,7 @@ const Mood = () => {
           showsVerticalScrollIndicator={false}
           >
             {loading ? (
-              <View style={moodStyles.loadingContainer}>
-                <View style={moodStyles.loadingAnimation}>
-                  <ActivityIndicator size="large" color="#FF5500" />
-                </View>
-                <Text style={moodStyles.loadingText}>Finding movies for your mood...</Text>
-              </View>
+              <MovieGridSkeleton />
             ) : moodAvailable ? (
               <View style={moodStyles.moodResultContainer}>
                 <View style={moodStyles.resultHeaderContainer}>

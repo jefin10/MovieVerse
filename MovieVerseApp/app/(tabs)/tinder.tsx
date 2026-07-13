@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import CustomSwiper from '../components/CustomSwiper'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTinderMovies, invalidateWatchlistCache, type AppMovie } from '../services/movieData';
+import { TinderCardSkeleton } from '../components/Skeleton';
 
 type SwipeDirection = 'left' | 'right';
 
@@ -205,10 +206,7 @@ const Tinder = () => {
         
         <View style={styles.swiperContainer}>
           {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={styles.loadingText}>Loading movies...</Text>
-            </View>
+            <TinderCardSkeleton />
           ) : movies && movies.length > 0 ? (
             <CustomSwiper
               cards={movies}
