@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
 import { ensureCompleteImageUrl } from '../utils/imageUtils';
 import CustomAlert from '../components/CustomAlert';
-
+import {Share} from 'react-native';
 interface MovieDetail {
   id: number;
   title: string;
@@ -104,6 +104,11 @@ export default function MovieDetailPage() {
     };
     fetchData();
   }, [movieId]);
+  const shareMovie = () => 
+    Share.share({
+    message: `Check out ${movie.title} on MovieVerse  \nhttps://movieverse.jefin.xyz/movie/${movie.id}`,
+  });
+
 
   // Check if movie is in user's watchlist
   const checkWatchlist = async (movieId: number) => {
@@ -309,19 +314,22 @@ export default function MovieDetailPage() {
     <>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
-      {/* Animated header */}
-      <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-        >
-          <Feather name="arrow-left" color="#fff" size={24} />
-        </TouchableOpacity>
+      {/* Animated title bar — fades in as you scroll over the poster */}
+      <Animated.View style={[styles.header, { opacity: headerOpacity }]} pointerEvents="none">
+        <View style={{ width: 40 }} />
         <Text style={styles.headerTitle} numberOfLines={1}>
           {movie?.title}
         </Text>
         <View style={{ width: 40 }} />
       </Animated.View>
+
+      {/* Always-visible back button */}
+      <TouchableOpacity
+        style={styles.backButtonFloating}
+        onPress={() => router.back()}
+      >
+        <Feather name="arrow-left" color="#fff" size={24} />
+      </TouchableOpacity>
       
       <Animated.ScrollView 
         style={styles.container}
@@ -408,6 +416,13 @@ export default function MovieDetailPage() {
             >
               <Feather name="play" color="#fff" size={20} />
               <Text style={styles.actionText}>Watch Trailer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={shareMovie}
+            >
+              <Feather name="share-2" color="#fff" size={20} />
+              <Text style={styles.actionText}>Share</Text>
             </TouchableOpacity>
           </View>
           
@@ -535,6 +550,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  backButtonFloating: {
+    position: 'absolute',
+    top: (StatusBar.currentHeight || 0) + 8,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1001,
   },
   heroContainer: {
     width: '100%',
