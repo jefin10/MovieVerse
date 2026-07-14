@@ -27,9 +27,22 @@ const LoadingPage = () => {
   const BOOTSTRAP_TIMEOUT_MS = 4000;
   const PREFETCH_BLOCKING_MS = 2500;
   
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'StickNoBills-SemiBold': require('../assets/fonts/StickNoBills-SemiBold.ttf'),
   });
+
+  // Become "ready" when fonts finish loading OR fail, or after a hard 3s cap.
+  // This guarantees the native splash is dismissed even if font loading hangs or
+  // fails in a release build (otherwise the app is stuck on the logo forever).
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      setReady(true);
+      return;
+    }
+    const cap = setTimeout(() => setReady(true), 3000);
+    return () => clearTimeout(cap);
+  }, [fontsLoaded, fontError]);
 
   // Effect for cycling through dot patterns
   useEffect(() => {
@@ -48,8 +61,8 @@ const LoadingPage = () => {
 
   // Select initial random fact and start cycling
   useEffect(() => {
-    if (fontsLoaded) {
-      // Fonts ready: dismiss native splash so the custom loader shows.
+    if (ready) {
+      // Ready: dismiss the native splash so the custom loader shows.
       SplashScreen.hideAsync().catch(() => {});
 
       // Select a random starting index
@@ -103,7 +116,7 @@ const LoadingPage = () => {
         clearTimeout(messageTimer);
       };
     }
-  }, [fontsLoaded]);
+  }, [ready]);
 
   // Update the fact whenever factIndex changes
   useEffect(() => {
@@ -164,7 +177,7 @@ const LoadingPage = () => {
     void prefetchPromise;
   }
   
-  if (!fontsLoaded) {
+  if (!ready) {
     return null;
   }
   
