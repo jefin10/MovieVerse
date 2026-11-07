@@ -1,12 +1,8 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { HapticTab } from '@/components/HapticTab';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import DockTabBar from '@/components/DockTabBar';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import { enableScreens } from 'react-native-screens';
 
@@ -14,26 +10,15 @@ import { enableScreens } from 'react-native-screens';
 enableScreens();
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
- 
+
        <Tabs
+      // Floating frosted-glass dock (components/DockTabBar.tsx). Screens run
+      // underneath it and pad their content with useDockSpace().
+      tabBar={(props) => <DockTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {
-            backgroundColor: '#000000',
-            borderTopWidth: 0,
-          },
-        }),
+        sceneStyle: { backgroundColor: '#000' },
       }}>
       <Tabs.Screen
         name="index"

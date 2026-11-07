@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {styles} from '@/styles/home'
 import ScreenWrapper from '@/components/ScreenWrapper'
+import { useDockSpace } from '@/components/DockTabBar'
 import { useRouter } from 'expo-router'
 import ProtectedRoute from '../auth/protectedRoute';
 import {useAuth} from '../auth/AuthContext'
@@ -24,6 +25,7 @@ interface Movie {
 }
 
 const Index = () => {
+  const dockSpace = useDockSpace();
   const [isOpenOther, setOpenOther] = useState(false);
   const [customMood, setCustomMood] = useState('');
   const [username, setUsername] = useState('');
@@ -186,7 +188,7 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <ScreenWrapper>
         <SafeAreaView style={styles.container}>
-          <ScrollView contentContainerStyle={styles.scrollContent}
+          <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: dockSpace }]}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl

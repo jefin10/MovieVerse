@@ -6,12 +6,14 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { moodStyles } from '@/styles/mood'
 import MovieGrid from '@/components/MovieGrid'
+import { useDockSpace } from '@/components/DockTabBar'
 import { MovieGridSkeleton } from '../components/Skeleton'
 import ProtectedRoute from '../auth/protectedRoute'
 import api from '../auth/api';
 import { useLocalSearchParams } from 'expo-router';
 
 const Mood = () => {
+  const dockSpace = useDockSpace()
   const params = useLocalSearchParams();
   const initialMood = params.selectedMood as string;
 
@@ -114,7 +116,7 @@ const Mood = () => {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
         <View style={moodStyles.container}>
-          <ScrollView contentContainerStyle={moodStyles.scrollContent} 
+          <ScrollView contentContainerStyle={[moodStyles.scrollContent, { paddingBottom: dockSpace }]} 
           showsVerticalScrollIndicator={false}
           >
             {loading ? (

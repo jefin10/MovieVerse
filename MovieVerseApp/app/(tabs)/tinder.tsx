@@ -1,6 +1,7 @@
 import { Text, View, Animated, ActivityIndicator, TouchableOpacity } from 'react-native'
 import React, { useRef, useState, useEffect } from 'react'
 import styles from '@/styles/tinder'
+import { useDockSpace } from '@/components/DockTabBar'
 import { Feather } from '@expo/vector-icons'
 import ProtectedRoute from '../auth/protectedRoute';
 import TinderMovieCard from '../components/tinderMovieCard'
@@ -14,6 +15,7 @@ import { TinderCardSkeleton } from '../components/Skeleton';
 type SwipeDirection = 'left' | 'right';
 
 const Tinder = () => {
+  const dockSpace = useDockSpace(0);
   const [showPopup, setShowPopup] = useState(false);
   const [currentMovie, setCurrentMovie] = useState<AppMovie | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -203,7 +205,7 @@ const Tinder = () => {
           </View>
         </View>
         
-        <View style={styles.swiperContainer}>
+        <View style={[styles.swiperContainer, { marginBottom: dockSpace - 20 }]}>
           {isLoading ? (
             <TinderCardSkeleton />
           ) : movies && movies.length > 0 ? (

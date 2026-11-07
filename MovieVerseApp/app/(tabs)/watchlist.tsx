@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ScreenWrapper from '@/components/ScreenWrapper';
+import { useDockSpace } from '@/components/DockTabBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import { styles } from "@/styles/watchlist";
@@ -14,6 +15,7 @@ import { getWatchlist, removeFromWatchlistSafe, saveWatchlistForOffline } from '
 import { WatchlistSkeleton } from '../components/Skeleton';
 
 const WatchList = () => {
+  const dockSpace = useDockSpace();
   const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -294,7 +296,7 @@ const renderItem = (data) => (
               keyExtractor={(item) => item.id.toString()}
               onRowDidOpen={onRowDidOpen}
               ItemSeparatorComponent={() => <View style={styles.divider} />}
-              contentContainerStyle={styles.scrollContent}
+              contentContainerStyle={[styles.scrollContent, { paddingBottom: dockSpace }]}
               ListFooterComponent={() => (
                 <EndOfListIndicator />
               )}

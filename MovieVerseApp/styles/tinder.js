@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     },
     movieCard: {
         width: width - 40,
-        height: 670,
+        height: '100%', // fills the space above the dock (was a fixed 670)
         borderRadius: 15,
         overflow: 'hidden',
         elevation: 5,
