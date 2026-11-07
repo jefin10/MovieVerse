@@ -1,15 +1,12 @@
-import { Feather } from '@expo/vector-icons';
+import { Button, Divider, EmptyState, Header, IconBadge, ListRow, ListSkeleton, Reveal, Screen, Thumb, color, gutter, radius, space } from '@/ui';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, View } from 'react-native';
 import api from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
-import Image from '../components/CachedImage';
 import { notificationIcon, useNotifications } from '../components/NotificationCenter';
-import PageHeader from '../components/PageHeader';
 import { routeForNotification } from '../services/push';
-import { s, timeAgo } from '../services/ui';
+import { timeAgo } from '../services/ui';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -27,7 +24,11 @@ export default function NotificationsPage() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const open = (item: any) => {
     if (!item.read) api.post('api/notifications/read/', { id: item.id }).then(refresh).catch(() => {});
@@ -41,45 +42,48 @@ export default function NotificationsPage() {
     refresh();
   };
 
+  const hasUnread = items?.some((n) => !n.read);
+
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
-        <PageHeader
-          title="Notifications"
-          right={
-            items?.some((n) => !n.read) ? (
-              <TouchableOpacity onPress={readAll}><Text style={s.link}>Mark all read</Text></TouchableOpacity>
-            ) : null
-          }
-        />
+      <Screen edges={['top', 'bottom']}>
+        <Header back title="Notifications" actions={hasUnread ? <Button variant="text" title="Read all" onPress={readAll} /> : null} />
         {failed && !items ? (
-          <Text style={s.empty}>Connect to the internet to see your notifications.</Text>
+          <EmptyState message="Notifications need a connection." action={{ label: 'Try again', onPress: load }} />
         ) : !items ? (
-          <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
+          <View style={styles.pad}>
+            <ListSkeleton avatar />
+          </View>
         ) : (
           <FlatList
             data={items}
             keyExtractor={(n) => String(n.id)}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
-            ListEmptyComponent={<Text style={s.empty}>Nothing yet. Your first pick arrives this evening.</Text>}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={[s.card, s.rowCard, !item.read && s.cardUnread]} onPress={() => open(item)}>
-                {item.image_url ? (
-                  <Image source={{ uri: item.image_url }} style={s.thumb} />
-                ) : (
-                  <View style={s.iconCircle}><Feather name={notificationIcon(item.type)} size={19} color="#000" /></View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={s.cardTitle}>{item.title}</Text>
-                  <Text style={s.cardBody}>{item.body}</Text>
-                  <Text style={s.meta}>{timeAgo(item.at)}</Text>
-                </View>
-                {!item.read ? <View style={s.dot} /> : null}
-              </TouchableOpacity>
+            contentContainerStyle={items.length ? styles.list : styles.fill}
+            ItemSeparatorComponent={Divider}
+            ListEmptyComponent={<EmptyState message="No notifications yet." />}
+            renderItem={({ item, index }) => (
+              <Reveal index={index}>
+                <ListRow
+                  leading={item.image_url ? <Thumb uri={item.image_url} /> : <IconBadge name={notificationIcon(item.type)} />}
+                  title={item.title}
+                  subtitle={item.body}
+                  meta={timeAgo(item.at)}
+                  emphasis={!item.read}
+                  trailing={!item.read ? <View style={styles.dot} accessibilityLabel="Unread" /> : null}
+                  onPress={() => open(item)}
+                />
+              </Reveal>
             )}
           />
         )}
-      </SafeAreaView>
+      </Screen>
     </ProtectedRoute>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flexGrow: 1 },
+  pad: { paddingHorizontal: gutter },
+  list: { paddingHorizontal: gutter, paddingBottom: space.xxl },
+  dot: { width: space.sm, height: space.sm, borderRadius: radius.control, backgroundColor: color.text },
+});

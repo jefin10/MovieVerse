@@ -1,70 +1,82 @@
-import { Feather } from '@expo/vector-icons';
+import { BottomBar, Button, Field, Header, Screen, Text, gutter, space, useToast } from '@/ui';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import api from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
-import PageHeader from '../components/PageHeader';
-import { s } from '../services/ui';
 
 export default function WatchTogetherPage() {
   const router = useRouter();
+  const toast = useToast();
   const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
   const enter = (roomCode: string) => router.replace({ pathname: '/pages/RoomPage', params: { code: roomCode } } as any);
 
-  const run = async (request: () => Promise<any>) => {
-    setBusy(true);
+  const start = async () => {
+    setStarting(true);
     try {
-      const { data } = await request();
+      const { data } = await api.post('api/rooms/', {});
       enter(data.code);
     } catch (err: any) {
-      Alert.alert('Watch Together', err?.response?.data?.error ?? 'You need a connection for this. Please try again.');
+      toast.show({ title: err?.response?.data?.error ?? 'Starting a room needs a connection.', tone: 'error' });
     } finally {
-      setBusy(false);
+      setStarting(false);
+    }
+  };
+
+  const join = async () => {
+    setJoining(true);
+    setJoinError('');
+    try {
+      const { data } = await api.post(`api/rooms/${code}/join/`, {});
+      enter(data.code);
+    } catch (err: any) {
+      setJoinError(err?.response?.data?.error ?? 'Joining needs a connection.');
+    } finally {
+      setJoining(false);
     }
   };
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
-        <PageHeader title="Watch Together" />
-        <View style={{ padding: 20, flex: 1 }}>
-          <View style={[s.iconCircle, { width: 64, height: 64, borderRadius: 32, marginBottom: 18 }]}>
-            <Feather name="users" size={28} color="#000" />
+      <Screen edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Header back title="Watch together" />
+          <View style={styles.body}>
+            <Text tone="secondary">Everyone swipes the same films. You see the ones you all liked.</Text>
+            <View style={styles.join}>
+              <Field
+                label="Room code"
+                placeholder="6 characters"
+                value={code}
+                onChangeText={(t) => {
+                  setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+                  setJoinError('');
+                }}
+                error={joinError}
+                maxLength={6}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                returnKeyType="go"
+                onSubmitEditing={() => code.length === 6 && join()}
+              />
+              <Button variant="secondary" title="Join room" onPress={join} loading={joining} disabled={code.length !== 6} />
+            </View>
           </View>
-          <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 32 }}>Can’t agree on a movie?</Text>
-          <Text style={[s.cardBody, { fontSize: 15, lineHeight: 22, marginTop: 8, marginBottom: 28 }]}>
-            Everyone swipes the same movies on their own phone. You only see the ones you all liked.
-          </Text>
-
-          <TouchableOpacity style={s.button} disabled={busy} onPress={() => run(() => api.post('api/rooms/', {}))}>
-            {busy ? <ActivityIndicator color="#000" /> : <Text style={s.buttonText}>Start a room</Text>}
-          </TouchableOpacity>
-
-          <Text style={[s.meta, { textAlign: 'center', marginVertical: 22 }]}>or join a friend’s</Text>
-
-          <TextInput
-            style={[s.input, { textAlign: 'center', fontSize: 22, letterSpacing: 6, fontWeight: '700' }]}
-            placeholder="CODE"
-            placeholderTextColor="#555"
-            value={code}
-            onChangeText={(t) => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-            maxLength={6}
-            autoCapitalize="characters"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            style={[s.button, s.buttonGhost, { marginTop: 12, opacity: code.length === 6 ? 1 : 0.5 }]}
-            disabled={busy || code.length !== 6}
-            onPress={() => run(() => api.post(`api/rooms/${code}/join/`, {}))}
-          >
-            <Text style={[s.buttonText, s.buttonGhostText]}>Join room</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+          <BottomBar>
+            <Button title="Start a room" onPress={start} loading={starting} />
+          </BottomBar>
+        </KeyboardAvoidingView>
+      </Screen>
     </ProtectedRoute>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  body: { flex: 1, paddingHorizontal: gutter, gap: space.xxl },
+  join: { gap: space.md },
+});

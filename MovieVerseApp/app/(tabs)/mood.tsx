@@ -1,203 +1,137 @@
-import Image from '../components/CachedImage';
-import { Text, View, TouchableOpacity, TextInput, ScrollView, StatusBar, ActivityIndicator, SafeAreaView } from 'react-native'
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'expo-router'
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { moodStyles } from '@/styles/mood'
-import MovieGrid from '@/components/MovieGrid'
-import { MovieGridSkeleton } from '../components/Skeleton'
-import ProtectedRoute from '../auth/protectedRoute'
+import {
+  BottomBar,
+  Button,
+  Chip,
+  EmptyState,
+  Field,
+  Header,
+  PosterGrid,
+  PosterGridSkeleton,
+  Screen,
+  SectionHeader,
+  gutter,
+  space,
+  type PosterMovie,
+} from '@/ui';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import api from '../auth/api';
-import { useLocalSearchParams } from 'expo-router';
+import ProtectedRoute from '../auth/protectedRoute';
+
+// Each label sends the same phrase to the mood model as before the redesign.
+const QUICK_MOODS = [
+  { label: 'Happy', query: 'dramatic movie' },
+  { label: 'Sad', query: 'comedy' },
+  { label: 'Romantic', query: 'Romantic' },
+  { label: 'Lonely', query: 'fantasy' },
+  { label: 'Adventurous', query: 'Adventurous' },
+  { label: 'Frustrated', query: 'Action' },
+];
+const RESULT_COUNT = 12;
+
+type State = 'pick' | 'loading' | 'results' | 'error';
 
 const Mood = () => {
+  const router = useRouter();
   const params = useLocalSearchParams();
-  const initialMood = params.selectedMood as string;
+  const [state, setState] = useState<State>('pick');
+  const [text, setText] = useState('');
+  const [lastQuery, setLastQuery] = useState('');
+  const [genre, setGenre] = useState('');
+  const [movies, setMovies] = useState<PosterMovie[]>([]);
+  const [offline, setOffline] = useState(false);
 
-  const router = useRouter()
-  const [moodAvailable, setMoodAvailable] = useState(false)
-  const [selectedMood, setSelectedMood] = useState('')
-  const [isOpenOther, setOpenOther] = useState(false)
-  const [customMood, setCustomMood] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [recommendedMovies, setRecommendedMovies] = useState([])
-  const [error, setError] = useState('')
-  const [predictedGenre, setPredictedGenre] = useState('');
-  
-  useEffect(() => {
-    if (initialMood) {
-      getMoodRecommendations(initialMood);
+  const find = async (query: string) => {
+    if (!query.trim()) return;
+    setLastQuery(query);
+    setState('loading');
+    try {
+      const { data } = await api.post('ai/recommend/', { mood: query });
+      setGenre(data.genre || '');
+      setMovies((data.recommendations ?? []).slice(0, RESULT_COUNT));
+      setState('results');
+    } catch (err: any) {
+      setOffline(!err?.response);
+      setState('error');
     }
-  }, [initialMood]);
-  
-  const ensureCompleteImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    return `https://image.tmdb.org/t/p/w500${url}`;
   };
 
-  const getMoodRecommendations = async (mood) => {
-    setLoading(true)
-    setError('')
+  useEffect(() => {
+    if (params.selectedMood) find(String(params.selectedMood));
+  }, [params.selectedMood]);
 
-    try {
-      const response = await api.post('ai/recommend/', {
-        mood: mood
-      });
-      
-      const genre = response.data.genre || 'Unknown';
-      setPredictedGenre(genre);
-      
-      const processedMovies = response.data.recommendations.map(movie => ({
-        ...movie,
-        poster_url: movie.poster_url ? (
-          movie.poster_url.startsWith('http') ? 
-            movie.poster_url : 
-            `https://image.tmdb.org/t/p/w500${movie.poster_url}`
-        ) : null
-      })) || [];
-      
-      setRecommendedMovies(processedMovies)
-      setSelectedMood(mood)
-      setMoodAvailable(true)
-    } catch (err) {
-      console.error('Failed to get mood recommendations:', err)
-      setError(err?.response ? 'Failed to get recommendations. Please try again.' : 'Mood picks need a connection. Your watchlist and saved movies still work offline.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const selectMood = (mood) => {
-    setSelectedMood(mood)
-    getMoodRecommendations(mood)
-  }
-
-  const handleCustomMood = () => {
-    if (customMood.trim()) {
-      selectMood(customMood)
-    }
-    setOpenOther(false)
-  }
-
- const renderMoodButton = (mood, label, alternate = false, icon = null) => (
-  <View style={moodStyles.moodButtonsRow}>
-    <TouchableOpacity 
-      style={[
-        moodStyles.moodButton, 
-        alternate ? moodStyles.moodButtonLight : null
-      ]}
-      onPress={() => selectMood(mood)}
-    >
-      {icon && <Ionicons 
-        name={icon} 
-        size={20} 
-        color={alternate ? '#333' : '#fff'} 
-        style={moodStyles.moodButtonIcon} 
-      />}
-      <Text style={[
-        moodStyles.moodButtonText, 
-        alternate ? moodStyles.moodButtonTextDark : null
-      ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  </View>
-);
-
+  const open = (movie: PosterMovie) => router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: movie.id } });
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <View style={moodStyles.container}>
-          <ScrollView contentContainerStyle={moodStyles.scrollContent} 
-          showsVerticalScrollIndicator={false}
-          >
-            {loading ? (
-              <MovieGridSkeleton />
-            ) : moodAvailable ? (
-              <View style={moodStyles.moodResultContainer}>
-                <View style={moodStyles.resultHeaderContainer}>
-                  <Text style={moodStyles.moodResultTitle}>You're in the mood for {predictedGenre}</Text>
-                  <Text style={moodStyles.moodResultSubtitle}>Here are our suggestions</Text>
+      <Screen>
+        <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Header title="Mood" />
+
+          {state === 'pick' ? (
+            <>
+              <ScrollView style={styles.fill} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+                <Field
+                  label="How do you feel?"
+                  placeholder="Describe your mood"
+                  value={text}
+                  onChangeText={setText}
+                  returnKeyType="search"
+                  onSubmitEditing={() => find(text)}
+                />
+                <View style={styles.chips}>
+                  {QUICK_MOODS.map((m) => (
+                    <Chip key={m.label} role="button" label={m.label} onPress={() => find(m.query)} />
+                  ))}
                 </View>
-                
-                {error ? (
-                  <View style={moodStyles.errorContainer}>
-                    <Ionicons name="alert-circle" size={32} color="#ff5555" />
-                    <Text style={moodStyles.errorText}>{error}</Text>
+              </ScrollView>
+              <BottomBar>
+                <Button title="Find films" onPress={() => find(text)} disabled={!text.trim()} />
+              </BottomBar>
+            </>
+          ) : null}
+
+          {state === 'loading' ? (
+            <View style={styles.body}>
+              <PosterGridSkeleton />
+            </View>
+          ) : null}
+
+          {state === 'results' ? (
+            <>
+              <ScrollView style={styles.fill} contentContainerStyle={styles.body}>
+                {movies.length ? (
+                  <View>
+                    <SectionHeader title={genre || 'Your picks'} />
+                    <PosterGrid movies={movies} onOpen={open} />
                   </View>
                 ) : (
-                  <MovieGrid movies={recommendedMovies} mood={selectedMood} />
+                  <EmptyState message="No films match that mood." />
                 )}
+              </ScrollView>
+              <BottomBar>
+                <Button variant="secondary" title="Change mood" onPress={() => setState('pick')} />
+              </BottomBar>
+            </>
+          ) : null}
 
-                <TouchableOpacity 
-  style={moodStyles.changeMoodButton}
-  onPress={() => setMoodAvailable(false)}
->
-  <Text style={moodStyles.changeMoodButtonText}>Change Mood</Text>
-</TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <View style={moodStyles.headerSection}>
-                  <Text style={moodStyles.moodTitle}>How are you feeling today?</Text>
-                  <Text style={moodStyles.moodSubtitle}>Get movies personalized for your mood</Text>
-                </View>
-                
-                <View style={moodStyles.moodSelector}>
-                  {renderMoodButton('dramatic movie', 'I\'m feeling Happy', false, 'happy-outline')}
-                  {renderMoodButton('comedy', 'I\'m feeling Sad', true, 'sad-outline')}
-                  {renderMoodButton('Romantic', 'I\'m feeling Romantic', false, 'heart-outline')}
-                  {renderMoodButton('fantasy', 'I\'m feeling Lonely', true, 'person-outline')}
-                  {renderMoodButton('Adventurous', 'I\'m feeling Adventurous', false, 'compass-outline')}
-                  {renderMoodButton('Action', 'I\'m feeling Bad', true, 'thunderstorm-outline')}
-                  
-                 {isOpenOther ? (
-  <View style={moodStyles.customMoodContainer}>
-    <TextInput
-      style={moodStyles.customMoodInput}
-      placeholder="Enter your mood..."
-      placeholderTextColor="#aaaaaa"
-      value={customMood}
-      onChangeText={setCustomMood}
-    />
-    <TouchableOpacity 
-      style={moodStyles.goButton}
-      onPress={handleCustomMood}
-    >
-      <Text style={moodStyles.goButtonText}>Go</Text>
-      <Feather name="chevron-right" size={16} color="#fff" />
-    </TouchableOpacity>
-  </View>
-) : (
-  <View style={moodStyles.moodButtonsRow}>
-    <TouchableOpacity 
-      style={moodStyles.moodButton}
-      onPress={() => setOpenOther(true)}
-    >
-      <Ionicons 
-        name="add-circle-outline" 
-        size={20} 
-        color="#fff" 
-        style={moodStyles.moodButtonIcon} 
-      />
-      <Text style={moodStyles.moodButtonText}>Other/Custom</Text>
-    </TouchableOpacity>
-  </View>
-)}
-                </View>
-              </>
-            )}
-          </ScrollView>
-        </View>
-      </SafeAreaView>
+          {state === 'error' ? (
+            <EmptyState
+              message={offline ? 'Mood picks need a connection.' : 'Couldn’t find films for that mood.'}
+              action={{ label: 'Try again', onPress: () => find(lastQuery) }}
+            />
+          ) : null}
+        </KeyboardAvoidingView>
+      </Screen>
     </ProtectedRoute>
-  )
-}
+  );
+};
 
-export default Mood
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  body: { paddingHorizontal: gutter, paddingBottom: space.xl, gap: space.xl },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+});
+
+export default Mood;

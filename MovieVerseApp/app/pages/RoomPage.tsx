@@ -1,31 +1,48 @@
-import { Feather } from '@expo/vector-icons';
+import {
+  BottomBar,
+  Block,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  EmptyState,
+  Header,
+  ListRow,
+  Poster,
+  Screen,
+  Sheet,
+  SwipeCard,
+  Swiper,
+  Text,
+  Thumb,
+  color,
+  gutter,
+  icon,
+  size,
+  space,
+  type SwiperHandle,
+  Icon,
+} from '@/ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, AppState, Modal, ScrollView, Share, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppState, ScrollView, Share, StyleSheet, View } from 'react-native';
 import api, { API_BASE_URL } from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
-import Image from '../components/CachedImage';
-import CustomSwiper from '../components/CustomSwiper';
-import PageHeader from '../components/PageHeader';
-import TinderMovieCard from '../components/tinderMovieCard';
-import { s } from '../services/ui';
 
 const socketUrl = () => `${API_BASE_URL.replace(/^http/, 'ws').replace(/\/$/, '')}/ws/rooms`;
 
 export default function RoomPage() {
   const router = useRouter();
   const { code } = useLocalSearchParams<{ code: string }>();
+  const deck = useRef<SwiperHandle>(null);
   const [room, setRoom] = useState<any>(null);
   const [cards, setCards] = useState<any[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [connected, setConnected] = useState(false);
   const [match, setMatch] = useState<any>(null);
   const [showMatches, setShowMatches] = useState(false);
-  const pop = useRef(new Animated.Value(0.8)).current;
-  const index = useRef(0);
 
   const refresh = useCallback(async () => {
     try {
@@ -39,15 +56,10 @@ export default function RoomPage() {
     }
   }, [code]);
 
-  const celebrate = useCallback(
-    (movie: any) => {
-      setMatch(movie);
-      pop.setValue(0.8);
-      Animated.spring(pop, { toValue: 1, damping: 11, stiffness: 180, useNativeDriver: true }).start();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    },
-    [pop],
-  );
+  const celebrate = useCallback((movie: any) => {
+    setMatch(movie);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  }, []);
 
   // Live updates. After any drop it reconnects and re-reads the room to catch up.
   useEffect(() => {
@@ -66,13 +78,10 @@ export default function RoomPage() {
         if (message.type === 'ready') {
           attempts = 0;
           setConnected(true);
-          refresh();
         } else if (message.type === 'match') {
           celebrate(message.movie);
-          refresh();
-        } else {
-          refresh();
         }
+        refresh();
       };
       socket.onclose = () => {
         setConnected(false);
@@ -93,122 +102,130 @@ export default function RoomPage() {
     };
   }, [code, refresh, celebrate]);
 
-  const onSwipe = (liked: boolean) => {
-    const movie = cards?.[index.current];
-    index.current += 1;
-    if (!movie) return;
-    api.post(`api/rooms/${code}/swipes/`, { movie_id: movie.id, liked }).catch(() => {});
-  };
+  const onSwiped = (movie: any, direction: 'left' | 'right') =>
+    api.post(`api/rooms/${code}/swipes/`, { movie_id: movie.id, liked: direction === 'right' }).catch(() => {});
 
-  const invite = () =>
-    Share.share({ message: `Let's pick a movie together on MovieVerse. Open Watch Together and enter code ${code}` });
+  const invite = () => Share.share({ message: `Pick a film with me on MovieVerse. Open Watch together and enter ${code}` });
+  const openMovie = (id: number) => router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: String(id) } } as any);
 
+  const matches = room?.matches ?? [];
   const alone = (room?.members.length ?? 0) < 2;
+  const done = cards !== null && cards.length === 0;
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
-        <PageHeader
-          title="Watch Together"
-          right={
-            <TouchableOpacity style={[s.pill, !room?.matches.length && s.pillOff]} onPress={() => setShowMatches(true)}>
-              <Text style={[s.pillText, !room?.matches.length && s.pillOffText]}>♥ {room?.matches.length ?? 0}</Text>
-            </TouchableOpacity>
-          }
+      <Screen edges={['top', 'bottom']}>
+        <Header
+          back
+          title="Room"
+          actions={<Chip role="button" label={`Matches ${matches.length}`} selected={matches.length > 0} onPress={() => setShowMatches(true)} />}
         />
         {!room ? (
-          failed ? <Text style={s.empty}>This room couldn’t be loaded. It may have expired.</Text> : <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
+          failed ? (
+            <EmptyState message="This room has expired." action={{ label: 'Back', onPress: () => router.back() }} />
+          ) : (
+            <View style={styles.deck}>
+              <Block width="100%" height={0} style={styles.fill} />
+            </View>
+          )
         ) : (
-          <View style={{ flex: 1, paddingHorizontal: 16 }}>
-            <TouchableOpacity style={[s.card, s.rowCard, { marginBottom: 8 }]} onPress={invite} accessibilityLabel={`Share room code ${code}`}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', letterSpacing: 4 }}>{code}</Text>
-                <Text style={s.meta} numberOfLines={1}>
-                  {alone
-                    ? 'Waiting for a friend. Tap to share the code.'
-                    : room.members.map((m: any) => `${m.username} ${m.swiped}/${room.deck_size}`).join('  ·  ')}
+          <>
+            <Card onPress={invite} accessibilityLabel={`Share room code ${code}`} style={styles.code}>
+              <View style={styles.fill}>
+                <Text variant="section">{code}</Text>
+                <Text variant="label" tone="secondary" numberOfLines={1}>
+                  {alone ? 'Share the code with a friend' : room.members.map((m: any) => `${m.username} ${m.swiped}/${room.deck_size}`).join(' · ')}
                 </Text>
               </View>
-              <Feather name={connected ? 'share-2' : 'wifi-off'} size={20} color="#fff" />
-            </TouchableOpacity>
+              <Icon name={connected ? 'share-2' : 'wifi-off'} size={icon.action} color={color.text} />
+            </Card>
 
-            <View style={{ flex: 1 }}>
-              {cards && cards.length > 0 ? (
-                <CustomSwiper
-                  cards={cards}
-                  renderCard={(card: any) => (card ? <TinderMovieCard {...card} /> : null)}
-                  onSwipedRight={() => onSwipe(true)}
-                  onSwipedLeft={() => onSwipe(false)}
-                  onSwipedAll={() => setCards([])}
-                  cardIndex={0}
-                  backgroundColor="transparent"
-                  stackSize={3}
-                  stackSeparation={15}
-                  cardVerticalMargin={10}
-                  animateCardOpacity
-                  overlayLabels={{}}
+            <View style={styles.deck}>
+              {done ? (
+                <EmptyState
+                  message={matches.length ? 'You’ve swiped them all.' : 'You’ve swiped them all. Matches show up as friends finish.'}
+                  action={matches.length ? { label: 'See matches', onPress: () => setShowMatches(true) } : undefined}
                 />
-              ) : (
-                <View style={{ flex: 1, justifyContent: 'center' }}>
-                  <Text style={[s.empty, { marginTop: 0 }]}>
-                    You’ve swiped them all. {room.matches.length ? 'See your matches above.' : 'Matches appear here as your friends finish.'}
-                  </Text>
-                </View>
-              )}
+              ) : cards ? (
+                <Swiper
+                  ref={deck}
+                  cards={cards}
+                  keyFor={(m) => String(m.id)}
+                  renderCard={(m) => <SwipeCard {...m} />}
+                  onSwiped={onSwiped}
+                  onSwipedAll={() => setCards([])}
+                  leftLabel="Skip"
+                  rightLabel="Like"
+                />
+              ) : null}
             </View>
-          </View>
+
+            <BottomBar style={styles.actions}>
+              <Button variant="secondary" title="Skip" icon="x" onPress={() => deck.current?.swipe('left')} disabled={done} style={styles.fill} />
+              <Button title="Like" icon="heart" onPress={() => deck.current?.swipe('right')} disabled={done} style={styles.fill} />
+            </BottomBar>
+          </>
         )}
 
-        <Modal visible={!!match} transparent animationType="fade" onRequestClose={() => setMatch(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
-            <Animated.View style={{ alignItems: 'center', transform: [{ scale: pop }] }}>
-              <Text style={{ color: '#fff', fontSize: 34, fontWeight: '800', marginBottom: 18 }}>It’s a match!</Text>
-              {match ? <Image source={{ uri: match.poster_url }} style={{ width: 210, height: 315, borderRadius: 20, backgroundColor: '#222' }} /> : null}
-              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>{match?.title}</Text>
-              <Text style={[s.cardBody, { marginTop: 4, marginBottom: 22 }]}>You all liked this one.</Text>
-              <TouchableOpacity style={s.button} onPress={() => setMatch(null)}><Text style={s.buttonText}>Keep swiping</Text></TouchableOpacity>
-              <TouchableOpacity
-                style={{ padding: 14 }}
-                onPress={() => {
-                  const id = match?.id;
-                  setMatch(null);
-                  router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: String(id) } } as any);
-                }}
-              >
-                <Text style={s.link}>See details</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </Modal>
-
-        <Modal visible={showMatches} animationType="slide" onRequestClose={() => setShowMatches(false)}>
-          <SafeAreaView style={s.page}>
-            <View style={s.header}>
-              <Text style={s.headerTitle}>Your matches</Text>
-              <TouchableOpacity onPress={() => setShowMatches(false)} accessibilityLabel="Close"><Feather name="x" size={26} color="#fff" /></TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-              {!room?.matches.length ? <Text style={s.empty}>No matches yet. Keep swiping.</Text> : null}
-              {room?.matches.map((m: any) => (
-                <TouchableOpacity
-                  key={m.id}
-                  style={[s.card, s.rowCard]}
+        <Sheet visible={!!match} onClose={() => setMatch(null)} title="It’s a match">
+          {match ? (
+            <View style={styles.match}>
+              <Poster movie={match} width={size.posterWidth * 1.5} showTitle={false} />
+              <Text variant="section" center>
+                {match.title}
+              </Text>
+              <View style={styles.matchActions}>
+                <Button title="Keep swiping" onPress={() => setMatch(null)} />
+                <Button
+                  variant="text"
+                  title="See details"
                   onPress={() => {
-                    setShowMatches(false);
-                    router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: String(m.id) } } as any);
+                    const id = match.id;
+                    setMatch(null);
+                    openMovie(id);
                   }}
-                >
-                  <Image source={{ uri: m.poster_url }} style={s.thumb} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.cardTitle}>{m.title}</Text>
-                    <Text style={s.cardBody} numberOfLines={2}>{m.description}</Text>
-                  </View>
-                </TouchableOpacity>
+                />
+              </View>
+            </View>
+          ) : null}
+        </Sheet>
+
+        <Sheet visible={showMatches} onClose={() => setShowMatches(false)} title="Matches">
+          {matches.length ? (
+            <ScrollView>
+              {matches.map((m: any, i: number) => (
+                <View key={m.id}>
+                  {i > 0 ? <Divider /> : null}
+                  <ListRow
+                    leading={<Thumb uri={m.poster_url} />}
+                    title={m.title}
+                    subtitle={m.description}
+                    chevron
+                    onPress={() => {
+                      setShowMatches(false);
+                      openMovie(m.id);
+                    }}
+                  />
+                </View>
               ))}
             </ScrollView>
-          </SafeAreaView>
-        </Modal>
-      </SafeAreaView>
+          ) : (
+            <Text tone="secondary" style={styles.sheetEmpty}>
+              No matches yet.
+            </Text>
+          )}
+        </Sheet>
+      </Screen>
     </ProtectedRoute>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  code: { marginHorizontal: gutter, marginBottom: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.md },
+  deck: { flex: 1, paddingHorizontal: gutter, paddingBottom: space.xl },
+  actions: { flexDirection: 'row' },
+  match: { alignItems: 'center', gap: space.lg },
+  matchActions: { alignSelf: 'stretch', gap: space.sm },
+  sheetEmpty: { paddingBottom: space.lg },
+});

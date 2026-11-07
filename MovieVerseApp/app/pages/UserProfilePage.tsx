@@ -1,37 +1,47 @@
+import {
+  Avatar,
+  BottomBar,
+  Button,
+  Card,
+  CountUp,
+  Divider,
+  EmptyState,
+  Header,
+  ListRow,
+  ListSkeleton,
+  PosterRow,
+  ProgressBar,
+  Screen,
+  SectionHeader,
+  Stars,
+  Text,
+  Thumb,
+  gutter,
+  space,
+  useToast,
+} from '@/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import api from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
-import Image from '../components/CachedImage';
-import PageHeader from '../components/PageHeader';
-import { s } from '../services/ui';
-
-const MatchMeter = ({ score }: { score: number }) => {
-  const [width] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    Animated.timing(width, { toValue: score, duration: 900, useNativeDriver: false }).start();
-  }, [score, width]);
-  return (
-    <View style={{ height: 6, borderRadius: 3, backgroundColor: '#2a2a2a', marginTop: 12, overflow: 'hidden' }}>
-      <Animated.View
-        style={{ height: 6, backgroundColor: '#fff', width: width.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }}
-      />
-    </View>
-  );
-};
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const toast = useToast();
   const { username } = useLocalSearchParams<{ username: string }>();
   const [user, setUser] = useState<any>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    api.get(`api/users/${encodeURIComponent(username)}/`).then((r) => setUser(r.data)).catch(() => setFailed(true));
-  }, [username]);
+  const load = () => {
+    setFailed(false);
+    api
+      .get(`api/users/${encodeURIComponent(username)}/`)
+      .then((r) => setUser(r.data))
+      .catch(() => setFailed(true));
+  };
+  useEffect(load, [username]);
 
   const toggleFollow = async () => {
     setBusy(true);
@@ -39,11 +49,9 @@ export default function UserProfilePage() {
     try {
       if (user.is_following) await api.delete(path);
       else await api.post(path, {});
-      setUser((u: any) => ({
-        ...u,
-        is_following: !u.is_following,
-        followers: u.followers + (u.is_following ? -1 : 1),
-      }));
+      setUser((u: any) => ({ ...u, is_following: !u.is_following, followers: u.followers + (u.is_following ? -1 : 1) }));
+    } catch {
+      toast.show({ title: 'Couldn’t update. Try again.', tone: 'error' });
     } finally {
       setBusy(false);
     }
@@ -53,69 +61,85 @@ export default function UserProfilePage() {
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
-        <PageHeader title={String(username)} />
+      <Screen edges={['top', 'bottom']}>
+        <Header back title={String(username)} />
         {failed ? (
-          <Text style={s.empty}>Couldn’t load this profile. Check your connection.</Text>
+          <EmptyState message="Couldn’t load this profile." action={{ label: 'Try again', onPress: load }} />
         ) : !user ? (
-          <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
+          <View style={styles.pad}>
+            <ListSkeleton count={4} />
+          </View>
         ) : (
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-            <View style={[s.rowCard, { marginVertical: 8 }]}>
-              <View style={[s.avatar, { width: 64, height: 64, borderRadius: 32 }]}>
-                <Text style={[s.avatarText, { fontSize: 26 }]}>{user.username[0].toUpperCase()}</Text>
+          <>
+            <ScrollView contentContainerStyle={styles.body}>
+              <View style={styles.identity}>
+                <Avatar name={user.username} large />
+                <Text variant="label" tone="secondary" style={styles.fill}>
+                  {user.followers} followers · {user.following} following
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardBody}>{user.followers} followers · {user.following} following</Text>
-              </View>
-              {!user.is_me ? (
-                <TouchableOpacity style={[s.pill, user.is_following && s.pillOff]} onPress={toggleFollow} disabled={busy}>
-                  <Text style={[s.pillText, user.is_following && s.pillOffText]}>{user.is_following ? 'Following' : 'Follow'}</Text>
-                </TouchableOpacity>
+
+              {user.match ? (
+                <Card>
+                  <Text variant="label" tone="secondary">
+                    Taste match
+                  </Text>
+                  {user.match.score === null ? (
+                    <Text style={styles.matchNote}>Not enough ratings to compare yet.</Text>
+                  ) : (
+                    <>
+                      <CountUp value={user.match.score} variant="title" suffix="%" />
+                      <ProgressBar value={user.match.score / 100} style={styles.meter} />
+                      <Text variant="caption" tone="tertiary">
+                        From {user.match.shared} films in common
+                      </Text>
+                    </>
+                  )}
+                </Card>
               ) : null}
-            </View>
 
-            {user.match ? (
-              <View style={[s.card, { marginTop: 8 }]}>
-                {user.match.score === null ? (
-                  <>
-                    <Text style={s.cardTitle}>Taste match</Text>
-                    <Text style={s.cardBody}>Not enough to compare yet. You each need at least 3 swipes or ratings.</Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={{ color: '#fff', fontSize: 40, fontWeight: '300' }}>{user.match.score}%</Text>
-                    <Text style={s.cardBody}>taste match with {user.username}, from {user.match.shared} movies in common and your favourite genres</Text>
-                    <MatchMeter score={user.match.score} />
-                  </>
-                )}
+              {user.both_liked.length ? (
+                <View>
+                  <SectionHeader title="You both liked" />
+                  <PosterRow movies={user.both_liked} onOpen={(m) => openMovie(m.id)} />
+                </View>
+              ) : null}
+
+              <View>
+                <SectionHeader title="Ratings" />
+                {user.ratings.length === 0 ? <Text tone="secondary">No ratings yet.</Text> : null}
+                {user.ratings.map((r: any, i: number) => (
+                  <View key={r.id}>
+                    {i > 0 ? <Divider /> : null}
+                    <ListRow leading={<Thumb uri={r.poster_url} />} title={r.title} subtitle={<Stars value={r.rating} />} onPress={() => openMovie(r.id)} />
+                  </View>
+                ))}
               </View>
-            ) : null}
-
-            {user.both_liked.length ? <Text style={s.sectionTitle}>You both liked</Text> : null}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {user.both_liked.map((m: any) => (
-                <TouchableOpacity key={m.id} style={{ marginRight: 10, width: 100 }} onPress={() => openMovie(m.id)}>
-                  <Image source={{ uri: m.poster_url }} style={{ width: 100, height: 150, borderRadius: 10, backgroundColor: '#222' }} />
-                  <Text style={[s.meta, { color: '#ddd' }]} numberOfLines={1}>{m.title}</Text>
-                </TouchableOpacity>
-              ))}
             </ScrollView>
 
-            <Text style={s.sectionTitle}>Ratings</Text>
-            {user.ratings.length === 0 ? <Text style={s.cardBody}>{user.username} hasn’t rated anything yet.</Text> : null}
-            {user.ratings.map((r: any) => (
-              <TouchableOpacity key={r.id} style={[s.card, s.rowCard]} onPress={() => openMovie(r.id)}>
-                <Image source={{ uri: r.poster_url }} style={s.thumb} />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.cardTitle} numberOfLines={1}>{r.title}</Text>
-                  <Text style={s.cardBody}>{'★'.repeat(Math.round(r.rating))}{'☆'.repeat(5 - Math.round(r.rating))}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+            {!user.is_me ? (
+              <BottomBar>
+                <Button
+                  variant={user.is_following ? 'secondary' : 'primary'}
+                  title={user.is_following ? 'Following' : 'Follow'}
+                  icon={user.is_following ? 'check' : 'user-plus'}
+                  onPress={toggleFollow}
+                  loading={busy}
+                />
+              </BottomBar>
+            ) : null}
+          </>
         )}
-      </SafeAreaView>
+      </Screen>
     </ProtectedRoute>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  pad: { paddingHorizontal: gutter },
+  body: { paddingHorizontal: gutter, paddingBottom: space.xxl, gap: space.xxl },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  matchNote: { marginTop: space.sm },
+  meter: { marginVertical: space.md },
+});
