@@ -52,7 +52,7 @@ MovieVerse helps users decide what to watch faster with AI mood recommendations,
 - 🎯 Accelerate discovery with hybrid recommendations that blend ratings, content similarity, and mood classification.
 - 😊 Translate mood text into genre-aware picks using TF-IDF plus Multinomial Naive Bayes.
 - 👉 Swipe through movies Tinder-style and add to watchlist instantly with haptic and visual feedback.
-- 🔐 Secure accounts with registration, login, logout, CSRF protection, and OTP-based password recovery.
+- 🔐 Passwordless accounts: sign in or sign up with a one-time code sent to your email.
 - ⭐ Learn user taste continuously through 1-5 star ratings that improve recommendation quality over time.
 - ⚡ Optimize latency using dual-layer caching, request deduplication, and stale-while-revalidate behavior.
 - 🌐 Serve both audiences with a public web catalog and a fully personalized mobile application.

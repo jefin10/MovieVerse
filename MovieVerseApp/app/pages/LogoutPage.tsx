@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Image, ActivityIndicator } from 'react-native';
 import api, { clearAuth } from '../auth/api';
+import { unregisterFromPush } from '../services/push';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../auth/AuthContext';
 
@@ -42,6 +43,7 @@ const LogoutScreen = () => {
 
     const performLogout = async () => {
       try {
+        await unregisterFromPush();
         await api.post('api/auth/logout/', {});
       } catch (error) {
         console.warn('Logout request failed; clearing local session anyway.', error);

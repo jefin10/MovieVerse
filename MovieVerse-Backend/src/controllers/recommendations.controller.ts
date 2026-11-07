@@ -1,5 +1,5 @@
 import { prisma } from '../config/prisma.js';
-import { buildFromTitles } from '../services/recommendation.service.js';
+import { buildForUser } from '../services/recommendation.service.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sample } from '../utils/sample.js';
@@ -63,32 +63,17 @@ export const list = asyncHandler(async (req, res) => {
   );
 });
 
-// GET /api/recommendations/from-ratings — recommendations derived from ratings.
+// GET /api/recommendations/from-ratings — from ratings, swipes and the watchlist.
 export const fromRatings = asyncHandler(async (req, res) => {
   const username = (req.query.username as string)?.trim();
   if (username && username !== req.user!.username) throw ApiError.forbidden();
 
-  const ratings = await prisma.rating.findMany({
-    where: { userId: req.user!.id },
-    include: { movie: true },
+  const recommendations = await buildForUser(req.user!.id, 10);
+  if (recommendations.length) return res.json({ recommendations });
+
+  const pool = await prisma.movie.findMany({ include: movieInclude, take: 200, orderBy: { imdbRating: 'desc' } });
+  res.json({
+    info: 'Swipe or rate a few movies for personal picks. Showing top-rated movies for now.',
+    recommendations: sample(pool, 10).map(serializeMovie),
   });
-
-  const trendingFallback = async (info: string) => {
-    const pool = await prisma.movie.findMany({ include: movieInclude, take: 200 });
-    return res.json({ info, recommendations: sample(pool, 10).map(serializeMovie) });
-  };
-
-  if (ratings.length === 0) return trendingFallback('No ratings found, showing trending movies instead');
-
-  const liked = ratings.filter((r) => r.rating >= 5).map((r) => r.movie.title);
-  const disliked = ratings.filter((r) => r.rating < 5).map((r) => r.movie.title);
-  if (liked.length === 0) {
-    return trendingFallback('No liked movies found, showing trending movies instead');
-  }
-
-  const recommendations = await buildFromTitles(liked, disliked, 10);
-  if (!recommendations.length) {
-    return trendingFallback('Unable to score from current ratings, showing trending movies instead');
-  }
-  res.json({ recommendations });
 });

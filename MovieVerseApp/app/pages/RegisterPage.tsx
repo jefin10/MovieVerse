@@ -1,357 +1,132 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Alert,
-  Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
-  SafeAreaView,
-  ActivityIndicator,
-  findNodeHandle
-} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { saveAuthToken } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
-import { useRouter } from 'expo-router';
-import debounce from 'lodash.debounce';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from '@/styles/RegisterPage';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { ONBOARDING_KEY } from '../services/push';
 
+const USERNAME_PATTERN = /^[a-zA-Z0-9_.]{3,30}$/;
+
+// Last step for a new account: they've proved who they are, and only need a name.
 const RegisterScreen = () => {
-  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [usernameFocused, setUsernameFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
-  
-  // Add validation states for each field
-  const [isEmailValid, setIsEmailValid] = useState(false);
-  const [isPasswordValid, setIsPasswordValid] = useState(false);
-  const [doPasswordsMatch, setDoPasswordsMatch] = useState(false);
-
-  const [usernameAvailable, setUsernameAvailable] = useState(null);
-  const [checkingUsername, setCheckingUsername] = useState(false);
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const { setAuthenticated } = useAuth();
   const router = useRouter();
-  
-  // Create refs for keyboard handling
-  const scrollViewRef = useRef(null);
-  const emailInputRef = useRef(null);
-  const usernameInputRef = useRef(null);
-  const passwordInputRef = useRef(null);
-  const confirmPasswordInputRef = useRef(null);
 
-  // Validate email format
+  const valid = USERNAME_PATTERN.test(username);
+
   useEffect(() => {
-    if (!email) {
-      setIsEmailValid(false);
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    setIsEmailValid(emailRegex.test(email));
-  }, [email]);
-  
-  // Validate password (min 8 chars — matches backend validatePassword)
+    AsyncStorage.getItem('suggestedUsername').then((s) => s && setUsername(s));
+  }, []);
+
   useEffect(() => {
-    setIsPasswordValid(password.length >= 8);
-    setDoPasswordsMatch(password === confirmPassword && password !== '');
-  }, [password, confirmPassword]);
-
-  // Debounced username check
-  const checkUsernameAvailability = debounce(async (username) => {
-    if (!username.trim()) return;
-
-    try {
-      setCheckingUsername(true);
-      const response = await api.get(`api/auth/check-username/?username=${username}`);
-      setUsernameAvailable(response.data.available);
-    } catch (error) {
-      console.log('Username check failed:', error.message);
-      setUsernameAvailable(null);
-    } finally {
-      setCheckingUsername(false);
-    }
-  }, 500);
-
-  // Trigger on username change
-  useEffect(() => {
-    setUsernameAvailable(null);
-    if (username) checkUsernameAvailability(username);
-  }, [username]);
-  
-  // Handle input focus with scrolling
-  const handleInputFocus = (inputRef, setFocused) => {
-    setFocused(true);
-    setTimeout(() => {
-      if (scrollViewRef.current && inputRef.current) {
-        const nodeHandle = findNodeHandle(inputRef.current);
-        if (nodeHandle) {
-          scrollViewRef.current.scrollToFocusedInput(nodeHandle);
-        }
-      }
-    }, 200);
-  };
-
-  const handleRegister = async () => {
-    if (!email || !username || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (!isEmailValid) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    if (usernameAvailable === false) {
-      Alert.alert('Username Taken', 'Please choose a different username');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      await api.post('api/auth/register/', {
-        email,
-        username,
-        password,
-      });
-
-      // Auto sign-in right after the first sign-up so the user lands on Home
-      // without having to log in again.
+    setAvailable(null);
+    if (!valid) return;
+    setChecking(true);
+    const timer = setTimeout(async () => {
       try {
-        const res = await api.post('api/auth/login/', { username, password });
-        await saveAuthToken(res.data?.token);
-        await AsyncStorage.setItem('username', username);
-        setAuthenticated(true);
-        router.replace('/(tabs)');
+        const { data } = await api.get('api/auth/check-username/', { params: { username } });
+        setAvailable(data.available);
       } catch {
-        // Account was created, but auto sign-in failed (e.g. network) —
-        // fall back to the login screen.
-        await AsyncStorage.setItem('username', username);
-        Alert.alert('Account created', 'Please log in to continue.');
-        router.replace('/pages/LoginPage');
+        setAvailable(null);
+      } finally {
+        setChecking(false);
       }
-    } catch (err) {
-      console.log('Registration error:', err.response?.data || err.message);
-      Alert.alert('Registration Failed', err.response?.data?.error || 'Error creating account');
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      setChecking(false);
+    };
+  }, [username, valid]);
+
+  const submit = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const signupToken = await AsyncStorage.getItem('signupToken');
+      const { data } = await api.post('api/auth/complete-signup/', { username, signup_token: signupToken });
+      await saveAuthToken(data.token);
+      await AsyncStorage.setItem('username', data.username ?? username);
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.multiRemove(['signupToken', 'pendingEmail', 'suggestedUsername']);
+      setAuthenticated(true);
+      router.replace('/pages/OnboardingPage');
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? 'No connection. Check your internet and try again.');
     } finally {
-      setIsLoading(false);
+      setBusy(false);
     }
   };
 
-  const emailLabelStyle = {
-    ...styles.label,
-    color: emailFocused || email ? '#FFFFFF' : '#888888',
-  };
-
-  const usernameLabelStyle = {
-    ...styles.label,
-    color: usernameFocused || username ? '#FFFFFF' : '#888888',
-  };
-
-  const passwordLabelStyle = {
-    ...styles.label,
-    color: passwordFocused || password ? '#FFFFFF' : '#888888',
-  };
-
-  const confirmPasswordLabelStyle = {
-    ...styles.label,
-    color: confirmPasswordFocused || confirmPassword ? '#FFFFFF' : '#888888',
-  };
-
-  // Get appropriate border style based on field state
-  const getEmailBorderStyle = () => {
-    if (emailFocused) return styles.inputContainerFocused;
-    if (email && isEmailValid) return styles.inputContainerValid;
-    if (email && !isEmailValid) return styles.inputContainerInvalid;
-    return null;
-  };
-
-  const getUsernameBorderStyle = () => {
-    if (usernameFocused) return styles.inputContainerFocused;
-    if (username && usernameAvailable === true) return styles.inputContainerValid;
-    if (username && usernameAvailable === false) return styles.inputContainerInvalid;
-    return null;
-  };
-
-  const getPasswordBorderStyle = () => {
-    if (passwordFocused) return styles.inputContainerFocused;
-    if (password && isPasswordValid) return styles.inputContainerValid;
-    if (password && !isPasswordValid) return styles.inputContainerInvalid;
-    return null;
-  };
-
-  const getConfirmPasswordBorderStyle = () => {
-    if (confirmPasswordFocused) return styles.inputContainerFocused;
-    if (confirmPassword && doPasswordsMatch) return styles.inputContainerValid;
-    if (confirmPassword && !doPasswordsMatch) return styles.inputContainerInvalid;
-    return null;
-  };
-
-  const goToLogin = () => {
-    router.replace('/pages/LoginPage');
-  };
+  const hint =
+    username && !valid
+      ? 'Use 3-30 letters, numbers, dots or underscores.'
+      : available === false
+        ? 'That one’s taken. Try another.'
+        : '';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAwareScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollViewContainer}
-        keyboardShouldPersistTaps="handled"
-        enableOnAndroid={true}
-        enableAutomaticScroll={true}
-        extraHeight={150}
-        extraScrollHeight={100}
-        enableResetScrollToCoords={true}
-        resetScrollToCoords={{ x: 0, y: 0 }}
-        scrollEnabled={true}
-        showsVerticalScrollIndicator={false}
-        keyboardOpeningTime={0}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.inner}>
-            <Text style={styles.title}>Register</Text>
-            <View style={styles.bottomSection}>
-              <View style={styles.form}>
-                <Text style={emailLabelStyle}>Email</Text>
-                <View style={[
-                  styles.inputContainer,
-                  getEmailBorderStyle()
-                ]}>
-                  <TextInput
-                    ref={emailInputRef}
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    placeholderTextColor="#999"
-                    onFocus={() => handleInputFocus(emailInputRef, setEmailFocused)}
-                    onBlur={() => setEmailFocused(false)}
-                  />
-                </View>
-                {email && !isEmailValid && !emailFocused && (
-                  <Text style={styles.invalidMessage}>Please enter a valid email address</Text>
-                )}
+    <SafeAreaView style={styles.page}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <TouchableOpacity style={styles.back} onPress={() => router.replace('/pages/LoginPage')} accessibilityLabel="Start over">
+          <Feather name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Pick a username</Text>
+        <Text style={styles.sub}>It’s how friends find you. Your email stays private.</Text>
 
-                <Text style={usernameLabelStyle}>Username</Text>
-                <View style={[
-                  styles.inputContainer,
-                  getUsernameBorderStyle()
-                ]}>
-                  <TextInput
-                    ref={usernameInputRef}
-                    style={styles.input}
-                    placeholder="Choose a username"
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                    placeholderTextColor="#999"
-                    onFocus={() => handleInputFocus(usernameInputRef, setUsernameFocused)}
-                    onBlur={() => setUsernameFocused(false)}
-                  />
-                </View>
-                {checkingUsername && <Text style={styles.checking}>Checking username...</Text>}
-                {username.length > 0 && usernameAvailable === false && (
-                  <Text style={styles.unavailable}>❌ Username is already taken</Text>
-                )}
-                {username.length > 0 && usernameAvailable === true && (
-                  <Text style={styles.available}>✅ Username is available</Text>
-                )}
+        <View style={[styles.field, !!hint && styles.fieldBad, available === true && styles.fieldGood]}>
+          <Text style={styles.at}>@</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="username"
+            placeholderTextColor="#666"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            maxLength={30}
+            returnKeyType="done"
+            onSubmitEditing={() => valid && available !== false && submit()}
+          />
+          {checking ? <ActivityIndicator size="small" color="#888" /> : null}
+          {!checking && available === true ? <Feather name="check-circle" size={20} color="#fff" /> : null}
+        </View>
+        <Text style={styles.hint} accessibilityLiveRegion="polite">{error || hint}</Text>
 
-                <Text style={passwordLabelStyle}>Password</Text>
-                <View style={[
-                  styles.inputContainer,
-                  getPasswordBorderStyle()
-                ]}>
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={styles.input}
-                    placeholder="Create a password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    placeholderTextColor="#999"
-                    onFocus={() => handleInputFocus(passwordInputRef, setPasswordFocused)}
-                    onBlur={() => setPasswordFocused(false)}
-                  />
-                </View>
-                {password && !isPasswordValid && !passwordFocused && (
-                  <Text style={styles.invalidMessage}>Password must be at least 6 characters</Text>
-                )}
-
-                <Text style={confirmPasswordLabelStyle}>Confirm Password</Text>
-              
-                <View style={[
-                  styles.inputContainer,
-                  getConfirmPasswordBorderStyle()
-                ]}>
-                  <TextInput
-                    ref={confirmPasswordInputRef}
-                    style={styles.input}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    placeholderTextColor="#999"
-                    onFocus={() => handleInputFocus(confirmPasswordInputRef, setConfirmPasswordFocused)}
-                    onBlur={() => setConfirmPasswordFocused(false)}
-                  />
-                </View>
-                {confirmPassword && !doPasswordsMatch && !confirmPasswordFocused && (
-                  <Text style={styles.invalidMessage}>Passwords do not match</Text>
-                )}
-                <View style={styles.loginContainer}>
-                  <Text style={styles.loginText}>Already have an account? </Text>
-                  <TouchableOpacity onPress={goToLogin}>
-                    <Text style={styles.loginLink}>Login</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity 
-                  style={[
-                    styles.button,
-                    isLoading && styles.buttonLoading
-                  ]}
-                  onPress={handleRegister}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color="#000" />
-                      <Text style={[styles.buttonText, {marginLeft: 10}]}>Creating Account...</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.buttonText}>Register</Text>
-                  )}
-                </TouchableOpacity>
-                
-                {/* Add bottom padding to ensure everything is visible when keyboard is open */}
-                <View style={{height: 50}} />
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAwareScrollView>
+        <TouchableOpacity
+          style={[styles.primary, (!valid || available === false || busy) && styles.primaryOff]}
+          disabled={!valid || available === false || busy}
+          onPress={submit}
+        >
+          {busy ? <ActivityIndicator color="#000" /> : <Text style={[styles.primaryText, (!valid || available === false) && { color: '#8a8a8a' }]}>Continue</Text>}
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: '#000', paddingHorizontal: 22 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 26 },
+  title: { color: '#fff', fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
+  sub: { color: '#a3a3a3', fontSize: 15, lineHeight: 22, marginTop: 8 },
+  field: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 28, paddingHorizontal: 16, height: 58, borderRadius: 16, backgroundColor: '#161616', borderWidth: 1.5, borderColor: '#2a2a2a' },
+  fieldGood: { borderColor: '#fff' },
+  fieldBad: { borderColor: '#ff6b6b' },
+  at: { color: '#777', fontSize: 18 },
+  input: { flex: 1, color: '#fff', fontSize: 18, paddingVertical: 0 },
+  hint: { color: '#ff8a8a', fontSize: 13, lineHeight: 18, minHeight: 34, marginTop: 8 },
+  primary: { minHeight: 54, borderRadius: 27, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  primaryOff: { backgroundColor: '#222' },
+  primaryText: { color: '#000', fontSize: 16, fontWeight: '700' },
+});
 
 export default RegisterScreen;

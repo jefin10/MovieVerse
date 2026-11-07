@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Image, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SwipeListView } from 'react-native-swipe-list-view';
 import { styles } from "@/styles/watchlist";
 import ProtectedRoute from '../auth/protectedRoute';
-import api from '@/app/auth/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import CustomAlert from '../components/CustomAlert';
-import { getWatchlist, invalidateWatchlistCache } from '../services/movieData';
+import Image from '../components/CachedImage';
+import { getWatchlist, removeFromWatchlistSafe, saveWatchlistForOffline } from '../services/movieData';
 import { WatchlistSkeleton } from '../components/Skeleton';
 
 const WatchList = () => {
@@ -65,6 +65,7 @@ const WatchList = () => {
       }
 
       const processedData = await getWatchlist(username, { forceRefresh });
+      void saveWatchlistForOffline(processedData);
       
       setWatchlistItems(processedData);
       setError(null);
@@ -112,9 +113,7 @@ const WatchList = () => {
         return;
       }
       
-      await api.delete(`api/watchlist/remove/${id}/`);
-
-      await invalidateWatchlistCache(username);
+      await removeFromWatchlistSafe(username, { id });
       
       // Update local state
       setWatchlistItems(watchlistItems.filter(item => item.id !== id));

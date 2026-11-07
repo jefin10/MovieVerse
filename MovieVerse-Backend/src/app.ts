@@ -12,9 +12,9 @@ import { aiRouter } from './routes/ai.routes.js';
 export function createApp() {
   const app = express();
 
-  // Behind a single proxy/load balancer (ALB/nginx) on AWS: gives correct
-  // client IPs (req.ip) and lets secure cookies work over forwarded HTTPS.
-  app.set('trust proxy', 1);
+  // Behind a proxy/load balancer on AWS: gives correct client IPs (req.ip) and
+  // lets secure cookies work over forwarded HTTPS.
+  app.set('trust proxy', env.trustProxyHops);
 
   app.use(helmet());
   app.use(cors({ origin: env.corsOrigins, credentials: true }));
@@ -24,7 +24,8 @@ export function createApp() {
   app.use(morgan(env.isProd ? 'combined' : 'dev'));
 
   // Rate limiting: a general cap for the API plus a stricter cap for auth
-  // (login/register/OTP) to blunt brute-force and credential-stuffing.
+  // writes (send/verify code, sign-up) to blunt brute-force. Reads such as the
+  // username check fire as people type, so only the general cap applies.
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 300,
@@ -36,6 +37,7 @@ export function createApp() {
     max: 30,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.method === 'GET',
   });
 
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));

@@ -2,8 +2,9 @@ import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 
 /**
- * Sends mail via SMTP when configured; otherwise logs to the console so the
- * OTP flow is testable in development without a mail server.
+ * Sends mail via SMTP when configured. Without SMTP, development logs to the
+ * console so the OTP flow is testable; production fails, so codes never reach
+ * the logs.
  */
 const transporter =
   env.mail.host && env.mail.user
@@ -17,6 +18,7 @@ const transporter =
 
 export async function sendMail(to: string, subject: string, text: string): Promise<void> {
   if (!transporter) {
+    if (env.isProd) throw new Error('SMTP is not configured');
     console.log(`[mail:dev] to=${to} subject="${subject}"\n${text}`);
     return;
   }

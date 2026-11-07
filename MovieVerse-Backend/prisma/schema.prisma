@@ -15,7 +15,12 @@ model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   email     String   @unique
-  password  String
+  password  String?
+  googleId  String?  @unique @map("google_id")
+  region    String   @default("IN")
+  dailyPickEnabled     Boolean @default(true) @map("daily_pick_enabled")
+  providerAlertsEnabled Boolean @default(true) @map("provider_alerts_enabled")
+  socialAlertsEnabled  Boolean @default(true) @map("social_alerts_enabled")
   isActive  Boolean  @default(true) @map("is_active")
   isStaff   Boolean  @default(false) @map("is_staff")
   createdAt DateTime @default(now()) @map("date_joined")
@@ -23,27 +28,32 @@ model User {
   watchlist    Watchlist[]
   ratings      Rating[]
   recommended  RecommendedMovie[]
-  resetOtps    PasswordResetOTP[]
+  swipes       Swipe[]
+  providers    UserProvider[]
+  following    Follow[]       @relation("Follower")
+  followers    Follow[]       @relation("Following")
+  pushTokens   PushToken[]
+  notifications Notification[]
+  hostedRooms  Room[]
+  roomMembers  RoomMember[]
+  roomSwipes   RoomSwipe[]
 
   @@map("users")
 }
 
-model PasswordResetOTP {
+model LoginOTP {
   id             Int       @id @default(autoincrement())
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         Int       @map("user_id")
+  email          String
   otpHash        String    @map("otp_hash")
-  resetTokenHash String    @default("") @map("reset_token_hash")
   createdAt      DateTime  @default(now()) @map("created_at")
   expiresAt      DateTime  @map("expires_at")
-  verifiedAt     DateTime? @map("verified_at")
   usedAt         DateTime? @map("used_at")
   failedAttempts Int       @default(0) @map("failed_attempts")
   requestIp      String?   @map("request_ip")
 
-  @@index([userId, createdAt])
+  @@index([email, createdAt])
   @@index([expiresAt])
-  @@map("password_reset_otps")
+  @@map("login_otps")
 }
 
 model Genre {
@@ -102,6 +112,7 @@ model Movie {
   imdbRating          Float     @default(0) @map("imdb_rating")
   ourRating           Float     @default(0) @map("our_rating")
   tmdbPayload         Json      @default("{}") @map("tmdb_payload")
+  providersSyncedAt   DateTime? @map("providers_synced_at")
 
   originalLanguage     Language?  @relation("OriginalLanguage", fields: [originalLanguageId], references: [iso6391])
   originalLanguageId   String?    @map("original_language_id")
@@ -113,6 +124,9 @@ model Movie {
   watchlist   Watchlist[]
   ratings     Rating[]
   recommended RecommendedMovie[]
+  swipes      Swipe[]
+  providers   MovieProvider[]
+  roomSwipes  RoomSwipe[]
 
   @@index([popularity, tmdbVoteAverage, voteCount])
   @@map("movies")
@@ -154,4 +168,135 @@ model RecommendedMovie {
 
   @@unique([userId, movieId])
   @@map("recommended_movies")
+}
+
+model Swipe {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int      @map("user_id")
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId   Int      @map("movie_id")
+  liked     Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, movieId])
+  @@index([userId, liked])
+  @@map("swipes")
+}
+
+// A streaming service, keyed by TMDB's provider id.
+model WatchProvider {
+  id       Int     @id
+  name     String
+  logoPath String  @default("") @map("logo_path")
+  movies   MovieProvider[]
+  users    UserProvider[]
+
+  @@map("watch_providers")
+}
+
+model MovieProvider {
+  movie      Movie         @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId    Int           @map("movie_id")
+  provider   WatchProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerId Int           @map("provider_id")
+  region     String
+  kind       String        // flatrate | rent | buy
+  link       String        @default("")
+
+  @@id([movieId, providerId, region, kind])
+  @@index([providerId, region, kind])
+  @@map("movie_providers")
+}
+
+model UserProvider {
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int           @map("user_id")
+  provider   WatchProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerId Int           @map("provider_id")
+
+  @@id([userId, providerId])
+  @@map("user_providers")
+}
+
+model Follow {
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  Int      @map("follower_id")
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId Int      @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model PushToken {
+  token     String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int      @map("user_id")
+  platform  String   @default("")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("push_tokens")
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int       @map("user_id")
+  type      String    // daily_pick | provider | follow | room_match
+  title     String
+  body      String
+  imageUrl  String    @default("") @map("image_url")
+  data      Json      @default("{}")
+  // Stops a restart or retry from sending the same notification twice.
+  dedupeKey String    @map("dedupe_key")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  host      User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  hostId    Int      @map("host_id")
+  deck      Int[]
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+  members   RoomMember[]
+  swipes    RoomSwipe[]
+
+  @@index([expiresAt])
+  @@map("rooms")
+}
+
+model RoomMember {
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId   Int      @map("room_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int      @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  @@id([roomId, userId])
+  @@map("room_members")
+}
+
+model RoomSwipe {
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId  Int     @map("room_id")
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int     @map("user_id")
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId Int     @map("movie_id")
+  liked   Boolean
+
+  @@id([roomId, userId, movieId])
+  @@index([roomId, movieId])
+  @@map("room_swipes")
 }

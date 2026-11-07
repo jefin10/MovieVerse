@@ -1,4 +1,5 @@
-import { ScrollView, Text, View, TextInput, Image, TouchableOpacity, StatusBar, ActivityIndicator, RefreshControl } from 'react-native'
+import Image from '../components/CachedImage';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StatusBar, ActivityIndicator, RefreshControl } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -11,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRecommendations, getTrendingMovies, prefetchTabData } from '../services/movieData';
 import { ensureCompleteImageUrl } from '../utils/imageUtils';
 import { MovieRowSkeleton } from '../components/Skeleton';
+import { useNotifications } from '../components/NotificationCenter';
 
 // Define the movie type
 interface Movie {
@@ -35,6 +37,7 @@ const Index = () => {
   
   
   const { authenticated } = useAuth();
+  const { unread } = useNotifications();
   const router = useRouter();
 
   const getErrorDetails = (error: unknown) => {
@@ -200,9 +203,23 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
                 <Text style={styles.greetingText}>{greeting}</Text>
                 <Text style={styles.username}>{username}</Text>
               </View>
-              <TouchableOpacity style={styles.profileButton}>
-                <Feather name="user" size={24} color="#fff" onPress={goToProfile} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={styles.profileButton}
+                  onPress={() => router.push('/pages/NotificationsPage' as any)}
+                  accessibilityLabel={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+                >
+                  <Feather name="bell" size={22} color="#fff" />
+                  {unread > 0 ? (
+                    <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: '#000', fontSize: 11, fontWeight: '700' }}>{unread > 9 ? '9+' : unread}</Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.profileButton}>
+                  <Feather name="user" size={24} color="#fff" onPress={goToProfile} />
+                </TouchableOpacity>
+              </View>
             </View>
             
             {/* Search Container */}
@@ -295,7 +312,25 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
               )}
             </View>
             
-            {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 14 }}
+                onPress={() => router.push('/pages/WatchTogetherPage' as any)}
+              >
+                <Feather name="users" size={20} color="#000" />
+                <Text style={{ color: '#000', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Watch Together</Text>
+                <Text style={{ color: '#444', fontSize: 12, marginTop: 2 }}>Swipe with friends</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#1a1a1a', borderRadius: 18, padding: 14 }}
+                onPress={() => router.push('/pages/FriendsPage' as any)}
+              >
+                <Feather name="heart" size={20} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Friends</Text>
+                <Text style={{ color: '#999', fontSize: 12, marginTop: 2 }}>Your taste match</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>TOP PICKS FOR YOU</Text>

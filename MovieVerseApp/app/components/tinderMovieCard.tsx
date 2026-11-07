@@ -1,4 +1,5 @@
-import { View, Text, ImageBackground, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
+import { ImageBackground } from './CachedImage'
 import React, { useState } from 'react'
 import styles from '@/styles/tinder'
 import { ensureCompleteImageUrl } from '../utils/imageUtils'

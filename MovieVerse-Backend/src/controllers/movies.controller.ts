@@ -51,9 +51,28 @@ export const trending = asyncHandler(async (_req, res) => {
   res.json(rated.map(serializeMovie));
 });
 
-// GET /api/TinderMovies — sample from the most popular pool.
-export const tinder = asyncHandler(async (_req, res) => {
+// GET /api/TinderMovies — the swipe deck. Signed-in users never see a movie they've
+// already judged; ?only_mine=1 limits it to their streaming services.
+export const tinder = asyncHandler(async (req, res) => {
+  const userId = req.user?.id;
+  const [swiped, saved, me] = userId
+    ? await Promise.all([
+        prisma.swipe.findMany({ where: { userId }, select: { movieId: true } }),
+        prisma.watchlist.findMany({ where: { userId }, select: { movieId: true } }),
+        prisma.user.findUnique({ where: { id: userId }, select: { region: true, providers: { select: { providerId: true } } } }),
+      ])
+    : [[], [], null];
+  const seen = [...swiped, ...saved].map((x) => x.movieId);
+  const providerIds = me?.providers.map((p) => p.providerId) ?? [];
+  const onlyMine = req.query.only_mine === '1' && providerIds.length > 0;
+
   const candidates = await prisma.movie.findMany({
+    where: {
+      id: { notIn: seen },
+      ...(onlyMine
+        ? { providers: { some: { providerId: { in: providerIds }, region: me!.region, kind: 'flatrate' } } }
+        : {}),
+    },
     orderBy: [{ popularity: 'desc' }, { tmdbVoteAverage: 'desc' }, { voteCount: 'desc' }],
     include: movieInclude,
     take: 200,

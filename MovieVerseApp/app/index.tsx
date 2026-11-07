@@ -8,6 +8,7 @@ import { facts } from './data/loadingFact';  // Import the facts array
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { validateSession } from './auth/api';
 import { prefetchTabData } from './services/movieData';
+import { ONBOARDING_KEY } from './services/push';
 
 // Keep the native splash visible until fonts are ready; replaces deprecated expo-app-loading.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -162,10 +163,16 @@ const LoadingPage = () => {
       return;
     }
 
-    const isValidSession = await withTimeout(validateSession(), BOOTSTRAP_TIMEOUT_MS, false);
+    const isValidSession = await withTimeout(validateSession(), BOOTSTRAP_TIMEOUT_MS, true);
     if (!isValidSession) {
       await AsyncStorage.multiRemove(['authToken', 'username']);
       router.replace('/pages/LoginPage');
+      return;
+    }
+
+    // They closed the app during first-run setup, so pick up where they left off.
+    if (await AsyncStorage.getItem(ONBOARDING_KEY)) {
+      router.replace('/pages/OnboardingPage');
       return;
     }
 

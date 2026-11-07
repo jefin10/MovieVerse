@@ -41,7 +41,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // Validate session with server
+      // Open straight away so the app works offline. If the server does reject
+      // the token, this flips back to signed out.
+      setAuthenticated(true);
       await revalidateSession();
     };
     

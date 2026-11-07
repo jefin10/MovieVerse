@@ -29,3 +29,17 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
     next(ApiError.unauthorized('Invalid or expired token'));
   }
 }
+
+/** Like requireAuth, but carries on as anonymous when there's no valid token. */
+export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const bearer = req.headers.authorization?.replace('Bearer ', '');
+  const token = req.cookies?.token ?? bearer;
+  if (token) {
+    try {
+      req.user = jwt.verify(token, env.jwt.secret) as AuthUser;
+    } catch {
+      // an expired token on a public route just means anonymous
+    }
+  }
+  next();
+}

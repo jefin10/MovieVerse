@@ -1,4 +1,4 @@
-import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, ScrollView, TouchableOpacity } from 'react-native'
 import React, { useState,useEffect } from 'react'
 import { Feather } from '@expo/vector-icons';
 import styles from '@/styles/profilePage'
@@ -13,7 +13,6 @@ const ProfilePage = () => {
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [editing, setEditing] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
 
     const handleSave = () => {
         setEditing(false)
@@ -34,27 +33,6 @@ const ProfilePage = () => {
         getUsername()
     },[])
    
-    const goToResetPassword = async() => {
-        console.log('Navigating to Reset Password')
-        setIsLoading(true) // Start loading spinner
-        
-        try {
-            const userName = await AsyncStorage.getItem('username')
-            console.log(userName)
-            
-            const res = await api.post('api/auth/forgot-password/', { 
-                username: userName 
-            })
-            
-            console.log(res.data)
-            router.push('/pages/VerifyOtpPage')
-        } catch (err) {
-            console.log(err)
-        } finally {
-            setIsLoading(false) // Stop loading spinner regardless of result
-        }
-    }
-
     return (
         <ProtectedRoute>
         <SafeAreaView style={{flex: 1, backgroundColor: '#000',paddingVertical:20}}>
@@ -135,25 +113,22 @@ const ProfilePage = () => {
                 </View>
             </View>
 
-            <TouchableOpacity 
-                style={[
-                    styles.changePasswordButton,
-                    isLoading && styles.changePasswordButtonDisabled
-                ]} 
-                onPress={goToResetPassword}
-                disabled={isLoading}
-            >
-                {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="small" color="#FFF" />
-                        <Text style={[styles.changePasswordButtonText, {marginLeft: 10}]}>
-                            Sending reset email...
-                        </Text>
-                    </View>
-                ) : (
-                    <Text style={styles.changePasswordButtonText}>Change Password</Text>
-                )}
-            </TouchableOpacity>
+            {[
+                { icon: 'tv', label: 'Streaming services & alerts', route: '/pages/PreferencesPage' },
+                { icon: 'users', label: 'Friends', route: '/pages/FriendsPage' },
+                { icon: 'bell', label: 'Notifications', route: '/pages/NotificationsPage' },
+            ].map((row) => (
+                <TouchableOpacity
+                    key={row.route}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141414', borderRadius: 14, padding: 15, marginBottom: 10 }}
+                    onPress={() => router.push(row.route as any)}
+                >
+                    <Feather name={row.icon as any} size={20} color="#FFF" />
+                    <Text style={{ color: '#FFF', fontSize: 15, flex: 1 }}>{row.label}</Text>
+                    <Feather name="chevron-right" size={18} color="#777" />
+                </TouchableOpacity>
+            ))}
+
              <TouchableOpacity 
                 style={styles.logoutButton} 
                 onPress={()=>{router.replace('/pages/LogoutPage')}}>

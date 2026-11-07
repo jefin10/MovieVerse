@@ -1,5 +1,8 @@
 import api from '../auth/api';
-import { fetchWithCache, invalidateCache } from './cache';
+import { Image as ExpoImage } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchWithCache, invalidateCache, peekCache, writeCache } from './cache';
+import { dropQueued, sendOrQueue } from './outbox';
 
 export interface AppMovie {
   id: number;
@@ -74,13 +77,15 @@ export const getTrendingMovies = async ({ forceRefresh = false }: { forceRefresh
   });
 };
 
-export const getTinderMovies = async ({ forceRefresh = false }: { forceRefresh?: boolean } = {}): Promise<AppMovie[]> => {
+export const getTinderMovies = async (
+  { forceRefresh = false, onlyMine = false }: { forceRefresh?: boolean; onlyMine?: boolean } = {},
+): Promise<AppMovie[]> => {
   return fetchWithCache<AppMovie[]>({
-    key: DATA_CACHE_KEYS.tinder,
+    key: onlyMine ? `${DATA_CACHE_KEYS.tinder}:mine` : DATA_CACHE_KEYS.tinder,
     ttlMs: CACHE_TTL.tinder,
     forceRefresh,
     fetcher: async () => {
-      const response = await api.get('api/TinderMovies/');
+      const response = await api.get('api/TinderMovies/', { params: onlyMine ? { only_mine: 1 } : {} });
       const items = Array.isArray(response.data) ? (response.data as AppMovie[]) : [];
       return items.map(normalizeMovie);
     },
@@ -131,12 +136,91 @@ export const getRecommendations = async (
 };
 
 export const prefetchTabData = async (username: string): Promise<void> => {
-  await Promise.allSettled([
+  const [, , watchlist] = await Promise.allSettled([
     getTrendingMovies({ forceRefresh: true }),
     getRecommendations(username, { forceRefresh: true }),
     getWatchlist(username, { forceRefresh: true }),
     getTinderMovies({ forceRefresh: true }),
   ]);
+  if (watchlist.status === 'fulfilled') void saveWatchlistForOffline(watchlist.value);
+};
+
+/** Re-reads everything after reconnecting, so screens show what the queue just sent. */
+export const refreshOfflineData = async (): Promise<void> => {
+  const username = await AsyncStorage.getItem('username');
+  if (username) await prefetchTabData(username);
+};
+
+const DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
+
+export const getMovieDetails = (movieId: number | string) =>
+  fetchWithCache<any>({
+    key: `movie:${movieId}:details`,
+    ttlMs: DETAILS_TTL,
+    fetcher: async () => (await api.get(`api/fetchMovieInfo/${movieId}`)).data,
+  });
+
+/** Keeps each watchlist movie's page and poster on the phone, ready for no signal. */
+export const saveWatchlistForOffline = async (items: WatchlistItem[]): Promise<void> => {
+  const posters = items.map((i) => i.poster_url).filter(Boolean) as string[];
+  if (posters.length) await ExpoImage.prefetch(posters, 'disk').catch(() => false);
+  for (const item of items) {
+    if (item.movie_id > 0) await getMovieDetails(item.movie_id).catch(() => null);
+  }
+};
+
+// Offline-added watchlist rows have no server id yet, so they get a negative one.
+const isLocalId = (id: number) => id < 0;
+
+export const addToWatchlistSafe = async (username: string, movie: AppMovie): Promise<number | null> => {
+  const { queued, data } = await sendOrQueue({ method: 'post', url: 'api/watchlist/add/', body: { movie_id: movie.id } });
+  const key = DATA_CACHE_KEYS.watchlist(username);
+  if (!queued) {
+    await invalidateCache(key);
+    return data?.id ?? null;
+  }
+  const id = -movie.id;
+  const current = (await peekCache<WatchlistItem[]>(key)) ?? [];
+  if (!current.some((i) => i.movie_id === movie.id)) {
+    const row: WatchlistItem = { ...movie, id, movie_id: movie.id, poster_url: movie.poster_url ?? null, added_on: new Date().toISOString() };
+    await writeCache(key, [row, ...current], CACHE_TTL.watchlist);
+  }
+  return id;
+};
+
+export const removeFromWatchlistSafe = async (username: string, item: { id: number; movie_id?: number }): Promise<void> => {
+  const key = DATA_CACHE_KEYS.watchlist(username);
+  if (isLocalId(item.id)) {
+    const movieId = -item.id;
+    await dropQueued((q) => q.url === 'api/watchlist/add/' && q.body?.movie_id === movieId);
+    await dropQueued((q) => q.url === 'api/swipes/' && q.body?.movie_id === movieId);
+  } else {
+    await sendOrQueue({ method: 'delete', url: `api/watchlist/remove/${item.id}/` });
+  }
+  const current = (await peekCache<WatchlistItem[]>(key)) ?? [];
+  await writeCache(key, current.filter((i) => i.id !== item.id), CACHE_TTL.watchlist);
+};
+
+/** Saves a swipe; a right swipe also adds to the watchlist on the server. */
+export const recordSwipe = async (username: string | null, movie: AppMovie, liked: boolean): Promise<void> => {
+  const { queued } = await sendOrQueue({ method: 'post', url: 'api/swipes/', body: { movie_id: movie.id, liked } });
+  for (const key of [DATA_CACHE_KEYS.tinder, `${DATA_CACHE_KEYS.tinder}:mine`]) {
+    const deck = await peekCache<AppMovie[]>(key);
+    if (deck) await writeCache(key, deck.filter((m) => m.id !== movie.id), CACHE_TTL.tinder);
+  }
+  if (!username) return;
+  await invalidateCache(DATA_CACHE_KEYS.recommendations(username)).catch(() => {});
+  const watchlistKey = DATA_CACHE_KEYS.watchlist(username);
+  if (!liked) return;
+  if (!queued) {
+    await invalidateCache(watchlistKey);
+    return;
+  }
+  const current = (await peekCache<WatchlistItem[]>(watchlistKey)) ?? [];
+  if (!current.some((i) => i.movie_id === movie.id)) {
+    const row: WatchlistItem = { ...movie, id: -movie.id, movie_id: movie.id, poster_url: movie.poster_url ?? null, added_on: new Date().toISOString() };
+    await writeCache(watchlistKey, [row, ...current], CACHE_TTL.watchlist);
+  }
 };
 
 export const invalidateWatchlistCache = async (username: string): Promise<void> => {

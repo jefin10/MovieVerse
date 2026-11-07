@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authRouter } from './auth.routes.js';
+import { engagementRouter } from './engagement.routes.js';
 import { moviesRouter } from './movies.routes.js';
 import { ratingsRouter } from './ratings.routes.js';
 import { recommendationsRouter } from './recommendations.routes.js';
@@ -14,3 +15,4 @@ router.use('/watchlist', watchlistRouter);
 router.use('/', ratingsRouter); // addRatings, movie/:id/rate...
 router.use('/recommendations', recommendationsRouter);
 router.use('/web', webRouter);
+router.use('/', engagementRouter); // swipes, providers, rooms, social, notifications

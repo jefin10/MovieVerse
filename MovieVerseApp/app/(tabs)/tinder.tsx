@@ -3,12 +3,12 @@ import React, { useRef, useState, useEffect } from 'react'
 import styles from '@/styles/tinder'
 import { Feather } from '@expo/vector-icons'
 import ProtectedRoute from '../auth/protectedRoute';
-import api from '../auth/api'
 import TinderMovieCard from '../components/tinderMovieCard'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import CustomSwiper from '../components/CustomSwiper'
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getTinderMovies, invalidateWatchlistCache, type AppMovie } from '../services/movieData';
+import { getTinderMovies, recordSwipe, type AppMovie } from '../services/movieData';
+import api from '../auth/api';
 import { TinderCardSkeleton } from '../components/Skeleton';
 
 type SwipeDirection = 'left' | 'right';
@@ -21,6 +21,9 @@ const Tinder = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const isFetchingMoviesRef = useRef(false);
+  const [hasServices, setHasServices] = useState(false);
+  const [onlyMine, setOnlyMine] = useState(false);
+  const onlyMineRef = useRef(false);
   
   // Create a ref to store processed IDs
   const processedMovieIdsRef = useRef<Set<number>>(new Set());
@@ -47,7 +50,7 @@ const Tinder = () => {
 
       // Try multiple fresh batches before concluding the unseen pool is exhausted.
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        const fetchedMovies = await getTinderMovies({ forceRefresh: forceRefresh || attempt > 0 });
+        const fetchedMovies = await getTinderMovies({ forceRefresh: forceRefresh || attempt > 0, onlyMine: onlyMineRef.current });
 
         const processedIds = processedMovieIdsRef.current;
         debug("Currently processed IDs:", [...processedIds]);
@@ -70,7 +73,7 @@ const Tinder = () => {
       // If all fetched cards were already seen, reset and show a fresh deck.
       debug('No unseen movies left. Resetting processed IDs for a fresh deck.');
       processedMovieIdsRef.current = new Set();
-      const refreshedMovies = await getTinderMovies({ forceRefresh: true });
+      const refreshedMovies = await getTinderMovies({ forceRefresh: true, onlyMine: onlyMineRef.current });
       currentIndexRef.current = 0;
       setMovies(refreshedMovies);
     }
@@ -91,6 +94,7 @@ const Tinder = () => {
 
     getUsername();
     getMovies();
+    api.get('api/preferences/').then((r) => setHasServices(r.data.providers.length > 0)).catch(() => {});
     
     // Reset processed movies when component unmounts
     return () => {
@@ -99,36 +103,24 @@ const Tinder = () => {
     };
   }, []);
 
-  const addToWatchlist = async (movie: AppMovie) => {
-    if (!movie || !movie.id) {
-      debug('Invalid movie object');
-      return;
-    }
-    
-    if (processedMovieIdsRef.current.has(movie.id)) {
-      debug(`Movie ${movie.id} (${movie.title}) already processed`);
-      return;
-    }
-    
+  // Saved locally first if there's no connection, and sent when it's back.
+  const saveSwipe = async (movie: AppMovie, liked: boolean) => {
+    if (!movie?.id || processedMovieIdsRef.current.has(movie.id)) return;
+    processedMovieIdsRef.current.add(movie.id);
     try {
-      processedMovieIdsRef.current.add(movie.id);
-      debug(`Marking movie ${movie.id} (${movie.title}) as processed`);
-      
-      await api.post('api/watchlist/add/', 
-        { 
-          movie_id: movie.id 
-        }
-      );
-
-      if (username) {
-        await invalidateWatchlistCache(username);
-      }
-      
-      debug(`Successfully added movie ${movie.id} - ${movie.title} to watchlist`);
+      await recordSwipe(username, movie, liked);
     } catch (error) {
-      console.error('Error adding to watchlist:', error);
+      console.error('Error saving swipe:', error);
       processedMovieIdsRef.current.delete(movie.id);
     }
+  };
+
+  const toggleOnlyMine = () => {
+    onlyMineRef.current = !onlyMineRef.current;
+    setOnlyMine(onlyMineRef.current);
+    processedMovieIdsRef.current = new Set();
+    setMovies([]);
+    getMovies(true);
   };
 
   // Core fix: use the event's cardIndex to advance our tracker
@@ -156,8 +148,7 @@ const Tinder = () => {
       setCurrentMovie(movieToAdd);
       setShowPopup(true);
       
-      // Add to watchlist
-      addToWatchlist(movieToAdd);
+      saveSwipe(movieToAdd, true);
       
       // Animate popup
       Animated.timing(fadeAnim, {
@@ -171,9 +162,7 @@ const Tinder = () => {
         hidePopup();
       }, 2000);
     } else {
-      // Mark left-swiped movies as processed too
-      processedMovieIdsRef.current.add(swipedMovie.id);
-      debug(`Marked left-swiped movie ${swipedMovie.id} (${swipedMovie.title}) as processed`);
+      saveSwipe(swipedMovie, false);
     }
   };
   
@@ -201,6 +190,16 @@ const Tinder = () => {
           <View style={styles.swipeIndicator}>
             <Text style={styles.label_desc}>Swipe right</Text>
             <Feather name="arrow-right" color="#999999" size={24}/>
+            {hasServices ? (
+              <TouchableOpacity
+                onPress={toggleOnlyMine}
+                style={{ marginLeft: 'auto', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, backgroundColor: onlyMine ? '#fff' : '#222' }}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: onlyMine }}
+              >
+                <Text style={{ color: onlyMine ? '#000' : '#fff', fontSize: 12, fontWeight: '600' }}>My services</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
         
@@ -273,7 +272,7 @@ const Tinder = () => {
             />
           ) : (
             <View style={styles.noMoviesContainer}>
-              <Text style={styles.noMoviesText}>No more movies available</Text>
+              <Text style={styles.noMoviesText}>{onlyMine ? 'Nothing new on your services right now' : 'No more movies available'}</Text>
               <TouchableOpacity 
                 style={styles.refreshButton} 
                 onPress={() => {

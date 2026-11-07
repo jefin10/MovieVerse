@@ -2,7 +2,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = (  process.env.EXPO_PUBLIC_API_BASE_URL || 'https://movieversebackend.jefin.xyz/'  )?.trim();
+export const API_BASE_URL = (  process.env.EXPO_PUBLIC_API_BASE_URL || 'https://movieversebackend.jefin.xyz/'  )?.trim();
 
 
 console.log('[api] Base URL:', API_BASE_URL);

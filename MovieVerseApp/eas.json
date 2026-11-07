@@ -12,7 +12,8 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://movieversebackend.jefin.xyz",
-        "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz"
+        "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz",
+        "EXPO_PUBLIC_GOOGLE_ENABLED": "true"
       }
     },
     "production": {
@@ -22,7 +23,8 @@
       },
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://movieversebackend.jefin.xyz",
-        "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz"
+        "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz",
+        "EXPO_PUBLIC_GOOGLE_ENABLED": "true"
       }
     }
   },

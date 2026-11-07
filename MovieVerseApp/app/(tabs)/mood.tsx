@@ -1,4 +1,5 @@
-import { Text, View, TouchableOpacity, TextInput, ScrollView, Image, StatusBar, ActivityIndicator, SafeAreaView } from 'react-native'
+import Image from '../components/CachedImage';
+import { Text, View, TouchableOpacity, TextInput, ScrollView, StatusBar, ActivityIndicator, SafeAreaView } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'expo-router'
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -64,7 +65,7 @@ const Mood = () => {
       setMoodAvailable(true)
     } catch (err) {
       console.error('Failed to get mood recommendations:', err)
-      setError('Failed to get recommendations. Please try again.')
+      setError(err?.response ? 'Failed to get recommendations. Please try again.' : 'Mood picks need a connection. Your watchlist and saved movies still work offline.')
     } finally {
       setLoading(false)
     }

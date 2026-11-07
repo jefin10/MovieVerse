@@ -2,14 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { 
   View, 
   Text, 
-  Image, 
   TouchableOpacity, 
   StatusBar, 
   StyleSheet,
   Dimensions,
   ActivityIndicator, 
   Animated,
-  ImageBackground,
   Linking,
 } from 'react-native';
 import { Feather, FontAwesome } from '@expo/vector-icons';
@@ -20,6 +18,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../auth/api';
 import { ensureCompleteImageUrl } from '../utils/imageUtils';
 import CustomAlert from '../components/CustomAlert';
+import Image, { ImageBackground } from '../components/CachedImage';
+import WhereToWatch from '../components/WhereToWatch';
+import { addToWatchlistSafe, getMovieDetails, getWatchlist, removeFromWatchlistSafe } from '../services/movieData';
+import { sendOrQueue } from '../services/outbox';
 import {Share} from 'react-native';
 interface MovieDetail {
   id: number;
@@ -65,7 +67,8 @@ export default function MovieDetailPage() {
         const storedUsername = await AsyncStorage.getItem('username');
         
         // Fetch movie details
-        const response = await api.get(`api/fetchMovieInfo/${movieId}`);
+        const details = await getMovieDetails(String(movieId));
+        const response = { data: details };
         
         if (response.data) {
           const movieData: MovieDetail = {
@@ -113,10 +116,11 @@ export default function MovieDetailPage() {
   // Check if movie is in user's watchlist
   const checkWatchlist = async (movieId: number) => {
     try {
-      const response = await api.get('api/watchlist/');
-      
+      const username = await AsyncStorage.getItem('username');
+      const items = username ? await getWatchlist(username) : [];
+
       // Check if current movie is in watchlist
-      const watchlistItem = response.data.find((item: any) => item.movie_id === movieId);
+      const watchlistItem = items.find((item: any) => item.movie_id === movieId);
       if (watchlistItem) {
         setInWatchlist(true);
         setWatchlistItemId(watchlistItem.id);
@@ -157,12 +161,11 @@ export default function MovieDetailPage() {
     if (!movie) return;
     
     try {
-      const response = await api.post('api/watchlist/add/', {
-        movie_id: movie.id,
-      });
-      
+      const username = await AsyncStorage.getItem('username');
+      const id = await addToWatchlistSafe(username ?? '', movie as any);
+
       setInWatchlist(true);
-      setWatchlistItemId(response.data.id);
+      setWatchlistItemId(id);
       setAlertConfig({
         visible: true,
         title: 'Success',
@@ -187,8 +190,9 @@ export default function MovieDetailPage() {
     if (!watchlistItemId) return;
     
     try {
-      await api.delete(`api/watchlist/remove/${watchlistItemId}/`);
-      
+      const username = await AsyncStorage.getItem('username');
+      await removeFromWatchlistSafe(username ?? '', { id: watchlistItemId });
+
       setInWatchlist(false);
       setWatchlistItemId(null);
       setAlertConfig({
@@ -215,17 +219,18 @@ export default function MovieDetailPage() {
     if (!movie) return;
     
     try {
-      await api.post('api/addRatings/', {
-        rating: rating,
-        movie_id: movie.id,
+      const { queued } = await sendOrQueue({
+        method: 'post',
+        url: 'api/addRatings/',
+        body: { rating, movie_id: movie.id },
       });
-      
+
       setUserRating(rating);
       setRatingSubmitted(true);
       setAlertConfig({
         visible: true,
         title: 'Thank You!',
-        message: 'Your rating has been submitted.',
+        message: queued ? "Saved. We'll send it when you're back online." : 'Your rating has been submitted.',
         showCancel: false,
         onConfirm: () => {},
       });
@@ -426,6 +431,8 @@ export default function MovieDetailPage() {
             </TouchableOpacity>
           </View>
           
+          {movie ? <WhereToWatch movieId={movie.id} /> : null}
+
           {/* Overview */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Overview</Text>

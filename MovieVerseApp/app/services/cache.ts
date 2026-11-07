@@ -139,6 +139,18 @@ export const fetchWithCache = async <T>({
   return request;
 };
 
+/** The cached value even if it's expired, for updating it locally while offline. */
+export const peekCache = async <T>(key: string): Promise<T | null> => {
+  const entry = readMemoryEntry<T>(key) ?? (await readPersistedEntry<T>(key));
+  return entry ? entry.data : null;
+};
+
+export const writeCache = async <T>(key: string, data: T, ttlMs: number): Promise<void> => {
+  const entry = toCacheEntry(data, ttlMs);
+  writeMemoryEntry(key, entry);
+  await writePersistedEntry(key, entry);
+};
+
 export const prefetchWithCache = async <T>(options: FetchWithCacheOptions<T>): Promise<void> => {
   try {
     await fetchWithCache(options);

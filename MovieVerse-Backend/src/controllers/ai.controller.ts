@@ -23,7 +23,7 @@ export const mood = asyncHandler(async (req, res) => {
     { imdbRating: 'desc' as const },
     { popularity: 'desc' as const },
   ];
-  let pool = genre
+  const matches = genre
     ? await prisma.movie.findMany({
         where: { genres: { some: { name: { equals: genre, mode: 'insensitive' } } } },
         include: movieInclude,
@@ -32,19 +32,20 @@ export const mood = asyncHandler(async (req, res) => {
       })
     : [];
 
-  if (pool.length < 50) {
-    const seen = new Set(pool.map((m) => m.id));
+  // Genre matches come first; other movies only top up a short list.
+  let selected = sample(matches, 50);
+  if (selected.length < 50) {
+    const seen = new Set(matches.map((m) => m.id));
     const filler = await prisma.movie.findMany({
       where: { id: { notIn: [...seen] } },
       include: movieInclude,
       orderBy,
       take: 400,
     });
-    pool = [...pool, ...sample(filler, 50 - pool.length)];
+    selected = [...selected, ...sample(filler, 50 - selected.length)];
   }
 
-  const selected = pool.length >= 50 ? sample(pool, 50) : pool;
-  res.json({ genre, recommendations: selected.slice(0, 50).map(serializeMovie) });
+  res.json({ genre, recommendations: selected.map(serializeMovie) });
 });
 
 // POST /ai/rec — liked/disliked titles -> ranked recommendations.

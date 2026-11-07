@@ -1,237 +1,176 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Alert,
-  SafeAreaView,
-  ActivityIndicator,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import api from '../auth/api';
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from '@/styles/VerifyOtp';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import api, { saveAuthToken } from '../auth/api';
+import { useAuth } from '../auth/AuthContext';
+
+const CODE_LENGTH = 6;
+const RESEND_SECONDS = 60;
 
 const VerifyOtpPage = () => {
   const router = useRouter();
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [isLoading, setIsLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60); 
-  const [canResend, setCanResend] = useState(false);
-  const [username, setUsername] = useState('');
-  const inputRefs = useRef([]);
-  const scrollViewRef = useRef(null);
+  const { setAuthenticated } = useAuth();
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [timeLeft, setTimeLeft] = useState(RESEND_SECONDS);
+  // One hidden input behind the boxes, so pasting and autofill just work.
+  const input = useRef<TextInput>(null);
+  const shake = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timerId = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-      }, 1000);
-      return () => clearTimeout(timerId);
-    } else {
-      setCanResend(true);
-    }
-  }, [timeLeft]);
-
-  useEffect(() => {
-    const loadUsername = async () => {
-      try {
-        const storedUsername = await AsyncStorage.getItem('username');
-        if (!storedUsername) {
-          router.replace('/pages/ForgotPassUsername');
-          return;
-        }
-        setUsername(storedUsername);
-      } catch (error) {
-        console.error('Error getting username:', error);
-      }
-    };
-
-    loadUsername();
+    AsyncStorage.getItem('pendingEmail').then((stored) => {
+      if (stored) setEmail(stored);
+      else router.replace('/pages/LoginPage');
+    });
   }, [router]);
 
-  const handleOtpChange = (text, index) => {
-    const numericValue = text.replace(/[^0-9]/g, '');
-    
-    const newOtp = [...otp];
-    newOtp[index] = numericValue;
-    setOtp(newOtp);
-    
-    if (numericValue && index < 5) {
-      inputRefs.current[index + 1].focus();
-    }
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [timeLeft]);
+
+  const reject = (message: string) => {
+    setError(message);
+    setCode('');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    Animated.sequence(
+      [10, -10, 7, -7, 0].map((toValue) => Animated.timing(shake, { toValue, duration: 55, useNativeDriver: true })),
+    ).start();
+    input.current?.focus();
   };
 
-  const handleKeyPress = (e, index) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1].focus();
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    const fullOtp = otp.join('');
-    if (fullOtp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter all 6 digits of your OTP');
-      return;
-    }
-
-    setIsLoading(true);
-    
+  const verify = async (value: string) => {
+    setBusy(true);
+    setError('');
     try {
-      const result = await api.post('api/auth/verify-otp/', {
-        username,
-        otp: fullOtp
-      });
-      
-      if (result.status === 200) {
-        const resetToken = result.data?.reset_token;
-        if (!resetToken) {
-          Alert.alert('Error', 'Verification succeeded but reset token was missing.');
-          return;
-        }
-        await AsyncStorage.setItem('passwordResetToken', resetToken);
-        Alert.alert('Success', 'OTP verified successfully!');
-        router.replace('/pages/NewPasswordPage');
-      } else {
-        Alert.alert('Error', 'Failed to verify OTP. Please try again.');
+      const { data } = await api.post('api/auth/verify-otp/', { email, otp: value });
+      // A new email still needs a username before it has an account.
+      if (data.needs_username) {
+        await AsyncStorage.multiSet([
+          ['signupToken', data.signup_token],
+          ['suggestedUsername', data.suggested_username ?? ''],
+        ]);
+        router.replace('/pages/RegisterPage');
+        return;
       }
-    } catch (err) {
-      console.log('OTP verification error:', err.response?.data || err.message);
-      Alert.alert(
-        'Verification Failed',
-        'The OTP you entered is incorrect or has expired. Please try again.'
-      );
+      await saveAuthToken(data.token);
+      await AsyncStorage.setItem('username', data.username);
+      await AsyncStorage.removeItem('pendingEmail');
+      setAuthenticated(true);
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      reject(err?.response?.data?.error ?? 'No connection. Check your internet and try again.');
     } finally {
-      setIsLoading(false);
+      setBusy(false);
     }
   };
 
-  const handleResendOtp = async () => {
-    if (!canResend) return;
-    
-    setIsLoading(true);
-    
+  const onChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '').slice(0, CODE_LENGTH);
+    setCode(digits);
+    setError('');
+    if (digits.length === CODE_LENGTH) verify(digits);
+  };
+
+  const resend = async () => {
+    setNotice('');
+    setError('');
     try {
-      await api.post('api/auth/forgot-password/', {
-        username
-      });
-
-      setTimeLeft(60);
-      setCanResend(false);
-      
-      Alert.alert('OTP Sent', 'A new verification code has been sent to your email.');
-    } catch (err) {
-      console.log('Resend OTP error:', err.response?.data || err.message);
-      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
-    } finally {
-      setIsLoading(false);
+      await api.post('api/auth/send-otp/', { email });
+      setTimeLeft(RESEND_SECONDS);
+      setNotice('New code sent.');
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? 'Could not send a new code. Please try again.');
     }
-  };
-
-  // Focus handler for OTP inputs
-  const handleOtpInputFocus = (index) => {
-    setTimeout(() => {
-      if (scrollViewRef.current && inputRefs.current[index]) {
-        scrollViewRef.current.scrollToFocusedInput(inputRefs.current[index]);
-      }
-    }, 200);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAwareScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollViewContainer}
-        keyboardShouldPersistTaps="handled"
-        enableOnAndroid={true}
-        enableAutomaticScroll={true}
-        extraHeight={150}
-        extraScrollHeight={100}
-        enableResetScrollToCoords={true}
-        resetScrollToCoords={{ x: 0, y: 0 }}
-        scrollEnabled={true}
-        showsVerticalScrollIndicator={false}
-        keyboardOpeningTime={0}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={styles.inner}>
-            <Text style={styles.title}>Verify OTP</Text>
-            
-            <View style={styles.form}>
-              <Text style={styles.instructions}>
-                We&apos;ve sent a verification code to:
-              </Text>
-              
-              <Text style={styles.emailDisplay}>
-                your registered email address
-              </Text>
-              
-              <Text style={styles.subtitle}>
-                Enter the 6-digit verification code
-              </Text>
-              
-              <View style={styles.otpContainer}>
-                {otp.map((digit, index) => (
-                  <TextInput
-                    key={index}
-                    ref={el => { inputRefs.current[index] = el; }}
-                    style={styles.otpInput}
-                    value={digit}
-                    onChangeText={(text) => handleOtpChange(text, index)}
-                    onKeyPress={(e) => handleKeyPress(e, index)}
-                    maxLength={1}
-                    keyboardType="number-pad"
-                    selectTextOnFocus
-                    selectionColor="#FFFFFF"
-                    cursorColor="#FFFFFF"
-                    onFocus={() => handleOtpInputFocus(index)}
-                  />
-                ))}
-              </View>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.button,
-                  isLoading && styles.buttonLoading
-                ]}
-                onPress={handleVerifyOtp}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#000" />
-                    <Text style={[styles.buttonText, {marginLeft: 10}]}>Verifying...</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.buttonText}>Verify</Text>
-                )}
-              </TouchableOpacity>
-              
-              <View style={styles.resendContainer}>
-                <Text style={styles.resendText}>
-                  Didn&apos;t receive the code? {!canResend && `Resend in ${timeLeft}s`}
-                </Text>
-                
-                {canResend && (
-                  <TouchableOpacity 
-                    onPress={handleResendOtp}
-                    disabled={isLoading}
-                  >
-                    <Text style={styles.resendLink}>Resend Code</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAwareScrollView>
+    <SafeAreaView style={styles.page}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <TouchableOpacity style={styles.back} onPress={() => router.replace('/pages/LoginPage')} accessibilityLabel="Back">
+          <Feather name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+
+        <Text style={styles.title}>Check your email</Text>
+        <Text style={styles.sub}>
+          We sent a 6-digit code to{'\n'}<Text style={styles.email}>{email}</Text>
+        </Text>
+
+        <Pressable onPress={() => input.current?.focus()} accessibilityLabel="Enter your 6-digit code">
+          <Animated.View style={[styles.boxes, { transform: [{ translateX: shake }] }]}>
+            {Array.from({ length: CODE_LENGTH }).map((_, i) => {
+              const active = i === code.length && !busy;
+              return (
+                <View key={i} style={[styles.box, active && styles.boxActive, !!code[i] && styles.boxFilled, !!error && styles.boxError]}>
+                  <Text style={styles.digit}>{code[i] ?? ''}</Text>
+                </View>
+              );
+            })}
+          </Animated.View>
+        </Pressable>
+        <TextInput
+          ref={input}
+          style={styles.hiddenInput}
+          value={code}
+          onChangeText={onChange}
+          keyboardType="number-pad"
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={CODE_LENGTH}
+          autoFocus
+          caretHidden
+          editable={!busy}
+        />
+
+        <View style={styles.status}>
+          {busy ? <ActivityIndicator color="#fff" /> : null}
+          {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+          {notice && !error ? <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text> : null}
+        </View>
+
+        <View style={styles.resendRow}>
+          {timeLeft > 0 ? (
+            <Text style={styles.muted}>Resend code in {timeLeft}s</Text>
+          ) : (
+            <TouchableOpacity onPress={resend}><Text style={styles.link}>Resend code</Text></TouchableOpacity>
+          )}
+          <Text style={styles.muted}>  ·  </Text>
+          <TouchableOpacity onPress={() => router.replace('/pages/LoginPage')}><Text style={styles.link}>Change email</Text></TouchableOpacity>
+        </View>
+        <Text style={styles.hint}>Can’t find it? Check your spam folder.</Text>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: '#000', paddingHorizontal: 22 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 26 },
+  title: { color: '#fff', fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
+  sub: { color: '#a3a3a3', fontSize: 15, lineHeight: 22, marginTop: 8 },
+  email: { color: '#fff', fontWeight: '600' },
+  boxes: { flexDirection: 'row', gap: 8, marginTop: 30 },
+  box: { flex: 1, aspectRatio: 0.82, borderRadius: 14, backgroundColor: '#161616', borderWidth: 1.5, borderColor: '#2a2a2a', alignItems: 'center', justifyContent: 'center' },
+  boxActive: { borderColor: '#fff' },
+  boxFilled: { backgroundColor: '#222', borderColor: '#555' },
+  boxError: { borderColor: '#ff6b6b' },
+  digit: { color: '#fff', fontSize: 26, fontWeight: '600' },
+  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  status: { minHeight: 44, justifyContent: 'center', marginTop: 12 },
+  error: { color: '#ff8a8a', fontSize: 14, lineHeight: 20 },
+  notice: { color: '#fff', fontSize: 14 },
+  resendRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  muted: { color: '#8a8a8a', fontSize: 14 },
+  link: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  hint: { color: '#6f6f6f', fontSize: 13, marginTop: 10 },
+});
 
 export default VerifyOtpPage;

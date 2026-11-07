@@ -9,13 +9,18 @@ function Show($name, $obj) {
 Show 'health' (Invoke-RestMethod "$base/health")
 
 $u = "tester$(Get-Random -Maximum 99999)"
-$pw = 'Sup3rSecret!'
-Show 'register' (Invoke-RestMethod "$base/api/auth/register" -Method Post -ContentType 'application/json' `
-    -Body (@{ username = $u; email = "$u@example.com"; password = $pw } | ConvertTo-Json))
+# Needs OTP_ESCAPE_CODE=123456 on the server, as no inbox is read here.
+$email = "$u@example.com"
+Show 'send-otp' (Invoke-RestMethod "$base/api/auth/send-otp" -Method Post -ContentType 'application/json' `
+    -Body (@{ email = $email } | ConvertTo-Json))
 
-$login = Invoke-RestMethod "$base/api/auth/login" -Method Post -ContentType 'application/json' `
-    -Body (@{ username = $u; password = $pw } | ConvertTo-Json)
-Show 'login' $login
+$verified = Invoke-RestMethod "$base/api/auth/verify-otp" -Method Post -ContentType 'application/json' `
+    -Body (@{ email = $email; otp = '123456' } | ConvertTo-Json)
+Show 'verify-otp' $verified
+
+$login = Invoke-RestMethod "$base/api/auth/complete-signup" -Method Post -ContentType 'application/json' `
+    -Body (@{ username = $u; signup_token = $verified.signup_token } | ConvertTo-Json)
+Show 'complete-signup' $login
 $H = @{ Authorization = "Bearer $($login.token)" }
 
 Show 'check-username' (Invoke-RestMethod "$base/api/auth/check-username?username=$u")

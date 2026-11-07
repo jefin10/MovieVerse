@@ -21,7 +21,8 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.movie.verse"
+      "package": "com.movie.verse",
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -59,7 +60,14 @@
         }
       ],
       "expo-web-browser",
-      "expo-asset"
+      "expo-asset",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-notifications",
+        {
+          "color": "#000000"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -18,10 +18,10 @@ export type MovieWithRelations = Movie & {
   productionCountries?: Country[];
 };
 
-function absolutePoster(posterUrl: string): string {
-  if (!posterUrl) return '';
-  if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) return posterUrl;
-  return `${env.tmdb.imageBaseUrl}${posterUrl}`;
+export function posterUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${env.tmdb.imageBaseUrl}${path}`;
 }
 
 /** Mirrors Django MovieSerializer. BigInt fields are cast to Number for JSON. */
@@ -36,7 +36,7 @@ export function serializeMovie(m: MovieWithRelations) {
     director: m.director,
     star1: m.star1,
     star2: m.star2,
-    poster_url: absolutePoster(m.posterUrl),
+    poster_url: posterUrl(m.posterUrl),
     backdrop_url: m.backdropUrl,
     genres: m.genres?.map((g) => g.name) ?? [],
     original_language: m.originalLanguage

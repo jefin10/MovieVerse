@@ -6,6 +6,8 @@ import { useFonts } from 'expo-font';
 import { Feather, FontAwesome, Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from './auth/AuthContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NotificationProvider } from './components/NotificationCenter';
+import OfflineBanner from './components/OfflineBanner';
 
 export default function RootLayout() {
   // Preload + force-bundle the vector-icon fonts so icons render in standalone
@@ -20,10 +22,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <ScreenWrapper>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false }} />
-        </ScreenWrapper>
+        <NotificationProvider>
+          <ScreenWrapper>
+            <StatusBar style="light" />
+            <OfflineBanner />
+            <Stack screenOptions={{ headerShown: false }} />
+          </ScreenWrapper>
+        </NotificationProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

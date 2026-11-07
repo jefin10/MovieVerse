@@ -208,3 +208,6 @@ cython_debug/
 #.idea/
 
 # End of https://www.toptal.com/developers/gitignore/api/django
+# Expo prebuild output (generated from app.json; not committed)
+/android
+/ios

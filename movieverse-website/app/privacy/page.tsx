@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = "June 15, 2026";
+  const lastUpdated = "October 30, 2026";
 
   const sections = [
     {
@@ -33,8 +33,10 @@ export default function PrivacyPolicyPage() {
           <h4 className="privacy-sub">2.1 Account Information</h4>
           <p>
             When you create a MovieVerse account, we collect your <strong>email
-            address</strong>, a <strong>display name</strong>, and an
-            encrypted password hash. We never store your plain-text password.
+            address</strong> and a <strong>display name</strong>. You sign in
+            with a one-time code sent to your email, or with your Google account,
+            so we hold no password. Other MovieVerse users can find you by username
+            and see your ratings; your email is never shown to them.
             You may optionally provide a profile picture, which is stored
             securely and only displayed publicly if you choose.
           </p>
@@ -132,8 +134,8 @@ export default function PrivacyPolicyPage() {
         <>
           <p>
             All user data is stored on secure servers with encryption at rest
-            and in transit (TLS 1.3+). Passwords are hashed using bcrypt with
-            a unique per-user salt. API endpoints that handle personal data
+            and in transit (TLS 1.3+). One-time sign-in codes are hashed with
+            bcrypt and expire after 10 minutes. API endpoints that handle personal data
             require authentication tokens and are protected by rate limiting.
           </p>
           <p>
@@ -299,7 +301,7 @@ export default function PrivacyPolicyPage() {
           <p>
             The MovieVerse backend, website, and Android app are fully
             open-source under the MIT license. You can inspect every line of
-            code — including how we handle authentication, store passwords,
+            code — including how we handle authentication,
             process mood data, and make API calls — at our{" "}
             <a
               href="https://github.com/jefin10/MovieVerse"
