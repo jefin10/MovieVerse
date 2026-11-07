@@ -1,170 +1,62 @@
-import { View, Text, StyleSheet, Animated } from 'react-native'
-import React, { useEffect, useRef, useState } from 'react'
-import styles from '@/styles/loadingPage'
-import { useFonts } from 'expo-font';
+import { Text, color, space } from '@/ui';
+import { distance, duration, easing } from '@/ui/motion';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import { useRouter } from 'expo-router';
-import { facts } from './data/loadingFact';  // Import the facts array
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { validateSession } from './auth/api';
 import { prefetchTabData } from './services/movieData';
 import { ONBOARDING_KEY } from './services/push';
 
-// Keep the native splash visible until fonts are ready; replaces deprecated expo-app-loading.
+// Keep the native splash up until this screen can take over seamlessly.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const LoadingPage = () => {
-  const fillHeight = useRef(new Animated.Value(0)).current;
-  const router = useRouter();
-  const [randomFact, setRandomFact] = useState(''); // State to hold the current fact
-  const [factIndex, setFactIndex] = useState(0); // State to track current fact index
-  const factOpacity = useRef(new Animated.Value(1)).current;
-  const [showLongerMessage, setShowLongerMessage] = useState(false);
-  const messageOpacity = useRef(new Animated.Value(0)).current;
-  
-  // Add state for animated dots
-  const [dots, setDots] = useState('.');
+const BOOTSTRAP_TIMEOUT_MS = 4000;
+const PREFETCH_BLOCKING_MS = 2500;
+const SLOW_NOTICE_MS = 6000;
 
-  const BOOTSTRAP_TIMEOUT_MS = 4000;
-  const PREFETCH_BLOCKING_MS = 2500;
-  
-  const [fontsLoaded, fontError] = useFonts({
-    'StickNoBills-SemiBold': require('../assets/fonts/StickNoBills-SemiBold.ttf'),
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> =>
+  new Promise((resolve) => {
+    let settled = false;
+    const done = (value: T) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => done(fallback), timeoutMs);
+    promise.then(done, () => done(fallback));
   });
 
-  // Become "ready" when fonts finish loading OR fail, or after a hard 3s cap.
-  // This guarantees the native splash is dismissed even if font loading hangs or
-  // fails in a release build (otherwise the app is stuck on the logo forever).
-  const [ready, setReady] = useState(false);
+/** The launch screen: the same logo as the native splash, then straight to the right place. */
+const LaunchScreen = () => {
+  const router = useRouter();
+  const [slow, setSlow] = useState(false);
+  const notice = useSharedValue(0);
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      setReady(true);
-      return;
-    }
-    const cap = setTimeout(() => setReady(true), 3000);
-    return () => clearTimeout(cap);
-  }, [fontsLoaded, fontError]);
+    SplashScreen.hideAsync().catch(() => {});
+    const timer = setTimeout(() => {
+      setSlow(true);
+      notice.value = withTiming(1, { duration: duration.base, easing: easing.enter });
+    }, SLOW_NOTICE_MS);
+    bootstrap();
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Effect for cycling through dot patterns
-  useEffect(() => {
-    if (showLongerMessage) {
-      const dotsInterval = setInterval(() => {
-        setDots(currentDots => {
-          if (currentDots === '.') return '..';
-          if (currentDots === '..') return '...';
-          return '.';
-        });
-      }, 500); // Change dots every 500ms
-      
-      return () => clearInterval(dotsInterval);
-    }
-  }, [showLongerMessage]);
-
-  // Select initial random fact and start cycling
-  useEffect(() => {
-    if (ready) {
-      // Ready: dismiss the native splash so the custom loader shows.
-      SplashScreen.hideAsync().catch(() => {});
-
-      // Select a random starting index
-      const startIndex = Math.floor(Math.random() * facts.length);
-      setFactIndex(startIndex);
-      setRandomFact(facts[startIndex]);
-      
-      // Start the loading bar animation
-      Animated.timing(fillHeight, {
-        toValue: 220, 
-        duration: 15000, 
-        useNativeDriver: false, 
-      }).start();
-      
-      // Set up the interval to change facts every 10 seconds
-      const factInterval = setInterval(() => {
-        // Fade out current fact
-        Animated.timing(factOpacity, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true
-        }).start(() => {
-          // Change to next fact
-          setFactIndex(prevIndex => (prevIndex + 1) % facts.length);
-          // Fade in new fact
-          Animated.timing(factOpacity, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true
-          }).start();
-        });
-      }, 10000); // 10 seconds
-      
-      // Run startup flow: validate auth, prefetch data into cache, then route.
-      bootstrapApp();
-      
-      // Set a timeout to show the "taking longer" message after 6 seconds
-      const messageTimer = setTimeout(() => {
-        setShowLongerMessage(true);
-        // Fade in the message
-        Animated.timing(messageOpacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true
-        }).start();
-      }, 6000);
-      
-      // Clean up interval and timer when component unmounts
-      return () => {
-        clearInterval(factInterval);
-        clearTimeout(messageTimer);
-      };
-    }
-  }, [ready]);
-
-  // Update the fact whenever factIndex changes
-  useEffect(() => {
-    setRandomFact(facts[factIndex]);
-  }, [factIndex]);
-
-  const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
-    return new Promise((resolve) => {
-      let settled = false;
-
-      const timer = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          resolve(fallback);
-        }
-      }, timeoutMs);
-
-      promise
-        .then((value) => {
-          if (!settled) {
-            settled = true;
-            resolve(value);
-          }
-        })
-        .catch(() => {
-          if (!settled) {
-            settled = true;
-            resolve(fallback);
-          }
-        })
-        .finally(() => {
-          clearTimeout(timer);
-        });
-    });
-  };
-
-  const bootstrapApp = async () => {
+  const bootstrap = async () => {
     const token = await AsyncStorage.getItem('authToken');
     const username = await AsyncStorage.getItem('username');
-
     if (!token || !username) {
       router.replace('/pages/LoginPage');
       return;
     }
 
-    const isValidSession = await withTimeout(validateSession(), BOOTSTRAP_TIMEOUT_MS, true);
-    if (!isValidSession) {
+    const valid = await withTimeout(validateSession(), BOOTSTRAP_TIMEOUT_MS, true);
+    if (!valid) {
       await AsyncStorage.multiRemove(['authToken', 'username']);
       router.replace('/pages/LoginPage');
       return;
@@ -176,59 +68,32 @@ const LoadingPage = () => {
       return;
     }
 
-    const prefetchPromise = prefetchTabData(username);
-    await withTimeout(prefetchPromise.then(() => true), PREFETCH_BLOCKING_MS, false);
+    const prefetch = prefetchTabData(username);
+    await withTimeout(prefetch.then(() => true), PREFETCH_BLOCKING_MS, false);
     router.replace('/(tabs)');
+  };
 
-    // Ensure cache warm-up continues even after navigation.
-    void prefetchPromise;
-  }
-  
-  if (!ready) {
-    return null;
-  }
-  
+  const noticeStyle = useAnimatedStyle(() => ({ opacity: notice.value, transform: [{ translateY: (1 - notice.value) * distance.rise }] }));
+
   return (
-    
-    <View style={styles.container}>
-      <View style={styles.mainContent}>
-        <View style={styles.squareContainer}>
-          <View style={styles.square}>
-            <Animated.View 
-              style={[
-                styles.fill, 
-                { height: fillHeight }
-              ]} 
-            />
-          </View>
-          <Text style={[styles.rotate, { fontFamily: 'StickNoBills-SemiBold' }]}>MV</Text>
-        </View>
-        <Text style={styles.text}>MovieVerse</Text>
-        
-        {/* Message container that's always rendered to prevent layout shift */}
-        <View style={styles.messageContainer}>
-          {showLongerMessage && (
-            <Animated.Text 
-              style={[
-                styles.loadingMessage,
-                { opacity: messageOpacity }
-              ]}
-            >
-              Taking longer than expected. Please wait{dots}
-            </Animated.Text>
-          )}
-        </View>
-      </View>
-  
-      <View style={styles.factContainer}>
-        <Text style={styles.factTitle}>Fact of the Day</Text>
-        {/* Use Animated.Text for smooth fade transition */}
-        <Animated.Text style={[styles.factText, { opacity: factOpacity }]}>
-          {randomFact}
-        </Animated.Text>
-      </View>
+    <View style={styles.page}>
+      <Image source={require('../assets/images/MVV.png')} style={styles.logo} resizeMode="contain" accessibilityLabel="MovieVerse" />
+      <Animated.View style={[styles.notice, noticeStyle]}>
+        {slow ? (
+          <Text variant="label" tone="secondary" center>
+            Taking longer than usual
+          </Text>
+        ) : null}
+      </Animated.View>
     </View>
   );
-}
+};
 
-export default LoadingPage
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: color.bg, alignItems: 'center', justifyContent: 'center' },
+  // Matches the native splash image width so the hand-off is invisible.
+  logo: { width: 200, height: 200 },
+  notice: { position: 'absolute', bottom: space.xxxl, left: 0, right: 0 },
+});
+
+export default LaunchScreen;
