@@ -167,8 +167,9 @@ export default function DockTabBar({ state, descriptors, navigation }: BottomTab
     <View pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + DOCK_GAP }]}>
       {/* The glass: blur + dark tint + hairline edge, clipped to the rounded shape. */}
       <View pointerEvents="none" style={styles.glass}>
-        {/* Real blur on iOS. Android's native blur (experimentalBlurMethod) turned the
-            whole screen black in testing, so Android uses the translucent fallback. */}
+        {/* Real blur on iOS; Android gets expo-blur's translucent fallback. Android's
+            native blur (experimentalBlurMethod="dimezisBlurView") is experimental: turn
+            it on only after checking it on a real phone. */}
         <BlurView intensity={45} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, styles.tint]} />
         <View style={styles.sheen} />
