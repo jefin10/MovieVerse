@@ -1,43 +1,82 @@
-import { HapticTab } from '@/components/HapticTab';
-import { TabIcon, TabLabel, color, hairline, motion } from '@/ui';
-import { type IconName } from '@/ui';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
-type TabSpec = { name: string; title: string; icon: IconName };
+import { HapticTab } from '@/components/HapticTab';
+import TabBarBackground from '@/components/ui/TabBarBackground';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import ScreenWrapper from '@/components/ScreenWrapper';
+import { enableScreens } from 'react-native-screens';
 
-const TABS: TabSpec[] = [
-  { name: 'index', title: 'Home', icon: 'home' },
-  { name: 'tinder', title: 'Swipe', icon: 'layers' },
-  { name: 'mood', title: 'Mood', icon: 'smile' },
-  { name: 'watchlist', title: 'Watchlist', icon: 'bookmark' },
-  { name: 'profile', title: 'Profile', icon: 'user' },
-];
+
+enableScreens();
 
 export default function TabLayout() {
+  const colorScheme = useColorScheme();
+
   return (
-    <Tabs
+ 
+       <Tabs
       screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarStyle: { backgroundColor: color.bg, borderTopColor: color.divider, borderTopWidth: hairline },
-        sceneStyle: { backgroundColor: color.bg },
-        // Tabs crossfade in 150ms so switching feels instant.
-        animation: 'fade',
-        transitionSpec: { animation: 'timing', config: { duration: motion.duration.fast, easing: motion.easingRN.enter } },
-      }}
-    >
-      {TABS.map((tab) => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{
-            title: tab.title,
-            tabBarIcon: ({ focused }) => <TabIcon name={tab.icon} focused={focused} />,
-            tabBarLabel: ({ focused }) => <TabLabel label={tab.title} focused={focused} />,
-          }}
-        />
-      ))}
-    </Tabs>
+        tabBarBackground: TabBarBackground,
+        tabBarStyle: Platform.select({
+          ios: {
+            // Use a transparent background on iOS to show the blur effect
+            position: 'absolute',
+          },
+          default: {
+            backgroundColor: '#000000',
+            borderTopWidth: 0,
+          },
+        }),
+      }}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="watchlist"
+        options={{
+          title: 'Watchlist',
+          tabBarIcon: ({ color, size }) => <Feather name="bookmark" color={color} size={size} />,
+        }}
+      />
+
+      {/* SHORTS TAB - COMMENTED OUT - NOT NEEDED CURRENTLY */}
+      {/* <Tabs.Screen
+        name="shorts"
+        options={{
+          title: 'Shorts',
+          tabBarIcon: ({ color, size }) => <Feather name="play-circle" color={color} size={size} />,
+        }}
+      /> */}
+      
+      <Tabs.Screen
+        name="tinder"
+        options={{
+          title: 'Tinder',
+          tabBarIcon: ({ color, size }) => <Feather name="search" color={color} size={size} />,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="mood"
+        options={{
+          title: 'Mood',
+          tabBarIcon: ({ color, size }) => <Feather name="smile" color={color} size={size} />,
+        }}
+      />
+     </Tabs>
+
+   
   );
 }

@@ -1,8 +1,7 @@
 import { useRouter, usePathname } from 'expo-router';
 import { useEffect } from 'react';
-import { View } from 'react-native';
-import { color } from '@/ui/tokens';
 import { useAuth } from '../auth/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
 
 const ProtectedRoute = ({ children }) => {
   const { authenticated } = useAuth();
@@ -10,13 +9,18 @@ const ProtectedRoute = ({ children }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (authenticated === false && pathname !== '/pages/LoginPage' && pathname !== '/pages/RegisterPage' && pathname !== '/pages/VerifyOtpPage') {
+    if (authenticated === false && pathname !== '/pages/LoginPage' && pathname !== '/pages/RegisterPage' && pathname!== '/pages/VerifyOtpPage') {
       router.replace('../pages/LoginPage');
     }
-  }, [authenticated, pathname, router]);
+  }, [authenticated, pathname]);
 
-  // Checking the session takes a moment; show the plain background, not a spinner.
-  if (authenticated === null) return <View style={{ flex: 1, backgroundColor: color.bg }} />;
+  if (authenticated === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return children;
 };

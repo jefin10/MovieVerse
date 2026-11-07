@@ -1,60 +1,109 @@
-import { Text, color, space } from '@/ui';
-import { distance, duration, easing, exitDuration } from '@/ui/motion';
-import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing, Image, ActivityIndicator } from 'react-native';
 import api, { clearAuth } from '../auth/api';
-import { useAuth } from '../auth/AuthContext';
 import { unregisterFromPush } from '../services/push';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../auth/AuthContext';
 
-const MIN_VISIBLE_MS = 1000; // long enough to read, even on a fast network
+const MIN_VISIBLE_MS = 1000; // keep the animation on screen briefly even on fast networks
 
 const LogoutScreen = () => {
   const router = useRouter();
   const { setAuthenticated } = useAuth();
-  const shown = useSharedValue(0);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
-    shown.value = withTiming(1, { duration: duration.base, easing: easing.enter });
-    const startedAt = Date.now();
-    const leave = () => router.replace('/pages/LoginPage');
+    // Branded entrance: fade + gentle scale-in.
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 450,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 6,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-    (async () => {
+    const startedAt = Date.now();
+
+    const finish = () => {
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }).start(() => router.replace('/pages/LoginPage'));
+    };
+
+    const performLogout = async () => {
       try {
         await unregisterFromPush();
         await api.post('api/auth/logout/', {});
-      } catch {
-        // Clearing the local session is what matters.
+      } catch (error) {
+        console.warn('Logout request failed; clearing local session anyway.', error);
       } finally {
         await clearAuth();
         setAuthenticated(false);
-        setTimeout(() => {
-          shown.value = withTiming(0, { duration: exitDuration.base, easing: easing.exit }, (done) => {
-            if (done) runOnJS(leave)();
-          });
-        }, Math.max(0, MIN_VISIBLE_MS - (Date.now() - startedAt)));
+        // Fade out after a minimum visible time for a smooth transition.
+        const elapsed = Date.now() - startedAt;
+        setTimeout(finish, Math.max(0, MIN_VISIBLE_MS - elapsed));
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
+
+    performLogout();
   }, []);
 
-  const content = useAnimatedStyle(() => ({ opacity: shown.value, transform: [{ translateY: (1 - shown.value) * distance.rise }] }));
-
   return (
-    <View style={styles.page}>
-      <Animated.View style={[styles.content, content]}>
-        <Image source={require('../../assets/images/MVV.png')} style={styles.logo} resizeMode="contain" />
-        <Text tone="secondary">Signing out</Text>
+    <View style={styles.container}>
+      <Animated.View style={[styles.content, { opacity, transform: [{ scale }] }]}>
+        <Image
+          source={require('../../assets/images/MVV.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>See you soon</Text>
+        <Text style={styles.subtitle}>Signing you out…</Text>
+        <ActivityIndicator size="small" color="#ffffff" style={styles.loader} />
       </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.bg },
-  content: { alignItems: 'center', gap: space.lg },
-  logo: { width: space.xxxl * 2, height: space.xxxl * 2 },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  content: {
+    alignItems: 'center',
+  },
+  logo: {
+    width: 88,
+    height: 88,
+    marginBottom: 22,
+  },
+  title: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  subtitle: {
+    color: '#8a8a8a',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  loader: {
+    marginTop: 22,
+  },
 });
 
 export default LogoutScreen;

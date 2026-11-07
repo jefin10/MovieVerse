@@ -1,192 +1,424 @@
-import {
-  Card,
-  Chip,
-  EmptyState,
-  Field,
-  Header,
-  Icon,
-  IconButton,
-  PosterRow,
-  PosterRowSkeleton,
-  Screen,
-  SectionHeader,
-  Text,
-  color,
-  gutter,
-  icon,
-  space,
-  type IconName,
-  type PosterMovie,
-} from '@/ui';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useAuth } from '../auth/AuthContext';
+import Image from '../components/CachedImage';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StatusBar, ActivityIndicator, RefreshControl } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Feather } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context'
+import {styles} from '@/styles/home'
+import ScreenWrapper from '@/components/ScreenWrapper'
+import { useRouter } from 'expo-router'
 import ProtectedRoute from '../auth/protectedRoute';
-import { useNotifications } from '../components/NotificationCenter';
+import {useAuth} from '../auth/AuthContext'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRecommendations, getTrendingMovies, prefetchTabData } from '../services/movieData';
+import { ensureCompleteImageUrl } from '../utils/imageUtils';
+import { MovieRowSkeleton } from '../components/Skeleton';
+import { useNotifications } from '../components/NotificationCenter';
 
-// Same phrases the home mood buttons always sent to the mood model.
-const MOODS = [
-  { label: 'Happy', query: 'drama' },
-  { label: 'Sad', query: 'comedy' },
-  { label: 'Love', query: 'Romantic' },
-  { label: 'Empty', query: 'action' },
-];
+// Define the movie type
+interface Movie {
+  id: number;
+  title: string;
+  description: string;
+  poster_url: string;
+  genres?: string[];
+}
 
-const greetingFor = (hour: number) => (hour >= 5 && hour < 12 ? 'Good morning' : hour >= 12 && hour < 18 ? 'Good afternoon' : 'Good evening');
-
-const Shortcut = ({ icon: name, title, caption, onPress }: { icon: IconName; title: string; caption: string; onPress: () => void }) => (
-  <Card onPress={onPress} accessibilityLabel={title} style={styles.shortcut}>
-    <Icon name={name} size={icon.action} />
-    <View style={styles.shortcutText}>
-      <Text bold numberOfLines={1}>
-        {title}
-      </Text>
-      <Text variant="caption" tone="secondary" numberOfLines={1}>
-        {caption}
-      </Text>
-    </View>
-  </Card>
-);
-
-const Home = () => {
-  const router = useRouter();
-  const { authenticated } = useAuth();
-  const { unread } = useNotifications();
+const Index = () => {
+  const [isOpenOther, setOpenOther] = useState(false);
+  const [customMood, setCustomMood] = useState('');
   const [username, setUsername] = useState('');
-  const [forYou, setForYou] = useState<PosterMovie[]>([]);
-  const [trending, setTrending] = useState<PosterMovie[]>([]);
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
+  const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [greeting, setGreeting] = useState(greetingFor(new Date().getHours()));
+  const [greeting, setGreeting] = useState('');
 
-  const load = async (forceRefresh = false) => {
-    const stored = await AsyncStorage.getItem('username');
-    if (stored) setUsername(stored);
-    await Promise.all([
-      getTrendingMovies({ forceRefresh }).then((m) => setTrending(m as PosterMovie[])).catch(() => {}),
-      stored ? getRecommendations(stored, { forceRefresh }).then((m) => setForYou(m as PosterMovie[])).catch(() => {}) : null,
-    ]);
-    if (stored && !forceRefresh) void prefetchTabData(stored);
+  
+  
+  const { authenticated } = useAuth();
+  const { unread } = useNotifications();
+  const router = useRouter();
+
+  const getErrorDetails = (error: unknown) => {
+    if (typeof error === 'object' && error !== null) {
+      const maybeError = error as {
+        response?: { data?: unknown };
+        message?: string;
+      };
+      return maybeError.response?.data ?? maybeError.message ?? 'Unknown error';
+    }
+    return String(error);
   };
 
+  const goToProfile = () => {
+    router.push('/pages/ProfilePage');
+  }
+  const getGreeting = () => {
+    const currentHour = new Date().getHours();
+    
+    if (currentHour >= 5 && currentHour < 12) {
+      return 'Good Morning,';
+    } else if (currentHour >= 12 && currentHour < 18) {
+      return 'Good Afternoon,';
+    } else {
+      return 'Good Evening,';
+    }
+  };
+
+  // Fetch user info and recommendations when component mounts
   useEffect(() => {
     if (authenticated !== true) {
-      if (authenticated === false) setLoading(false);
+      if (authenticated === false) {
+        setLoading(false);
+      }
       return;
     }
-    load().finally(() => setLoading(false));
-    const timer = setInterval(() => setGreeting(greetingFor(new Date().getHours())), 60000);
-    return () => clearInterval(timer);
+
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+
+        // Set the greeting when the component mounts
+        setGreeting(getGreeting());
+        
+        const storedUsername = await AsyncStorage.getItem('username');
+        const tasks: Promise<unknown>[] = [fetchTrendingMovies()];
+
+        if (storedUsername) {
+          setUsername(storedUsername);
+          tasks.push(fetchRecommendations(storedUsername));
+
+          // Warm tab data in background to reduce loading time during navigation.
+          void prefetchTabData(storedUsername);
+        } else {
+          // Fallback: fetch trending movies if no username
+          console.log('No username found, showing trending movies only');
+        }
+
+        await Promise.all(tasks);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback to trending movies on error
+        await fetchTrendingMovies(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+    
+    // Update greeting every minute in case user stays on screen across time boundaries
+    const greetingInterval = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(greetingInterval);
   }, [authenticated]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load(true);
-    setRefreshing(false);
-  };
-
-  const open = (movie: PosterMovie) => router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: movie.id } });
-  const pickMood = (query: string) => router.push({ pathname: '/(tabs)/mood', params: { selectedMood: query } });
-  const submitSearch = () => {
-    if (search.trim()) router.push({ pathname: '/pages/SearchResults', params: { query: search.trim() } });
-  };
-
-  return (
-    <ProtectedRoute>
-      <Screen>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.text} colors={[color.inverse]} progressBackgroundColor={color.text} />
-          }
-        >
-          <Header
-            title={username ? `${greeting}, ${username}` : greeting}
-            actions={<IconButton name="bell" label="Notifications" badge={unread} onPress={() => router.push('/pages/NotificationsPage' as any)} />}
-          />
-          <View style={styles.body}>
-            <Field
-              leadingIcon="search"
-              placeholder="Search movies"
-              accessibilityLabel="Search movies"
-              value={search}
-              onChangeText={setSearch}
-              returnKeyType="search"
-              onSubmitEditing={submitSearch}
-            />
-
-            <View>
-              <SectionHeader title="How are you feeling?" />
-              <View style={styles.chips}>
-                {MOODS.map((m) => (
-                  <Chip key={m.label} role="button" label={m.label} onPress={() => pickMood(m.query)} />
-                ))}
-                <Chip role="button" label="Something else" onPress={() => router.push('/(tabs)/mood')} />
-              </View>
-            </View>
-
-            <View style={styles.shortcuts}>
-              <Shortcut icon="users" title="Watch together" caption="Swipe with friends" onPress={() => router.push('/pages/WatchTogetherPage' as any)} />
-              <Shortcut icon="heart" title="Friends" caption="Your taste match" onPress={() => router.push('/pages/FriendsPage' as any)} />
-            </View>
-
-            <View>
-              <SectionHeader title="For you" />
-              {loading ? (
-                <PosterRowSkeleton />
-              ) : forYou.length ? (
-                <PosterRow movies={forYou} onOpen={open} />
-              ) : (
-                <EmptyState
-                  message="Rate a few films to see picks here."
-                  action={{ label: 'Start swiping', onPress: () => router.push('/(tabs)/tinder') }}
-                  style={styles.inlineEmpty}
-                />
-              )}
-            </View>
-
-            <View>
-              <SectionHeader title="Trending" />
-              {loading ? (
-                <PosterRowSkeleton />
-              ) : trending.length ? (
-                <PosterRow movies={trending} onOpen={open} />
-              ) : (
-                <EmptyState message="Nothing trending right now." style={styles.inlineEmpty} />
-              )}
-            </View>
-
-            <Card onPress={() => router.push('/(tabs)/tinder')} accessibilityLabel="Free weekend? Swipe to fill your watchlist" style={styles.weekend}>
-              <View style={styles.shortcutText}>
-                <Text variant="section">Free weekend?</Text>
-                <Text variant="label" tone="secondary">
-                  Swipe to fill your watchlist
-                </Text>
-              </View>
-              <Icon name="arrow-right" size={icon.action} />
-            </Card>
-          </View>
-        </ScrollView>
-      </Screen>
-    </ProtectedRoute>
-  );
+  // Fetch recommended movies for the user
+  // Modify the fetchRecommendations function
+const fetchRecommendations = async (username: string, forceRefresh = false) => {
+  try {
+    const movies = await getRecommendations(username, { forceRefresh });
+    setRecommendations(movies as Movie[]);
+  } catch (error) {
+    console.error('Error fetching recommendations:', getErrorDetails(error));
+  }
 };
 
-const styles = StyleSheet.create({
-  scroll: { paddingBottom: space.xxl },
-  body: { paddingHorizontal: gutter, gap: space.xxl },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  shortcuts: { flexDirection: 'row', gap: space.md },
-  shortcut: { flex: 1, gap: space.md },
-  shortcutText: { flex: 1, gap: space.xs },
-  weekend: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  inlineEmpty: { flex: 0, paddingVertical: space.xl },
-});
+  // Fetch trending movies
+  const fetchTrendingMovies = async (forceRefresh = false) => {
+    try {
+      const movies = await getTrendingMovies({ forceRefresh });
+      setTrendingMovies(movies as Movie[]);
+    } catch (error) {
+      console.error('Error fetching trending movies:', getErrorDetails(error));
+    }
+  };
 
-export default Home;
+  // Pull-to-refresh: force-refresh trending + recommendations.
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const storedUsername = await AsyncStorage.getItem('username');
+      await Promise.all([
+        fetchTrendingMovies(true),
+        storedUsername ? fetchRecommendations(storedUsername, true) : Promise.resolve(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleMoodSelection = (mood: string) => {
+  
+    router.push({
+      pathname: '/(tabs)/mood',
+      params: { selectedMood: mood }
+    });
+  }
+
+  const viewMovieDetails = (movie: Movie) => {
+    router.push({
+      pathname: '/pages/MovieDetailPage',
+      params: { movieId: movie.id }
+    });
+  };
+
+  const handleSearch = async (query: string) => {
+  if (!query.trim()) return;
+  
+    try {
+      // Navigate to search results page with the query parameter
+      router.push({
+        pathname: '/pages/SearchResults',
+        params: { query: query.trim() }
+      });
+    } catch (error) {
+      console.error('Error handling search:', error);
+    }
+  };
+  
+  return (
+    <ProtectedRoute>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <ScreenWrapper>
+        <SafeAreaView style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#ffffff"
+                colors={['#ffffff']}
+                progressBackgroundColor="#1a1a1a"
+              />
+            }
+          >
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.greetingText}>{greeting}</Text>
+                <Text style={styles.username}>{username}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={styles.profileButton}
+                  onPress={() => router.push('/pages/NotificationsPage' as any)}
+                  accessibilityLabel={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+                >
+                  <Feather name="bell" size={22} color="#fff" />
+                  {unread > 0 ? (
+                    <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: '#000', fontSize: 11, fontWeight: '700' }}>{unread > 9 ? '9+' : unread}</Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.profileButton}>
+                  <Feather name="user" size={24} color="#fff" onPress={goToProfile} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* Search Container */}
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search Movies Here"
+                placeholderTextColor="#8a8a8a"
+                value={search}
+                onChangeText={setSearch}
+                returnKeyType="search"
+                onSubmitEditing={() => handleSearch(search)}
+              />
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={() => handleSearch(search)}
+              >
+                <Feather name="search" size={20} color="#000" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Mood Selector */}
+            <View style={styles.moodSelector}>
+              <Text style={styles.moodTitle}>How are you feeling today?</Text>
+              <Text style={styles.moodSubtitle}>Get movies personalized for your mood</Text>
+              
+              {/* Mood Buttons */}
+              {/* ... existing mood buttons code ... */}
+              <View style={styles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={styles.moodButton}
+                  onPress={() => handleMoodSelection('drama')}
+                >
+                  <Text style={styles.moodButtonText}>I'm feeling Happy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.moodButton, styles.moodButtonLight]}
+                  onPress={() => handleMoodSelection('comedy')}
+                >
+                  <Text style={[styles.moodButtonText, styles.moodButtonTextDark]}>I'm feeling Sad</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.moodButtonsRow}>
+                <TouchableOpacity 
+                  style={[styles.moodButton, styles.moodButtonLight]}
+                  onPress={() => handleMoodSelection('Romantic')}
+                >
+                  <Text  style={[styles.moodButtonText, styles.moodButtonTextDark]}>I'm feeling Love</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.moodButton}
+                  onPress={() => handleMoodSelection('action')}
+                >
+                  <Text style={styles.moodButtonText}>I'm feeling Empty</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Custom Mood Input */}
+              {isOpenOther ? (
+                <View style={styles.customMoodContainer}>
+                  <TextInput
+                    style={styles.customMoodInput}
+                    placeholder="Enter your mood..."
+                    placeholderTextColor="#8a8a8a"
+                    value={customMood}
+                    onChangeText={setCustomMood}
+                  />
+                  <TouchableOpacity 
+                    style={styles.goButton}
+                    onPress={() => {
+                      if (customMood.trim()) {
+                        handleMoodSelection(customMood);
+                      }
+                      setOpenOther(false);
+                    }}
+                  >
+                    <Text style={styles.goButtonText}>Go</Text>
+                    <Feather name="chevron-right" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.moodButtonsRow}>
+                  <TouchableOpacity style={styles.moodButton} onPress={() => {
+                    setOpenOther(true)
+                  }}>
+                    <Text style={styles.moodButtonText}>Other/Custom</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 14 }}
+                onPress={() => router.push('/pages/WatchTogetherPage' as any)}
+              >
+                <Feather name="users" size={20} color="#000" />
+                <Text style={{ color: '#000', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Watch Together</Text>
+                <Text style={{ color: '#444', fontSize: 12, marginTop: 2 }}>Swipe with friends</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#1a1a1a', borderRadius: 18, padding: 14 }}
+                onPress={() => router.push('/pages/FriendsPage' as any)}
+              >
+                <Feather name="heart" size={20} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Friends</Text>
+                <Text style={{ color: '#999', fontSize: 12, marginTop: 2 }}>Your taste match</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* TOP PICKS (RECOMMENDATIONS) SECTION */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>TOP PICKS FOR YOU</Text>
+              <View style={styles.scrollIndicator}>
+                <Feather name="chevron-right" size={18} color="#ffffff" />
+              </View>
+            </View>
+            {loading ? (
+              <MovieRowSkeleton />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
+                {recommendations.length > 0 ? (
+                  recommendations.map((movie, index) => (
+                    <TouchableOpacity 
+                      key={`rec-${movie.id}-${index}`} // Added index to ensure uniqueness
+                      style={styles.movieCard}
+                      onPress={() => viewMovieDetails(movie)}
+                    >
+                      {movie.poster_url ? (
+                        <Image 
+                          source={{ uri: movie.poster_url }} 
+                          style={styles.movieThumbnail}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.movieThumbnail} />
+                      )}
+                      <Text style={styles.movieTitle} numberOfLines={1}>{movie.title}</Text>
+                      
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={{color: '#999', marginLeft: 10}}>
+                    Rate some movies to get personalized recommendations!
+                  </Text>
+                )}
+              </ScrollView>
+            )}
+           <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>TRENDING NOW</Text>
+            <View style={styles.scrollIndicator}>
+              <Feather name="chevron-right" size={18} color="#ffffff" />
+            </View>
+          </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieRow}>
+              {loading ? (
+                <MovieRowSkeleton />
+              ) : trendingMovies.length > 0 ? (
+                trendingMovies.map((movie, index) => (
+                  <TouchableOpacity 
+                    key={`trending-${movie.id}-${index}`} // Added index to ensure uniqueness
+                    style={styles.movieCard}
+                    onPress={() => viewMovieDetails(movie)}
+                  >
+                    {movie.poster_url ? (
+                      <Image 
+                        source={{ uri: ensureCompleteImageUrl(movie.poster_url) || undefined }} 
+                        style={styles.movieThumbnail}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.movieThumbnail} />
+                    )}
+                    <Text style={styles.movieTitle} numberOfLines={1}>{movie.title}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={{color: '#999', marginLeft: 10}}>No trending movies available</Text>
+              )}
+            </ScrollView>
+
+            {/* Weekend Banner */}
+            <TouchableOpacity onPress={()=>{router.push('/(tabs)/tinder')}} style={styles.weekendBanner}>
+              <View>
+                <Text style={styles.weekendTitle}>Free Weekend?</Text>
+                <Text style={styles.weekendSubtitle}>Populate your watchlist for bingewatching</Text>
+              </View>
+              <View style={styles.arrowContainer}>
+                <Text style={styles.swipeText}>Swipe right to find your matches</Text>
+                <Feather name="arrow-right" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.tabBarSpacer} />
+          </ScrollView>
+        </SafeAreaView>
+      </ScreenWrapper>
+    </ProtectedRoute>
+  )
+}
+
+export default Index

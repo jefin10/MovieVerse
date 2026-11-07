@@ -1,13 +1,15 @@
-import { Divider, EmptyState, Field, Header, ListRow, ListSkeleton, Reveal, Score, Screen, Text, Thumb, gutter, space } from '@/ui';
+import Image from '../components/CachedImage';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import api from '../auth/api';
-import ProtectedRoute from '../auth/protectedRoute';
+import { ensureCompleteImageUrl } from '../utils/imageUtils';
 
 interface Movie {
   id: number;
   title: string;
+  description: string;
   poster_url: string;
   imdb_rating?: number;
   genres?: string[];
@@ -15,85 +17,195 @@ interface Movie {
 }
 
 export default function SearchResults() {
-  const { query } = useLocalSearchParams<{ query: string }>();
+  const { query } = useLocalSearchParams();
   const router = useRouter();
-  const [text, setText] = useState(String(query ?? ''));
   const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
 
-  const search = async (q: string) => {
-    setLoading(true);
-    setFailed(false);
+  useEffect(() => {
+    if (query) {
+      searchMovies(query as string);
+    }
+  }, [query]);
+
+  const searchMovies = async (searchQuery: string) => {
     try {
-      const { data } = await api.get(`api/searchMovie/${encodeURIComponent(q)}`);
-      setResults(data);
-    } catch {
-      setFailed(true);
+      setLoading(true);
+      const response = await api.get(`api/searchMovie/${encodeURIComponent(searchQuery)}`);
+      setResults(response.data);
+    } catch (error) {
+      console.error('Error searching movies:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (query) search(String(query));
-  }, [query]);
-
-  const submit = () => text.trim() && router.setParams({ query: text.trim() });
+  const viewMovieDetails = (movie: Movie) => {
+    router.push({
+      pathname: '/pages/MovieDetailPage',
+      params: { movieId: movie.id }
+    });
+  };
 
   return (
-    <ProtectedRoute>
-      <Screen edges={['top', 'bottom']}>
-        <Header back title="Search" />
-        <View style={styles.field}>
-          <Field leadingIcon="search" placeholder="Search movies" accessibilityLabel="Search movies" value={text} onChangeText={setText} returnKeyType="search" onSubmitEditing={submit} />
-        </View>
-        {loading ? (
-          <View style={styles.pad}>
-            <ListSkeleton />
-          </View>
-        ) : failed ? (
-          <EmptyState message="Search needs a connection." action={{ label: 'Try again', onPress: () => search(String(query)) }} />
-        ) : !results.length ? (
-          <EmptyState message={`No results for “${query}”.`} />
-        ) : (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Search Results</Text>
+        <View style={{width: 24}} /> 
+      </View>
+      
+      {/* Search query info */}
+      <Text style={styles.searchInfo}>Results for "{query}"</Text>
+      
+      {loading ? (
+        <ActivityIndicator size="large" color="#FFFFFF" style={styles.loader} />
+      ) : (
+        results.length > 0 ? (
           <FlatList
             data={results}
-            keyExtractor={(m) => String(m.id)}
-            contentContainerStyle={styles.list}
-            keyboardShouldPersistTaps="handled"
-            ItemSeparatorComponent={Divider}
-            renderItem={({ item, index }) => (
-              <Reveal index={index}>
-                <ListRow
-                  leading={<Thumb uri={item.poster_url} />}
-                  title={item.title}
-                  subtitle={
-                    <View style={styles.meta}>
-                      {item.release_date ? (
-                        <Text variant="label" tone="secondary">
-                          {item.release_date.split('-')[0]}
-                        </Text>
-                      ) : null}
-                      <Score value={item.imdb_rating} />
-                    </View>
-                  }
-                  meta={item.genres?.slice(0, 2).join(', ')}
-                  chevron
-                  onPress={() => router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: item.id } })}
-                />
-              </Reveal>
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.resultItem}
+                onPress={() => viewMovieDetails(item)}
+              >
+                {item.poster_url ? (
+                  <Image 
+                    source={{ uri: ensureCompleteImageUrl(item.poster_url) || undefined }} 
+                    style={styles.posterImage}
+                  />
+                ) : (
+                  <View style={styles.noPoster} />
+                )}
+                <View style={styles.movieInfo}>
+                  <Text style={styles.movieTitle}>{item.title}</Text>
+                  {item.release_date && (
+                    <Text style={styles.releaseDate}>{item.release_date.split('-')[0]}</Text>
+                  )}
+                  {item.imdb_rating && (
+                    <Text style={styles.rating}>⭐ {item.imdb_rating.toFixed(1)}</Text>
+                  )}
+                  {item.description && (
+                    <Text numberOfLines={2} style={styles.description}>
+                      {item.description}
+                    </Text>
+                  )}
+                  {item.genres && (
+                    <Text style={styles.genres}>
+                      {item.genres.slice(0, 3).join(' · ')}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
             )}
+            contentContainerStyle={styles.resultsList}
           />
-        )}
-      </Screen>
-    </ProtectedRoute>
+        ) : (
+          <View style={styles.noResultsContainer}>
+            <Text style={styles.noResultsText}>No movies found matching "{query}"</Text>
+          </View>
+        )
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  field: { paddingHorizontal: gutter, paddingBottom: space.lg },
-  pad: { paddingHorizontal: gutter },
-  list: { paddingHorizontal: gutter, paddingBottom: space.xxl },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  description:{
+    fontSize: 14,
+    color: '#AAAAAA',
+    marginBottom: 4
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#0D0D0D',
+    paddingTop: 50
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 20
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF'
+  },
+  searchInfo: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginHorizontal: 16,
+    marginBottom: 20
+  },
+  resultsList: {
+    paddingHorizontal: 16
+  },
+  resultItem: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    backgroundColor: 'rgba(30, 30, 30, 0.8)',
+    borderRadius: 10,
+    overflow: 'hidden'
+  },
+  posterImage: {
+    width: 100,
+    height: 150
+  },
+  noPoster: {
+    width: 100,
+    height: 150,
+    backgroundColor: '#333333'
+  },
+  movieInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center'
+  },
+  movieTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4
+  },
+  releaseDate: {
+    fontSize: 14,
+    color: '#AAAAAA',
+    marginBottom: 4
+  },
+  rating: {
+    fontSize: 14,
+    color: '#FFD700',
+    marginBottom: 4
+  },
+  genres: {
+    fontSize: 14,
+    color: '#AAAAAA'
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: '#AAAAAA',
+    textAlign: 'center'
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  }
 });

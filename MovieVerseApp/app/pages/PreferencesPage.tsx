@@ -1,41 +1,32 @@
-import { Chip, Divider, EmptyState, Header, ListRow, ListSkeleton, Screen, SectionHeader, SegmentedControl, Text, color, gutter, space, useToast } from '@/ui';
-import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
+import Image from '../components/CachedImage';
+import PageHeader from '../components/PageHeader';
+import { s } from '../services/ui';
 
-const REGION_NAMES: Record<string, string> = { IN: 'India', US: 'US', GB: 'UK' };
+const REGION_NAMES: Record<string, string> = { IN: 'India', US: 'United States', GB: 'United Kingdom' };
 
 const ALERTS = [
-  { key: 'daily_pick', title: 'Tonight’s pick' },
-  { key: 'provider_alerts', title: 'Streaming alerts' },
-  { key: 'social_alerts', title: 'New followers' },
+  { key: 'daily_pick', title: "Tonight's pick", body: 'One movie chosen for you each evening' },
+  { key: 'provider_alerts', title: 'Streaming alerts', body: 'When a watchlist movie reaches your services' },
+  { key: 'social_alerts', title: 'Friends', body: 'When someone follows you' },
 ];
 
 export default function PreferencesPage() {
-  const toast = useToast();
   const [prefs, setPrefs] = useState<any>(null);
   const [providers, setProviders] = useState<any[]>([]);
   const [failed, setFailed] = useState(false);
 
-  const loadProviders = () =>
-    api
-      .get('api/providers/')
-      .then((r) => setProviders(r.data))
-      .catch(() => {});
+  const loadProviders = () => api.get('api/providers/').then((r) => setProviders(r.data)).catch(() => {});
 
-  const load = () => {
-    setFailed(false);
-    api
-      .get('api/preferences/')
-      .then((r) => setPrefs(r.data))
-      .catch(() => setFailed(true));
+  useEffect(() => {
+    api.get('api/preferences/').then((r) => setPrefs(r.data)).catch(() => setFailed(true));
     loadProviders();
-  };
-  useEffect(load, []);
+  }, []);
 
-  // Optimistic: the switch moves at once and goes back if the save fails.
   const save = async (patch: Record<string, unknown>) => {
     const previous = prefs;
     setPrefs({ ...prefs, ...patch });
@@ -45,7 +36,6 @@ export default function PreferencesPage() {
       if (patch.region) loadProviders();
     } catch {
       setPrefs(previous);
-      toast.show({ title: 'Couldn’t save. Try again.', tone: 'error' });
     }
   };
 
@@ -54,67 +44,61 @@ export default function PreferencesPage() {
 
   return (
     <ProtectedRoute>
-      <Screen edges={['top', 'bottom']}>
-        <Header back title="Services and alerts" />
+      <SafeAreaView style={s.page}>
+        <PageHeader title="Services & alerts" />
         {failed ? (
-          <EmptyState message="Settings need a connection." action={{ label: 'Try again', onPress: load }} />
+          <Text style={s.empty}>Connect to the internet to change these settings.</Text>
         ) : !prefs ? (
-          <View style={styles.pad}>
-            <ListSkeleton avatar count={3} />
-          </View>
+          <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
         ) : (
-          <ScrollView contentContainerStyle={styles.body}>
-            <View>
-              <SectionHeader title="Notifications" />
-              {ALERTS.map((a, i) => (
-                <View key={a.key}>
-                  {i > 0 ? <Divider /> : null}
-                  <ListRow
-                    title={a.title}
-                    trailing={
-                      <Switch
-                        value={prefs[a.key]}
-                        onValueChange={(v) => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                          save({ [a.key]: v });
-                        }}
-                        trackColor={{ true: color.text, false: color.divider }}
-                        thumbColor={prefs[a.key] ? color.inverse : color.textSecondary}
-                        accessibilityLabel={a.title}
-                      />
-                    }
-                  />
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+            <Text style={s.sectionTitle}>Notifications</Text>
+            {ALERTS.map((a) => (
+              <View key={a.key} style={[s.card, s.rowCard]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cardTitle}>{a.title}</Text>
+                  <Text style={s.cardBody}>{a.body}</Text>
                 </View>
+                <Switch
+                  value={prefs[a.key]}
+                  onValueChange={(v) => save({ [a.key]: v })}
+                  trackColor={{ true: '#fff', false: '#333' }}
+                  thumbColor={prefs[a.key] ? '#000' : '#999'}
+                />
+              </View>
+            ))}
+
+            <Text style={s.sectionTitle}>Country</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {prefs.regions.map((r: string) => (
+                <TouchableOpacity key={r} style={[s.pill, prefs.region !== r && s.pillOff]} onPress={() => save({ region: r })}>
+                  <Text style={[s.pillText, prefs.region !== r && s.pillOffText]}>{REGION_NAMES[r] ?? r}</Text>
+                </TouchableOpacity>
               ))}
             </View>
 
-            <View>
-              <SectionHeader title="Country" />
-              <SegmentedControl
-                value={prefs.region}
-                onChange={(region) => save({ region })}
-                options={prefs.regions.map((r: string) => ({ value: r, label: REGION_NAMES[r] ?? r }))}
-              />
-            </View>
-
-            <View>
-              <SectionHeader title="Your services" />
-              {providers.length === 0 ? <Text tone="secondary">Not available yet.</Text> : null}
-              <View style={styles.chips}>
-                {providers.map((p) => (
-                  <Chip key={p.id} label={p.name} imageUri={p.logo_url} selected={prefs.providers.includes(p.id)} onPress={() => toggleProvider(p.id)} />
-                ))}
-              </View>
+            <Text style={s.sectionTitle}>Services you pay for</Text>
+            {providers.length === 0 ? <Text style={s.cardBody}>Streaming services aren’t available yet.</Text> : null}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {providers.map((p) => {
+                const on = prefs.providers.includes(p.id);
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() => toggleProvider(p.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    style={[{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 7, paddingRight: 12, borderRadius: 13, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: on ? '#fff' : 'transparent' }]}
+                  >
+                    {p.logo_url ? <Image source={{ uri: p.logo_url }} style={{ width: 28, height: 28, borderRadius: 7 }} /> : null}
+                    <Text style={{ color: '#fff', fontSize: 13 }}>{p.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </ScrollView>
         )}
-      </Screen>
+      </SafeAreaView>
     </ProtectedRoute>
   );
 }
-
-const styles = StyleSheet.create({
-  pad: { paddingHorizontal: gutter },
-  body: { paddingHorizontal: gutter, paddingBottom: space.xxl, gap: space.xxl },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-});

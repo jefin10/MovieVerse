@@ -1,10 +1,17 @@
-import { Avatar, Divider, EmptyState, Field, Header, ListRow, ListSkeleton, Reveal, Screen, SectionHeader, Stars, Text, Thumb, gutter, space } from '@/ui';
+import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
-import { timeAgo } from '../services/ui';
+import Image from '../components/CachedImage';
+import PageHeader from '../components/PageHeader';
+import { s, timeAgo } from '../services/ui';
+
+const Avatar = ({ name }: { name: string }) => (
+  <View style={s.avatar}><Text style={s.avatarText}>{name[0]?.toUpperCase()}</Text></View>
+);
 
 export default function FriendsPage() {
   const router = useRouter();
@@ -14,115 +21,88 @@ export default function FriendsPage() {
   const [results, setResults] = useState<any[]>([]);
 
   const load = useCallback(() => {
-    api
-      .get('api/friends/')
-      .then((r) => {
-        setData(r.data);
-        setFailed(false);
-      })
-      .catch(() => setFailed(true));
+    api.get('api/friends/').then((r) => { setData(r.data); setFailed(false); }).catch(() => setFailed(true));
   }, []);
-  useFocusEffect(useCallback(() => load(), [load]));
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setResults([]);
-      return;
-    }
+    if (query.trim().length < 2) { setResults([]); return; }
     const timer = setTimeout(() => {
-      api
-        .get('api/users/', { params: { q: query.trim() } })
-        .then((r) => setResults(r.data))
-        .catch(() => {});
+      api.get('api/users/', { params: { q: query.trim() } }).then((r) => setResults(r.data)).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
   const openUser = (username: string) => router.push({ pathname: '/pages/UserProfilePage', params: { username } } as any);
-  const searching = query.trim().length >= 2;
 
   return (
     <ProtectedRoute>
-      <Screen edges={['top', 'bottom']}>
-        <Header back title="Friends" />
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Field
-            leadingIcon="search"
-            placeholder="Search by username"
-            accessibilityLabel="Search people"
+      <SafeAreaView style={s.page}>
+        <PageHeader title="Friends" />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+          <TextInput
+            style={s.input}
+            placeholder="Find people by username"
+            placeholderTextColor="#777"
             value={query}
             onChangeText={setQuery}
             autoCapitalize="none"
             autoCorrect={false}
           />
+          {results.length ? (
+            <View style={{ marginTop: 10 }}>
+              {results.map((u) => (
+                <TouchableOpacity key={u.username} style={[s.card, s.rowCard]} onPress={() => openUser(u.username)}>
+                  <Avatar name={u.username} />
+                  <Text style={[s.cardTitle, { flex: 1 }]}>{u.username}</Text>
+                  {u.is_following ? <Text style={s.meta}>Following</Text> : <Feather name="chevron-right" size={18} color="#777" />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : query.trim().length >= 2 ? (
+            <Text style={[s.meta, { marginTop: 10 }]}>No one by that name.</Text>
+          ) : null}
 
-          {searching ? (
-            results.length ? (
-              <View>
-                {results.map((u, i) => (
-                  <View key={u.username}>
-                    {i > 0 ? <Divider /> : null}
-                    <ListRow
-                      leading={<Avatar name={u.username} />}
-                      title={u.username}
-                      trailing={u.is_following ? <Text variant="label" tone="secondary">Following</Text> : null}
-                      chevron
-                      onPress={() => openUser(u.username)}
-                    />
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text tone="secondary">No one by that name.</Text>
-            )
-          ) : failed && !data ? (
-            <EmptyState message="Friends need a connection." action={{ label: 'Try again', onPress: load }} />
+          {failed && !data ? (
+            <Text style={s.empty}>Connect to the internet to see your friends.</Text>
           ) : !data ? (
-            <ListSkeleton avatar count={4} />
+            <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
           ) : (
             <>
-              <View>
-                <SectionHeader title="Following" />
-                {data.following.length === 0 ? <Text tone="secondary">Follow people to compare taste.</Text> : null}
-                {data.following.map((f: any, i: number) => (
-                  <Reveal key={f.username} index={i}>
-                    {i > 0 ? <Divider /> : null}
-                    <ListRow
-                      leading={<Avatar name={f.username} />}
-                      title={f.username}
-                      subtitle={`${f.shared} in common`}
-                      trailing={<Text bold>{f.score === null ? '–' : `${f.score}%`}</Text>}
-                      onPress={() => openUser(f.username)}
-                    />
-                  </Reveal>
-                ))}
-              </View>
-
-              {data.activity.length ? (
-                <View>
-                  <SectionHeader title="Recent ratings" />
-                  {data.activity.map((a: any, i: number) => (
-                    <View key={`${a.username}-${a.movie_id}`}>
-                      {i > 0 ? <Divider /> : null}
-                      <ListRow
-                        leading={<Thumb uri={a.poster_url} />}
-                        title={a.title}
-                        subtitle={<Stars value={a.rating} label={`${a.username} gave it ${Math.round(a.rating)} out of 5`} />}
-                        meta={`${a.username} · ${timeAgo(a.at)}`}
-                        onPress={() => router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: String(a.movie_id) } } as any)}
-                      />
-                    </View>
-                  ))}
-                </View>
+              <Text style={s.sectionTitle}>Following ({data.following.length})</Text>
+              {data.following.length === 0 ? (
+                <Text style={s.cardBody}>Follow friends to see how your taste compares and what they rate.</Text>
               ) : null}
+              {data.following.map((f: any) => (
+                <TouchableOpacity key={f.username} style={[s.card, s.rowCard]} onPress={() => openUser(f.username)}>
+                  <Avatar name={f.username} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.cardTitle}>{f.username}</Text>
+                    <Text style={s.meta}>{f.shared} movies in common</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>{f.score === null ? '–' : `${f.score}%`}</Text>
+                </TouchableOpacity>
+              ))}
+
+              {data.activity.length ? <Text style={s.sectionTitle}>Recent ratings</Text> : null}
+              {data.activity.map((a: any) => (
+                <TouchableOpacity
+                  key={`${a.username}-${a.movie_id}`}
+                  style={[s.card, s.rowCard]}
+                  onPress={() => router.push({ pathname: '/pages/MovieDetailPage', params: { movieId: String(a.movie_id) } } as any)}
+                >
+                  <Image source={{ uri: a.poster_url }} style={s.thumb} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.cardTitle} numberOfLines={1}>{a.title}</Text>
+                    <Text style={s.cardBody}>{a.username} gave it {'★'.repeat(Math.round(a.rating))}</Text>
+                    <Text style={s.meta}>{timeAgo(a.at)}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </>
           )}
         </ScrollView>
-      </Screen>
+      </SafeAreaView>
     </ProtectedRoute>
   );
 }
-
-const styles = StyleSheet.create({
-  body: { paddingHorizontal: gutter, paddingBottom: space.xxl, gap: space.xxl },
-});

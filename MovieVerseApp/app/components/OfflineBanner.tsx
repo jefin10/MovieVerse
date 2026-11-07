@@ -1,11 +1,9 @@
-import { Text, color, icon, space , Icon } from '@/ui';
+import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { flushOutbox } from '../services/outbox';
 import { refreshOfflineData } from '../services/movieData';
 import { subscribeToReconnect, useOnline } from '../services/network';
-import { flushOutbox } from '../services/outbox';
-
-const SYNCED_MS = 2500;
 
 /** A quiet strip while offline; reconnecting sends anything that was waiting. */
 const OfflineBanner = () => {
@@ -19,25 +17,27 @@ const OfflineBanner = () => {
       await refreshOfflineData().catch(() => {});
       if (sent > 0) {
         setSynced(true);
-        setTimeout(() => setSynced(false), SYNCED_MS);
+        setTimeout(() => setSynced(false), 2500);
       }
     });
   }, []);
 
   if (online && !synced) return null;
   return (
-    <View style={[styles.bar, online && styles.synced]} accessibilityLiveRegion="polite">
-      <Icon name={online ? 'check' : 'wifi-off'} size={icon.inline} color={online ? color.inverse : color.text} />
-      <Text variant="caption" tone={online ? 'inverse' : 'primary'}>
-        {online ? 'Back online. Changes saved.' : 'Offline. Changes will sync later.'}
+    <View style={[styles.bar, online && styles.barSynced]}>
+      <Feather name={online ? 'check' : 'wifi-off'} size={13} color={online ? '#000' : '#fff'} />
+      <Text style={[styles.text, online && styles.textSynced]}>
+        {online ? 'Back online. Your changes are saved.' : "You're offline. Changes will sync later."}
       </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, paddingVertical: space.sm, backgroundColor: color.raised },
-  synced: { backgroundColor: color.text },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 6, backgroundColor: '#222' },
+  barSynced: { backgroundColor: '#fff' },
+  text: { color: '#fff', fontSize: 12, fontWeight: '500' },
+  textSynced: { color: '#000' },
 });
 
 export default OfflineBanner;
