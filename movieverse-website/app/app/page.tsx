@@ -1,26 +1,39 @@
 import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
-import AppLanding from "./AppLanding";
+import { Poppins, Stick_No_Bills } from "next/font/google";
+import AppSite from "./AppSite";
 import "./app.css";
 
-const serif = Instrument_Serif({
-  weight: "400",
-  style: ["normal", "italic"],
+// The app's own fonts: Poppins for text, Stick No Bills for the wordmark.
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-mv-serif",
+  variable: "--font-mv-sans",
+  display: "swap",
+});
+
+const wordmark = Stick_No_Bills({
+  weight: ["600"],
+  subsets: ["latin"],
+  variable: "--font-mv-logo",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "MovieVerse App — Swipe, Mood AI & Watchlists",
+  title: "The App",
   description:
-    "Download MovieVerse for swipe discovery, mood-based recommendations, watchlists, and personalized movie picks.",
+    "MovieVerse picks tonight’s film from your swipes, your mood and your friends. Swipe to build a watchlist, get mood picks, and match films with friends in Watch Together.",
   alternates: { canonical: "/app" },
+  openGraph: {
+    title: "MovieVerse — Let your taste pick tonight’s film",
+    description: "Swipe. Say your mood. Watch together. Free on Android.",
+    url: "/app",
+  },
 };
 
 export default function AppPage() {
   return (
-    <div className={serif.variable}>
-      <AppLanding />
+    <div className={`${poppins.variable} ${wordmark.variable}`}>
+      <AppSite />
     </div>
   );
 }
