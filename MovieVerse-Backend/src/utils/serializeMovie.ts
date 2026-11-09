@@ -69,10 +69,12 @@ export function serializeCatalog(m: MovieWithRelations) {
   return {
     id: m.id,
     title: m.title,
-    poster_url: m.posterUrl,
+    // Full image URL: the website treats a bare "/abc.jpg" as one of its own files.
+    poster_url: posterUrl(m.posterUrl),
     release_date: m.releaseDate,
     imdb_rating: m.imdbRating,
-    tmdb_vote_average: m.tmdbVoteAverage,
+    // 0 means "no TMDB score yet"; null lets the website fall back to the IMDb rating.
+    tmdb_vote_average: m.tmdbVoteAverage || null,
     genres: m.genres?.map((g) => g.name) ?? [],
   };
 }

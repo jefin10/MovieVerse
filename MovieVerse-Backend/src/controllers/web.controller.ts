@@ -2,7 +2,7 @@ import { prisma } from '../config/prisma.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { parsePagination } from '../utils/sample.js';
-import { movieInclude, serializeCatalog } from '../utils/serializeMovie.js';
+import { movieInclude, posterUrl, serializeCatalog } from '../utils/serializeMovie.js';
 
 function pageMeta(total: number, page: number, pageSize: number) {
   const totalPages = Math.ceil(total / pageSize);
@@ -76,11 +76,11 @@ export const fetchInfo = asyncHandler(async (req, res) => {
     director: movie.director,
     star1: movie.star1,
     star2: movie.star2,
-    poster_url: movie.posterUrl,
+    poster_url: posterUrl(movie.posterUrl),
     release_date: movie.releaseDate,
     imdb_rating: movie.imdbRating,
     our_rating: movie.ourRating,
-    tmdb_vote_average: movie.tmdbVoteAverage,
+    tmdb_vote_average: movie.tmdbVoteAverage || null,
     trailer_url: movie.trailerUrl,
     trailer_name: movie.trailerName,
     genres: movie.genres?.map((g) => g.name) ?? [],
