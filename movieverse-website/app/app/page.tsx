@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
-import { Poppins, Stick_No_Bills } from "next/font/google";
+import { Bricolage_Grotesque, Poppins, Stick_No_Bills } from "next/font/google";
 import AppSite from "./AppSite";
-import "./app.css";
+import "./mockups.css";
+import "./site.css";
 
 // The app's own fonts: Poppins for text, Stick No Bills for the wordmark.
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-mv-sans",
+  display: "swap",
+});
+
+// Bold display face for the page headings.
+const display = Bricolage_Grotesque({
+  weight: ["700", "800"],
+  subsets: ["latin"],
+  variable: "--font-ao-display",
   display: "swap",
 });
 
@@ -32,7 +41,7 @@ export const metadata: Metadata = {
 
 export default function AppPage() {
   return (
-    <div className={`${poppins.variable} ${wordmark.variable}`}>
+    <div className={`${poppins.variable} ${display.variable} ${wordmark.variable}`}>
       <AppSite />
     </div>
   );

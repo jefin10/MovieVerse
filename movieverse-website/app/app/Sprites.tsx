@@ -214,11 +214,12 @@ export function Poster({ v, className }: { v: number; className?: string }) {
 }
 
 /** The MovieVerse mark: the app icon's white rounded diamond with "MV". */
-export function LogoMark({ size = 32, className }: { size?: number; className?: string }) {
+export function LogoMark({ size = 32, className, tone = "light" }: { size?: number; className?: string; tone?: "light" | "dark" }) {
+  const [shape, ink] = tone === "dark" ? ["#000", "#fff"] : ["#fff", "#000"];
   return (
     <svg className={`mv-mark${className ? ` ${className}` : ""}`} width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-      <rect x="8" y="8" width="24" height="24" rx="6" transform="rotate(45 20 20)" fill="#fff" />
-      <text x="20" y="24.2" textAnchor="middle" fontSize="11" fontWeight="600" letterSpacing="-.4" fill="#000" fontFamily="var(--mv-font)">
+      <rect x="8" y="8" width="24" height="24" rx="6" transform="rotate(45 20 20)" fill={shape} />
+      <text x="20" y="24.2" textAnchor="middle" fontSize="11" fontWeight="600" letterSpacing="-.4" fill={ink} fontFamily="var(--mv-font)">
         MV
       </text>
     </svg>
