@@ -10,6 +10,10 @@
     },
     "preview": {
       "distribution": "internal",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://movieversebackend.jefin.xyz",
         "EXPO_PUBLIC_AI_API_BASE_URL": "https://movieversebackend.jefin.xyz",
