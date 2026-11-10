@@ -1,11 +1,10 @@
 /*
  * One hidden SVG sprite for the /app page: the Feather line icons the app uses
- * (Feather, MIT licence) and the generated poster art. Everything else on the
- * page draws them with <use>, so each shape is in the HTML once.
- *
- * Poster art is deliberately abstract and on-brand (black, white, greys, gold):
- * the page never shows real posters, screenshots or stock photos.
+ * (Feather, MIT licence). Everything else on the page draws them with <use>,
+ * so each shape is in the HTML once. Posters are real TMDB images (films.ts).
  */
+
+import { POSTERS, tmdb, type Film } from "./films";
 
 const ICONS: Record<string, string> = {
   home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -49,115 +48,18 @@ const ICONS: Record<string, string> = {
 
 export type IconName = keyof typeof ICONS;
 
-/* Poster art. viewBox 0 0 60 90 (2:3), drawn with preserveAspectRatio "slice". */
-const POSTERS: string[] = [
-  // 0 — ringed planet over a starfield
-  `<rect width="60" height="90" fill="url(#mvg-night)"/>
-   <g fill="#fff"><circle cx="9" cy="12" r=".6"/><circle cx="48" cy="9" r=".8"/><circle cx="52" cy="30" r=".5"/><circle cx="14" cy="34" r=".5"/><circle cx="30" cy="6" r=".4"/><circle cx="6" cy="62" r=".5"/><circle cx="55" cy="70" r=".6"/></g>
-   <circle cx="30" cy="46" r="14" fill="url(#mvg-gold)"/>
-   <ellipse cx="30" cy="46" rx="25" ry="6" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="1.2" transform="rotate(-14 30 46)"/>
-   <path d="M0 78 Q30 70 60 78 V90 H0Z" fill="#000"/>`,
-  // 1 — moonlit sea and a small boat
-  `<rect width="60" height="90" fill="url(#mvg-sky)"/>
-   <circle cx="44" cy="20" r="7" fill="#f2f2f2"/>
-   <path d="M0 60 Q7.5 56 15 60 T30 60 T45 60 T60 60 V90 H0Z" fill="#0b0b0b"/>
-   <path d="M0 68 Q7.5 64 15 68 T30 68 T45 68 T60 68" fill="none" stroke="#fff" stroke-opacity=".25"/>
-   <path d="M0 76 Q7.5 72 15 76 T30 76 T45 76 T60 76" fill="none" stroke="#fff" stroke-opacity=".15"/>
-   <path d="M20 58 L40 58 L36 63 L24 63Z" fill="#000"/><path d="M30 42 L30 58 L41 57Z" fill="url(#mvg-gold)"/>
-   <rect x="43" y="30" width="2" height="22" fill="#fff" opacity=".08"/>`,
-  // 2 — staircase on paper
-  `<rect width="60" height="90" fill="url(#mvg-paper)"/>
-   <circle cx="44" cy="20" r="9" fill="url(#mvg-gold)"/>
-   <path d="M0 90 V72 H12 V60 H24 V48 H36 V36 H48 V24 H60 V90Z" fill="#111"/>
-   <circle cx="51" cy="18.5" r="2" fill="#111"/><rect x="50" y="20.5" width="2" height="3.5" fill="#111"/>`,
-  // 3 — drum under a spotlight
-  `<rect width="60" height="90" fill="url(#mvg-night)"/>
-   <path d="M30 0 L8 90 H52Z" fill="#fff" opacity=".07"/>
-   <ellipse cx="30" cy="52" rx="15" ry="4.5" fill="none" stroke="#fff" stroke-width="1.4"/>
-   <path d="M15 52 V66 Q30 72 45 66 V52" fill="none" stroke="#fff" stroke-width="1.4"/>
-   <line x1="18" y1="32" x2="31" y2="50" stroke="url(#mvg-gold)" stroke-width="1.6" stroke-linecap="round"/>
-   <line x1="43" y1="32" x2="31" y2="49" stroke="url(#mvg-gold)" stroke-width="1.6" stroke-linecap="round"/>`,
-  // 4 — night skyline with a searchlight
-  `<rect width="60" height="90" fill="url(#mvg-dusk)"/>
-   <path d="M28 70 L6 0 H18Z" fill="#fff" opacity=".1"/>
-   <circle cx="47" cy="15" r="5" fill="#eaeaea"/>
-   <g fill="#000"><rect x="0" y="52" width="10" height="38"/><rect x="9" y="40" width="9" height="50"/><rect x="18" y="58" width="8" height="32"/><rect x="26" y="34" width="11" height="56"/><rect x="37" y="48" width="9" height="42"/><rect x="46" y="38" width="14" height="52"/></g>
-   <g fill="#ffd700"><rect x="11" y="44" width="1.5" height="1.5"/><rect x="14" y="50" width="1.5" height="1.5"/><rect x="29" y="40" width="1.5" height="1.5"/><rect x="33" y="47" width="1.5" height="1.5"/><rect x="29" y="56" width="1.5" height="1.5"/><rect x="49" y="44" width="1.5" height="1.5"/><rect x="54" y="52" width="1.5" height="1.5"/><rect x="40" y="55" width="1.5" height="1.5"/></g>`,
-  // 5 — little house lifted by balloons
-  `<rect width="60" height="90" fill="url(#mvg-paper)"/>
-   <g stroke="#111" stroke-width=".4"><line x1="30" y1="40" x2="22" y2="22"/><line x1="30" y1="40" x2="31" y2="18"/><line x1="30" y1="40" x2="40" y2="23"/><line x1="30" y1="40" x2="26" y2="28"/><line x1="30" y1="40" x2="36" y2="30"/></g>
-   <circle cx="22" cy="20" r="5" fill="url(#mvg-gold)"/><circle cx="31" cy="15" r="5.5" fill="#111"/><circle cx="40" cy="21" r="5" fill="#fff" stroke="#111" stroke-width=".8"/><circle cx="26" cy="27" r="4" fill="#111"/><circle cx="36" cy="29" r="4" fill="url(#mvg-gold)"/>
-   <path d="M22 50 L30 42 L38 50 V60 H22Z" fill="#111"/><rect x="28" y="53" width="4" height="7" fill="#ffd700"/>
-   <path d="M0 80 Q30 74 60 80 V90 H0Z" fill="#cfcfcf"/>`,
-  // 6 — spinning top on gold
-  `<rect width="60" height="90" fill="url(#mvg-goldbg)"/>
-   <ellipse cx="30" cy="70" rx="13" ry="2.5" fill="#000" opacity=".25"/>
-   <path d="M30 34 L44 52 L30 68 L16 52Z" fill="#111"/><rect x="29" y="26" width="2" height="9" fill="#111"/>
-   <path d="M16 52 Q30 58 44 52" fill="none" stroke="#ffd700" stroke-width="1"/>
-   <circle cx="30" cy="50" r="22" fill="none" stroke="#111" stroke-opacity=".25" stroke-dasharray="2 3"/>`,
-  // 7 — eclipse
-  `<rect width="60" height="90" fill="#000"/>
-   <circle cx="30" cy="42" r="20" fill="url(#mvg-corona)"/>
-   <circle cx="30" cy="42" r="12" fill="#000"/>
-   <circle cx="30" cy="42" r="26" fill="none" stroke="#fff" stroke-opacity=".12"/>
-   <circle cx="30" cy="42" r="32" fill="none" stroke="#fff" stroke-opacity=".06"/>`,
-  // 8 — mountains at sunrise
-  `<rect width="60" height="90" fill="url(#mvg-sky)"/>
-   <circle cx="30" cy="48" r="11" fill="url(#mvg-gold)"/>
-   <path d="M0 64 L14 44 L24 56 L36 38 L60 66 V90 H0Z" fill="#1c1c1c"/>
-   <path d="M0 72 L18 58 L30 68 L44 54 L60 70 V90 H0Z" fill="#000"/>
-   <g stroke="#ffd700" stroke-opacity=".5"><line x1="22" y1="80" x2="38" y2="80"/><line x1="25" y1="84" x2="35" y2="84"/></g>`,
-  // 9 — marigold bloom
-  `<rect width="60" height="90" fill="url(#mvg-night)"/>
-   <g transform="translate(30 44)" fill="url(#mvg-gold)">
-     <circle r="5" cx="0" cy="-10"/><circle r="5" cx="9.5" cy="-3"/><circle r="5" cx="6" cy="8"/><circle r="5" cx="-6" cy="8"/><circle r="5" cx="-9.5" cy="-3"/>
-   </g>
-   <circle cx="30" cy="44" r="5" fill="#111"/>
-   <path d="M30 56 Q28 70 31 88" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>`,
-];
-
-export const POSTER_COUNT = POSTERS.length;
-
 export function Sprites() {
   return (
     <svg className="mv-sprite" width="0" height="0" aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="mvg-night" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#262626" />
-          <stop offset="1" stopColor="#000" />
-        </linearGradient>
-        <linearGradient id="mvg-dusk" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3a3a3a" />
-          <stop offset="1" stopColor="#070707" />
-        </linearGradient>
-        <linearGradient id="mvg-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#4a4a4a" />
-          <stop offset=".7" stopColor="#151515" />
-        </linearGradient>
-        <linearGradient id="mvg-paper" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f7f7f7" />
-          <stop offset="1" stopColor="#d6d6d6" />
-        </linearGradient>
         <linearGradient id="mvg-gold" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#fff1a1" />
           <stop offset=".5" stopColor="#ffd700" />
           <stop offset="1" stopColor="#b8920a" />
         </linearGradient>
-        <linearGradient id="mvg-goldbg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffe04d" />
-          <stop offset="1" stopColor="#c9a200" />
-        </linearGradient>
-        <radialGradient id="mvg-corona">
-          <stop offset=".55" stopColor="#fff6c2" />
-          <stop offset=".75" stopColor="#ffd700" stopOpacity=".7" />
-          <stop offset="1" stopColor="#ffd700" stopOpacity="0" />
-        </radialGradient>
       </defs>
       {Object.entries(ICONS).map(([name, body]) => (
         <symbol key={name} id={`mvi-${name}`} viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: body }} />
-      ))}
-      {POSTERS.map((body, i) => (
-        <symbol key={i} id={`mvp-${i}`} viewBox="0 0 60 90" dangerouslySetInnerHTML={{ __html: body }} />
       ))}
     </svg>
   );
@@ -198,18 +100,18 @@ export function Icon({
   );
 }
 
-/** Generated poster art (decorative). */
-export function Poster({ v, className }: { v: number; className?: string }) {
+/** A film's real TMDB poster (decorative: the title is always shown beside it). */
+export function Poster({ film, className, size = "w342" }: { film: Film; className?: string; size?: string }) {
   return (
-    <svg
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       className={`mv-poster${className ? ` ${className}` : ""}`}
-      viewBox="0 0 60 90"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <use href={`#mvp-${((v % POSTERS.length) + POSTERS.length) % POSTERS.length}`} />
-    </svg>
+      src={tmdb(POSTERS[film], size)}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+    />
   );
 }
 

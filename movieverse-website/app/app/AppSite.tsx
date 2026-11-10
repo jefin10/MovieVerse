@@ -9,30 +9,15 @@ import type { ReactNode } from "react";
 import { DetailDemo, HeroDemo, MoodDemo, PickDemo, RoomDemo, SwipeDemo } from "./Mockups";
 import OvoMotion from "./OvoMotion";
 import { Icon, LogoMark, Sprites } from "./Sprites";
+import { POSTERS, tmdb } from "./films";
 
 const APK_URL = "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
 const A = "/app-ovo";
-const TMDB = (path: string, size = "w342") => `https://image.tmdb.org/t/p/${size}${path}`;
-
-const P = {
-  interstellar: "/l33oR0mnvf20avWyIMxW02EtQxn.jpg",
-  inception: "/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg",
-  darkKnight: "/oOv2oUXcAaNXakRqUPxYq5lJURz.jpg",
-  coco: "/wSJHuSD7ojzoXifWjOAjxV7UpEL.jpg",
-  whiplash: "/fRGxZuo7jJUWQsVg9PREb98Aclp.jpg",
-  up: "/hGGC9gKo7CFE3fW07RA587e5kol.jpg",
-  budapest: "/xHDynIimfsgj0ZOs0j5ma8v1vmM.jpg",
-  bladeRunner: "/bMdSmfI0qwpAkvhAL7sqpjmwgf4.jpg",
-  matrix: "/icmmSD4vTTDKOq2vvdulafOGw93.jpg",
-  insideOut: "/j29ekbcLpBvxnGk6LjdTc2EI5SA.jpg",
-  toyStory: "/3Rfvhy1Nl6sSGJwyjb0QiZzZYlB.jpg",
-  joker: "/rlay2M5QYvi6igbGcFjq8jxeusY.jpg",
-};
 
 const GENRES = ["Drama", "Sci-Fi", "Thriller", "Comedy", "Romance", "Animation", "Mystery", "Adventure"];
-const ROW_1 = [P.interstellar, P.coco, P.matrix, P.up, P.whiplash, P.joker, P.budapest];
-const ROW_2 = [P.inception, P.toyStory, P.darkKnight, P.insideOut, P.bladeRunner, P.coco, P.up];
-const SLIDES = [P.interstellar, P.budapest, P.coco, P.whiplash, P.inception, P.up];
+const ROW_1 = [POSTERS.interstellar, POSTERS.coco, POSTERS.matrix, POSTERS.up, POSTERS.whiplash, POSTERS.joker, POSTERS.budapest];
+const ROW_2 = [POSTERS.inception, POSTERS.toyStory, POSTERS.darkKnight, POSTERS.insideOut, POSTERS.bladeRunner, POSTERS.coco, POSTERS.up];
+const SLIDES = [POSTERS.interstellar, POSTERS.budapest, POSTERS.coco, POSTERS.whiplash, POSTERS.inception, POSTERS.up];
 
 const TABS: { icon: string; strong: string; rest: string; demo: ReactNode }[] = [
   { icon: "icon-connect.svg", strong: "Swipe and save ", rest: "your next favourite", demo: <SwipeDemo /> },
@@ -283,7 +268,7 @@ export default function AppSite() {
                     </div>
                     <div className="mvx-row">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={TMDB(P.interstellar, "w92")} alt="" />
+                      <img src={tmdb(POSTERS.interstellar, "w92")} alt="" />
                       <div className="mvx-row__txt">
                         <b>Interstellar</b>
                         <small>Added tonight</small>
@@ -415,12 +400,12 @@ export default function AppSite() {
                       <span>Today</span>
                     </div>
                     {[
-                      { p: P.interstellar, t: "Interstellar", g: "Adventure · Sci-Fi", r: "8.6" },
-                      { p: P.darkKnight, t: "The Dark Knight", g: "Action · Crime", r: "9.0" },
+                      { p: POSTERS.interstellar, t: "Interstellar", g: "Adventure · Sci-Fi", r: "8.6" },
+                      { p: POSTERS.darkKnight, t: "The Dark Knight", g: "Action · Crime", r: "9.0" },
                     ].map((m) => (
                       <div key={m.t} className="mvx-row">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={TMDB(m.p, "w92")} alt="" />
+                        <img src={tmdb(m.p, "w92")} alt="" />
                         <div className="mvx-row__txt">
                           <b>{m.t}</b>
                           <small>{m.g}</small>
@@ -432,12 +417,12 @@ export default function AppSite() {
                       <span>Last week</span>
                     </div>
                     {[
-                      { p: P.coco, t: "Coco", g: "Animation · Family", r: "8.4" },
-                      { p: P.whiplash, t: "Whiplash", g: "Drama · Music", r: "8.5" },
+                      { p: POSTERS.coco, t: "Coco", g: "Animation · Family", r: "8.4" },
+                      { p: POSTERS.whiplash, t: "Whiplash", g: "Drama · Music", r: "8.5" },
                     ].map((m) => (
                       <div key={m.t} className="mvx-row">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={TMDB(m.p, "w92")} alt="" />
+                        <img src={tmdb(m.p, "w92")} alt="" />
                         <div className="mvx-row__txt">
                           <b>{m.t}</b>
                           <small>{m.g}</small>
@@ -461,7 +446,7 @@ export default function AppSite() {
                     </div>
                     <div className="mvx-row">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={TMDB(P.inception, "w92")} alt="" />
+                      <img src={tmdb(POSTERS.inception, "w92")} alt="" />
                       <div className="mvx-row__txt">
                         <b>Inception</b>
                         <small>Picked for your taste</small>
@@ -637,7 +622,7 @@ export default function AppSite() {
                             <div key={i} className="slide w-slide">
                               <div className="slide-image-holder">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={TMDB(p)} alt="" loading="lazy" className="slide-image mvx-poster" />
+                                <img src={tmdb(p)} alt="" loading="lazy" className="slide-image mvx-poster" />
                               </div>
                             </div>
                           ))}
@@ -677,7 +662,7 @@ export default function AppSite() {
                         {row.map((p, i) => (
                           <div key={i} className="logo-interection-logo-holder">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={TMDB(p, "w154")} loading="lazy" alt="" className="logo-interection-logo" />
+                            <img src={tmdb(p, "w154")} loading="lazy" alt="" className="logo-interection-logo" />
                           </div>
                         ))}
                       </div>

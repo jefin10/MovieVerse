@@ -8,6 +8,7 @@
  */
 import type { CSSProperties, ReactNode } from "react";
 import { Icon, LogoMark, Poster, type IconName } from "./Sprites";
+import { BACKDROPS, tmdb, type Film } from "./films";
 
 /** Lets inline styles carry CSS custom properties. */
 const v = (vars: Record<string, string | number>) => vars as CSSProperties;
@@ -125,14 +126,14 @@ export function Toast({
 }: {
   title: string;
   body: string;
-  poster?: number;
+  poster?: Film;
   icon?: IconName;
   className?: string;
 }) {
   return (
     <div className={`mv-toast${className ? ` ${className}` : ""}`}>
       {poster !== undefined ? (
-        <Poster v={poster} className="mv-toast__img" />
+        <Poster film={poster} className="mv-toast__img" />
       ) : (
         <span className="mv-toast__icon">
           <Icon name={icon ?? "bell"} size={18} />
@@ -208,8 +209,8 @@ function HomeScreen({ typing }: { typing?: { text: string; start: number; tapOth
       </div>
       <p className="mv-sec">TRENDING NOW</p>
       <div className="mv-row">
-        {[4, 0, 6, 1].map((p) => (
-          <Poster key={p} v={p} className="mv-row__item" />
+        {(["darkKnight", "interstellar", "budapest", "inception"] as const).map((p) => (
+          <Poster key={p} film={p} className="mv-row__item" />
         ))}
       </div>
     </div>
@@ -217,12 +218,12 @@ function HomeScreen({ typing }: { typing?: { text: string; start: number; tapOth
 }
 
 const MOOD_TILES = [
-  { v: 1, t: "Lifeboat" },
-  { v: 9, t: "Coco" },
-  { v: 5, t: "Up" },
-  { v: 2, t: "The 39 Steps" },
-  { v: 8, t: "Whiplash" },
-  { v: 7, t: "Inception" },
+  { v: "lifeboat", t: "Lifeboat" },
+  { v: "coco", t: "Coco" },
+  { v: "up", t: "Up" },
+  { v: "steps39", t: "The 39 Steps" },
+  { v: "whiplash", t: "Whiplash" },
+  { v: "inception", t: "Inception" },
 ];
 
 function MoodResults({ genre }: { genre: string }) {
@@ -235,7 +236,7 @@ function MoodResults({ genre }: { genre: string }) {
       <div className="mv-moodres__grid">
         {MOOD_TILES.map((m, i) => (
           <span key={m.t} className="mv-tile" style={v({ "--i": i })}>
-            <Poster v={m.v} className="mv-tile__img" />
+            <Poster film={m.v as Film} className="mv-tile__img" />
             <span className="mv-tile__name">{m.t}</span>
           </span>
         ))}
@@ -288,7 +289,7 @@ function MoodPicker({ typing }: { typing: { text: string; start: number; tapOthe
 
 const DECK = [
   {
-    v: 0,
+    v: "interstellar",
     t: "Interstellar",
     d: "The adventures of a group of explorers who make use of a newly discovered wormhole…",
     imdb: "8.6",
@@ -296,7 +297,7 @@ const DECK = [
     g: "Adventure · Drama · Sci-Fi",
   },
   {
-    v: 4,
+    v: "darkKnight",
     t: "The Dark Knight",
     d: "Batman raises the stakes in his war on crime…",
     imdb: "9.0",
@@ -304,7 +305,7 @@ const DECK = [
     g: "Action · Crime · Drama",
   },
   {
-    v: 9,
+    v: "coco",
     t: "Coco",
     d: "Despite his family’s generations-old ban on music, Miguel dreams…",
     imdb: "8.4",
@@ -316,7 +317,7 @@ const DECK = [
 function SwipeCard({ card, slot, drag }: { card: (typeof DECK)[number]; slot: "a" | "b" | "c"; drag?: boolean }) {
   return (
     <div className={`mv-card mv-card--${slot}`}>
-      <Poster v={card.v} className="mv-card__img" />
+      <Poster film={card.v as Film} className="mv-card__img" />
       <div className="mv-card__ov">
         <p className="mv-card__t">{card.t}</p>
         <p className="mv-card__d">{card.d}</p>
@@ -377,7 +378,7 @@ export function HeroDemo() {
           <SwipeScreen />
         </div>
         <TabBar taps={{ swipe: "7.6s" }} />
-        <Toast className="mv-hx__toast" poster={0} title="Tonight’s pick: Interstellar" body="Picked for your taste." />
+        <Toast className="mv-hx__toast" poster="interstellar" title="Tonight’s pick: Interstellar" body="Picked for your taste." />
       </Phone>
     </div>
   );
@@ -437,12 +438,12 @@ const CONFETTI = [
   [-40, -190, 90], [40, 170, -60], [-170, 60, 180], [170, 40, -200], [10, -120, 140], [-10, 140, -90],
 ];
 
-function MatchModal({ poster, title }: { poster: number; title: string }) {
+function MatchModal({ poster, title }: { poster: Film; title: string }) {
   return (
     <div className="mv-match">
       <div className="mv-match__box">
         <p className="mv-match__t">It’s a match!</p>
-        <Poster v={poster} className="mv-match__img" />
+        <Poster film={poster} className="mv-match__img" />
         <p className="mv-match__name">{title}</p>
         <p className="mv-match__sub">You all liked this one.</p>
         <span className="mv-match__btn">Keep swiping</span>
@@ -491,7 +492,7 @@ export function RoomDemo() {
               <SwipeCard card={DECK[0]} slot="a" drag />
             </div>
           </div>
-          <MatchModal poster={0} title="Interstellar" />
+          <MatchModal poster="interstellar" title="Interstellar" />
         </div>
       </Phone>
       <div className="mv-float mv-rm__join mv-rm__join--1" aria-hidden="true">
@@ -543,7 +544,7 @@ export function FriendsDemo() {
             ))}
             <p className="mv-friends__sec">Recent ratings</p>
             <div className="mv-frow mv-frow--rate" style={v({ "--i": 3 })}>
-              <Poster v={3} className="mv-frow__thumb" />
+              <Poster film="whiplash" className="mv-frow__thumb" />
               <span className="mv-frow__txt">
                 <b>Whiplash</b>
                 <small>
@@ -564,7 +565,7 @@ export function FriendsDemo() {
   );
 }
 
-function Notif({ n, title, body, poster }: { n: number; title: string; body: string; poster: number }) {
+function Notif({ n, title, body, poster }: { n: number; title: string; body: string; poster: Film }) {
   return (
     <div className={`mv-notif mv-notif--${n}`}>
       <span className="mv-notif__app">
@@ -575,7 +576,7 @@ function Notif({ n, title, body, poster }: { n: number; title: string; body: str
           <b>{title}</b>
           <small>{body}</small>
         </span>
-        <Poster v={poster} className="mv-notif__img" />
+        <Poster film={poster} className="mv-notif__img" />
       </span>
     </div>
   );
@@ -587,23 +588,13 @@ export function PickDemo() {
       <Phone time="" label="Tonight’s pick: a notification arrives in the evening with one film chosen for you, then another says a watchlist film reached your streaming services.">
         <div className="mv-layer mv-layer--full mv-layer--top">
           <div className="mv-lock">
-            <svg className="mv-lock__wall" viewBox="0 0 300 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-              <defs>
-                <radialGradient id="mv-lockglow" cx=".5" cy=".85" r=".7">
-                  <stop offset="0" stopColor="#ffd700" stopOpacity=".28" />
-                  <stop offset="1" stopColor="#000" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-              <rect width="300" height="600" fill="#050505" />
-              <rect width="300" height="600" fill="url(#mv-lockglow)" />
-              <path d="M0 520 L60 470 L110 500 L170 440 L230 490 L300 450 V600 H0Z" fill="#121212" />
-              <path d="M0 560 L80 520 L150 548 L220 515 L300 545 V600 H0Z" fill="#000" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="mv-lock__wall" src={tmdb(BACKDROPS.interstellar, "w780")} alt="" loading="lazy" />
             <p className="mv-lock__date">Saturday, 8 November</p>
             <p className="mv-lock__time">7:30</p>
             <div className="mv-lock__stack">
-              <Notif n={2} title="Now on your services" body="Coco just arrived on a service you pay for." poster={9} />
-              <Notif n={1} title="Tonight’s pick: Interstellar" body="Picked for your taste." poster={0} />
+              <Notif n={2} title="Now on your services" body="Coco just arrived on a service you pay for." poster="coco" />
+              <Notif n={1} title="Tonight’s pick: Interstellar" body="Picked for your taste." poster="interstellar" />
             </div>
             <div className="mv-lock__dock">
               <span />
@@ -680,7 +671,7 @@ function DetailScreen() {
   return (
     <div className="mv-detail">
       <div className="mv-detail__hero">
-        <Poster v={0} className="mv-detail__img" />
+        <Poster film="interstellar" className="mv-detail__img" size="w500" />
         <span className="mv-detail__fab mv-detail__fab--l">
           <Icon name="arrow-left" size={16} />
         </span>
@@ -756,10 +747,10 @@ function DimHome() {
 }
 
 const WATCHLIST = [
-  { v: 7, t: "Inception", g: "Action · Sci-Fi" },
-  { v: 4, t: "The Dark Knight", g: "Action · Crime" },
-  { v: 5, t: "Up", g: "Animation · Comedy" },
-  { v: 8, t: "Whiplash", g: "Drama · Music" },
+  { v: "inception", t: "Inception", g: "Action · Sci-Fi" },
+  { v: "darkKnight", t: "The Dark Knight", g: "Action · Crime" },
+  { v: "up", t: "Up", g: "Animation · Comedy" },
+  { v: "whiplash", t: "Whiplash", g: "Drama · Music" },
 ];
 
 export function MomentToast() {
@@ -779,7 +770,7 @@ export function MomentMatch() {
     <div className="mv-demo mv-mo mv-mo--match" data-demo style={v({ "--d": "6s" })}>
       <Phone label="‘It’s a match!’ pop-up scaling in with confetti.">
         <div className="mv-layer mv-layer--full">
-          <MatchModal poster={6} title="The Grand Budapest Hotel" />
+          <MatchModal poster="budapest" title="The Grand Budapest Hotel" />
         </div>
       </Phone>
     </div>
@@ -795,7 +786,7 @@ export function MomentConfirm() {
             <p className="mv-wl__t">Your Watchlist</p>
             {WATCHLIST.map((w, i) => (
               <div key={w.t} className={`mv-wl__row mv-wl__row--${i}`}>
-                <Poster v={w.v} className="mv-wl__img" />
+                <Poster film={w.v as Film} className="mv-wl__img" />
                 <span className="mv-wl__txt">
                   <b>{w.t}</b>
                   <small>{w.g}</small>
@@ -820,7 +811,7 @@ export function MomentRating() {
       <Phone label="Rating a film: five stars fill in, then a ‘Thank You!’ dialog appears.">
         <div className="mv-layer mv-layer--full">
           <div className="mv-rate">
-            <Poster v={2} className="mv-rate__img" />
+            <Poster film="steps39" className="mv-rate__img" />
             <p className="mv-rate__t">The 39 Steps</p>
             <p className="mv-detail__q">How would you rate this movie?</p>
             <Stars tapAt="1.75s" />
