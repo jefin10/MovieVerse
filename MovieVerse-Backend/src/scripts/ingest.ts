@@ -1,21 +1,42 @@
 import { readFile } from 'node:fs/promises';
 import { prisma } from '../config/prisma.js';
 
-// Loads the bundled catalog (prisma/data/movies.json). Safe to re-run: movies
-// are matched on title + director and updated in place, never duplicated. It
-// has no ourRating, so re-running never touches ratings from real users.
-//   npm run db:ingest                                  (local)
-//   docker compose exec backend npm run db:ingest:prod (deployed)
+// Loads the bundled catalog (prisma/data/movies.json, built by
+// src/scripts/build-catalog.ts). Safe to re-run: a movie is matched on its TMDB
+// id (or, for older rows without one, title + director) and updated in place,
+// never duplicated. Rows have no ourRating, so ratings from real users are kept.
+// With --prune, movies that are no longer in the catalog are deleted, along
+// with their watchlist entries, ratings and swipes.
+//   npm run db:ingest [-- --prune]                                  (local)
+//   docker compose exec backend npm run db:ingest:prod [-- --prune] (deployed)
 
 interface MovieRow {
+  tmdbId: number;
+  imdbId: string;
   title: string;
+  originalTitle: string;
   description: string;
+  tagline: string;
   director: string;
   star1: string;
   star2: string;
   posterUrl: string;
+  backdropUrl: string;
+  releaseDate: string;
+  runtime: number | null;
+  status: string;
+  homepage: string;
   imdbRating: number;
+  imdbVotes: number;
+  tmdbVoteAverage: number;
+  voteCount: number;
+  budget: number;
+  revenue: number;
+  trailerKey: string;
+  trailerUrl: string;
+  trailerName: string;
   genres: string[];
+  sources: string[];
 }
 
 // TMDB's ids, so a movie fetched from TMDB later lands on the same genre row.
@@ -46,7 +67,9 @@ const GENRE_IDS: Record<string, number> = {
 };
 
 async function main() {
-  const file = process.argv[2] ?? 'prisma/data/movies.json';
+  const args = process.argv.slice(2);
+  const prune = args.includes('--prune');
+  const file = args.find((a) => !a.startsWith('--')) ?? 'prisma/data/movies.json';
   const rows = JSON.parse(await readFile(file, 'utf8')) as MovieRow[];
 
   await prisma.genre.createMany({
@@ -56,33 +79,52 @@ async function main() {
 
   let created = 0;
   let updated = 0;
-  for (const { genres, ...row } of rows) {
+  const keep: number[] = [];
+  for (const { genres, sources: _sources, imdbVotes: _votes, releaseDate, budget, revenue, ...row } of rows) {
     const unknown = genres.find((g) => !(g in GENRE_IDS));
     if (unknown) throw new Error(`Unknown genre "${unknown}" on "${row.title}"`);
 
-    // The catalog has no popularity figures; the discovery feed sorts on this
-    // field, so IMDb rating puts the best-rated movies in its pool.
-    const data = { ...row, popularity: row.imdbRating };
+    // The discovery feed sorts on popularity; IMDb rating puts the
+    // best-rated movies in its pool.
+    const data = {
+      ...row,
+      releaseDate: releaseDate ? new Date(releaseDate) : null,
+      budget: BigInt(budget),
+      revenue: BigInt(revenue),
+      popularity: row.imdbRating,
+    };
     const connect = genres.map((name) => ({ id: GENRE_IDS[name] }));
 
-    const existing = await prisma.movie.findFirst({
-      where: { title: row.title, director: row.director },
-      select: { id: true },
-    });
+    const existing =
+      (await prisma.movie.findUnique({ where: { tmdbId: row.tmdbId }, select: { id: true } })) ??
+      (await prisma.movie.findFirst({
+        where: { tmdbId: null, title: row.title, director: row.director },
+        select: { id: true },
+      }));
     if (existing) {
       await prisma.movie.update({
         where: { id: existing.id },
         data: { ...data, genres: { set: connect } },
       });
+      keep.push(existing.id);
       updated += 1;
     } else {
-      await prisma.movie.create({ data: { ...data, genres: { connect } } });
+      const movie = await prisma.movie.create({ data: { ...data, genres: { connect } }, select: { id: true } });
+      keep.push(movie.id);
       created += 1;
     }
   }
 
+  let pruned = 0;
+  if (prune) {
+    // Cascades remove the movies' watchlist entries, ratings, swipes and providers.
+    ({ count: pruned } = await prisma.movie.deleteMany({ where: { id: { notIn: keep } } }));
+  }
+
   const total = await prisma.movie.count();
-  console.log(`ingest complete: ${created} created, ${updated} updated, ${total} movies in total`);
+  console.log(
+    `ingest complete: ${created} created, ${updated} updated, ${pruned} pruned, ${total} movies in total`,
+  );
 }
 
 main()

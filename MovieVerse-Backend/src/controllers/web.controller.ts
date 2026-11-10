@@ -16,6 +16,9 @@ function pageMeta(total: number, page: number, pageSize: number) {
   };
 }
 
+// Most-voted first, so the famous films lead every page; id keeps the order stable.
+const MOST_WATCHED = [{ voteCount: 'desc' as const }, { id: 'desc' as const }];
+
 // GET /api/web/catalog — paginated public catalog, optional ?genre filter.
 export const catalog = asyncHandler(async (req, res) => {
   const { page, pageSize } = parsePagination(req.query);
@@ -27,7 +30,7 @@ export const catalog = asyncHandler(async (req, res) => {
     prisma.movie.findMany({
       where,
       include: movieInclude,
-      orderBy: { id: 'desc' },
+      orderBy: MOST_WATCHED,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -45,7 +48,7 @@ export const search = asyncHandler(async (req, res) => {
     prisma.movie.findMany({
       where,
       include: movieInclude,
-      orderBy: { id: 'desc' },
+      orderBy: MOST_WATCHED,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
