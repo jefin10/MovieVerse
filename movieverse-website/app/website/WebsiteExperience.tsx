@@ -31,6 +31,9 @@ function splitFeaturedTitle(slide: FeaturedSlide) {
 
 export default function WebsiteExperience() {
   const [movies, setMovies] = useState<Movie[]>([]);
+  // "What's Hot" has its own list from the unfiltered catalog, so picking a
+  // genre or searching only changes the Browse grid below it.
+  const [hotMovies, setHotMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
@@ -40,14 +43,26 @@ export default function WebsiteExperience() {
   const trendingRef = useRef<HTMLDivElement>(null);
 
   const trendingMovies = useMemo(
-    () => sortByRating(movies).slice(0, 12).map(toWebMovie),
-    [movies],
+    () => sortByRating(hotMovies).slice(0, 12).map(toWebMovie),
+    [hotMovies],
   );
 
   const browseMovies = useMemo(() => movies.map(toWebMovie), [movies]);
 
   const hero = FEATURED_SLIDES[heroIndex];
   const titleParts = splitFeaturedTitle(hero);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCatalog(1, 48)
+      .then((data) => {
+        if (!cancelled) setHotMovies(data.results);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
