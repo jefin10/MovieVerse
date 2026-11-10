@@ -395,17 +395,6 @@ export function SwipeDemo() {
         </div>
         <TabBar active="swipe" />
       </Phone>
-      <div className="mv-float mv-sw__count" aria-hidden="true">
-        <Icon name="bookmark" size={18} />
-        <span className="mv-flip">
-          <b>12</b>
-          <b>13</b>
-        </span>
-        <small>in watchlist</small>
-      </div>
-      <div className="mv-float mv-sw__heart" aria-hidden="true">
-        <Icon name="heart" size={22} fill />
-      </div>
     </div>
   );
 }
@@ -422,13 +411,6 @@ export function MoodDemo() {
         </div>
         <TabBar active="mood" />
       </Phone>
-      <div className="mv-float mv-md__ai" aria-hidden="true">
-        <span className="mv-md__words">“cozy, rainy night”</span>
-        <span className="mv-md__spark">
-          <Icon name="zap" size={14} fill />
-        </span>
-        <span className="mv-md__genre">Romance</span>
-      </div>
     </div>
   );
 }
@@ -495,12 +477,6 @@ export function RoomDemo() {
           <MatchModal poster="interstellar" title="Interstellar" />
         </div>
       </Phone>
-      <div className="mv-float mv-rm__join mv-rm__join--1" aria-hidden="true">
-        <span className="mv-av">S</span> sam joined
-      </div>
-      <div className="mv-float mv-rm__join mv-rm__join--2" aria-hidden="true">
-        <span className="mv-av mv-av--gold">A</span> alex joined
-      </div>
     </div>
   );
 }
@@ -556,11 +532,6 @@ export function FriendsDemo() {
           </div>
         </div>
       </Phone>
-      <div className="mv-float mv-fr__venn" aria-hidden="true">
-        <span className="mv-fr__c mv-fr__c--a">You</span>
-        <span className="mv-fr__c mv-fr__c--b">sam</span>
-        <b className="mv-fr__pct">92%</b>
-      </div>
     </div>
   );
 }
@@ -603,22 +574,6 @@ export function PickDemo() {
           </div>
         </div>
       </Phone>
-      <div className="mv-float mv-pk__sky" aria-hidden="true">
-        <svg viewBox="0 0 120 120">
-          <circle className="mv-pk__sun" cx="60" cy="62" r="18" fill="url(#mvg-gold)" />
-          <g className="mv-pk__moon">
-            <circle cx="60" cy="62" r="17" fill="#f2f2f2" />
-            <circle cx="68" cy="56" r="15" fill="#0a0a0a" />
-          </g>
-          <g className="mv-pk__stars" fill="#fff">
-            <circle cx="22" cy="30" r="1.6" />
-            <circle cx="96" cy="24" r="1.2" />
-            <circle cx="100" cy="70" r="1.4" />
-            <circle cx="30" cy="84" r="1" />
-          </g>
-          <line x1="10" y1="92" x2="110" y2="92" stroke="#fff" strokeOpacity=".25" />
-        </svg>
-      </div>
     </div>
   );
 }
@@ -726,12 +681,6 @@ export function DetailDemo() {
           <DetailScreen />
         </div>
       </Phone>
-      <div className="mv-float mv-dt__burst" aria-hidden="true">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <i key={i} style={v({ "--a": `${i * 60}deg` })} />
-        ))}
-        <Icon name="star" size={26} fill />
-      </div>
     </div>
   );
 }

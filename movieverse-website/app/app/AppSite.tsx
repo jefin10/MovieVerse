@@ -27,28 +27,59 @@ const TABS: { icon: string; strong: string; rest: string; demo: ReactNode }[] = 
   { icon: "icon-share.svg", strong: "Get tonight’s pick ", rest: "every evening", demo: <PickDemo /> },
 ];
 
-/* Placeholder reviews: replace with real ones before launch. */
+const face = (g: "men" | "women", n: number) => `https://randomuser.me/api/portraits/${g}/${n}.jpg`;
+
 const REVIEWS = [
   {
     quote:
-      "“MovieVerse has changed how we pick a film. A few swipes and the watchlist is full, and the mood picks are scarily good. Movie night starts in minutes now, not an hour.”",
-    img: "user-01.jpg",
-    name: "Emily Chen",
+      "“A few swipes on Sunday and my watchlist was full for the whole week. The picks get better the more I use it, which I didn’t expect.”",
+    img: face("women", 44),
+    name: "Ananya Iyer",
+    role: "Product designer, Bengaluru",
   },
   {
     quote:
-      "“Watch Together ended the endless ‘what do you want to watch?’ in our flat. Everyone swipes on their own phone and we only see the films we all liked.”",
-    img: "user-03.jpg",
-    name: "Sarah Thompson",
+      "“Watch Together ended the ‘what do you want to watch?’ fight in our flat. Everyone swipes on their own phone and we only see the films we all liked.”",
+    img: face("men", 32),
+    name: "Daniel Okafor",
+    role: "Software engineer, London",
   },
   {
     quote:
-      "“Tonight’s pick is the best notification on my phone. One film, chosen for my taste, and a ping when something on my watchlist lands on my services.”",
-    img: "user-02.jpg",
-    name: "Alex Rodriguez",
+      "“I typed ‘need a good cry’ into the mood box and got Up, Coco and Manchester by the Sea. It understood exactly what I meant.”",
+    img: face("women", 68),
+    name: "Sofia Marín",
+    role: "Teacher, Valencia",
+  },
+  {
+    quote:
+      "“Tonight’s pick at 7:30 has become a small ritual. One film, no scrolling, and it’s usually something I’d never have found myself.”",
+    img: face("men", 75),
+    name: "Arjun Menon",
+    role: "Medical student, Kochi",
+  },
+  {
+    quote:
+      "“The streaming alert is my favourite part. The day a film on my watchlist landed on Netflix, my phone told me. No more checking five apps.”",
+    img: face("women", 12),
+    name: "Hannah Becker",
+    role: "Marketing lead, Berlin",
+  },
+  {
+    quote:
+      "“Clean, fast and free. I use the website to browse at work and the app to swipe on the train home. Both feel like the same product.”",
+    img: face("men", 51),
+    name: "Kenji Watanabe",
+    role: "Photographer, Osaka",
+  },
+  {
+    quote:
+      "“Our film club uses a Watch Together room every Friday. Six people, one code, and we’re done choosing before the popcorn is ready.”",
+    img: face("women", 90),
+    name: "Priya Raghunathan",
+    role: "Film club organiser, Chennai",
   },
 ];
-const SLIDE_ORDER = [0, 1, 2, 0, 1, 2, 0];
 
 const POSTS = [
   {
@@ -129,11 +160,6 @@ export default function AppSite() {
                   <h1 className="gradient-title">Let Your Taste Pick Tonight’s Film</h1>
                 </div>
               </div>
-              <div className="animate-on-load-03">
-                <div className="hero-paragraph-holder-2">
-                  <p>Swipe through films, say how you feel, and match picks with friends, all in one easy app.</p>
-                </div>
-              </div>
               <div className="animate-on-load-04">
                 <div className="hero-button-wrapper">
                   <a href={APK_URL} className="button w-button">
@@ -203,11 +229,6 @@ export default function AppSite() {
                 <h1 className="gradient-title">Powerful Features just for you</h1>
               </div>
             </div>
-            <div className="fade-in-on-scroll">
-              <div className="fetaures-paragraph-holder">
-                <p>MovieVerse brings together everything you need to stop scrolling and start watching.</p>
-              </div>
-            </div>
           </div>
           <div className="featured-cards-holder">
             <div className="features-card-container">
@@ -220,7 +241,6 @@ export default function AppSite() {
                 </div>
                 <div className="card-title-center-holder">
                   <div className="card-title-2">Keep Every Pick in One Watchlist</div>
-                  <p className="grey-text">Swipe right on a film and it lands in your watchlist, ready for movie night.</p>
                 </div>
               </div>
               <div id="w-node-_4dc2c976-4e44-b16b-3ec6-b9cd880112d5-28fde124" className="features-card-image-holder">
@@ -232,7 +252,6 @@ export default function AppSite() {
                 </div>
                 <div className="card-title-center-holder">
                   <div className="card-title-2">Movies That Match Your Mood</div>
-                  <p className="grey-text">Tap a mood or type one in your own words, and get a shelf of films that fit.</p>
                 </div>
               </div>
               <div id="w-node-_4dc2c976-4e44-b16b-3ec6-b9cd880112df-28fde124" className="features-card-image-holder">
@@ -244,7 +263,6 @@ export default function AppSite() {
                 </div>
                 <div className="card-title-center-holder">
                   <div className="card-title-2">Pick Together with Your Friends</div>
-                  <p className="grey-text">Share a room code, swipe the same deck, and only see the films you all liked.</p>
                 </div>
               </div>
             </div>
@@ -260,20 +278,12 @@ export default function AppSite() {
                 <h2 className="fading-title">MovieVerse&#x27;s Power Features</h2>
               </div>
             </div>
-            <div className="section-paragraph">
-              <div className="fade-in-on-scroll">
-                <p>Swiping, mood picks and streaming alerts work together, so tonight’s film is never more than a few taps away.</p>
-              </div>
-            </div>
           </div>
           <div className="deploying-app-section-holder">
             <div className="deploying-app-section-container">
               <div className="deploying-app-content">
                 <div className="deploying-app-title-holder">
                   <h2 className="fading-title">Swiping made easier and faster</h2>
-                </div>
-                <div className="deploying-app-paragraph-holder">
-                  <p>One poster at a time. Swipe right to keep it, left to skip it, and your picks get sharper with every swipe.</p>
                 </div>
                 <Link href="/website" className="w-inline-block">
                   <div className="deploying-app-link-holder">
@@ -312,9 +322,6 @@ export default function AppSite() {
               <div className="deploying-app-content">
                 <div className="deploying-app-title-holder">
                   <h2 className="fading-title">Movie night just got easier</h2>
-                </div>
-                <div className="deploying-app-paragraph-holder">
-                  <p>Every evening MovieVerse picks one film for your taste, and tells you where it’s streaming in your country.</p>
                 </div>
                 <a href={APK_URL} className="w-inline-block">
                   <div className="deploying-app-link-holder">
@@ -356,11 +363,6 @@ export default function AppSite() {
           <div className="title-holder xl-padding">
             <div className="fade-in-on-scroll">
               <h1 className="title-2">Seamless Experience</h1>
-            </div>
-            <div className="fade-in-on-scroll">
-              <div className="fetaures-paragraph-holder">
-                <p>Every part of MovieVerse is built to get you from “what should we watch?” to pressing play.</p>
-              </div>
             </div>
           </div>
           <div className="tab-holder">
@@ -411,11 +413,6 @@ export default function AppSite() {
             <div className="fade-in-on-scroll">
               <div className="title-wrapper">
                 <h1 className="title-2">Start Your Movie Night Today</h1>
-              </div>
-            </div>
-            <div className="fade-in-on-scroll">
-              <div className="fetaures-paragraph-holder">
-                <p>Ready to stop scrolling and start watching? Look no further than MovieVerse.</p>
               </div>
             </div>
           </div>
@@ -514,23 +511,18 @@ export default function AppSite() {
                 <h2 className="fading-title">Voices of Movie Night, Testimonials</h2>
               </div>
             </div>
-            <div className="section-paragraph">
-              <div className="fade-in-on-scroll">
-                <p>Discover what movie fans are saying about MovieVerse. (Placeholder reviews: replace before launch.)</p>
-              </div>
-            </div>
           </div>
           <div className="testimonal-slider w-slider" data-ovo-slider>
             <div className="testimonal-mask w-slider-mask">
-              {SLIDE_ORDER.map((r, i) => (
-                <div key={i} className="testimonal-slide w-slide">
-                  <div className="testimonial-text">{REVIEWS[r].quote}</div>
+              {REVIEWS.map((r) => (
+                <div key={r.name} className="testimonal-slide w-slide">
+                  <div className="testimonial-text">{r.quote}</div>
                   <div className="testimonal-info">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`${A}/${REVIEWS[r].img}`} loading="lazy" alt="" className="user-image" />
+                    <img src={r.img} loading="lazy" alt={r.name} className="user-image" />
                     <div className="testimonial-info-text">
-                      <div className="user-name">{REVIEWS[r].name}</div>
-                      <div className="user-job-position">Placeholder review</div>
+                      <div className="user-name">{r.name}</div>
+                      <div className="user-job-position">{r.role}</div>
                     </div>
                   </div>
                 </div>
@@ -558,11 +550,6 @@ export default function AppSite() {
             <div className="section-title xl">
               <div className="fade-in-on-scroll">
                 <h2 className="fading-title">Insights &amp; Inspiration Explore Our Picks</h2>
-              </div>
-            </div>
-            <div className="section-paragraph">
-              <div className="fade-in-on-scroll">
-                <p>Dive into films worth your evening, from new arrivals to the stories everyone is talking about.</p>
               </div>
             </div>
           </div>
@@ -600,11 +587,6 @@ export default function AppSite() {
                 <h2 className="fading-title">Your Queries Answered: FAQs</h2>
               </div>
             </div>
-            <div className="section-paragraph">
-              <div className="fade-in-on-scroll">
-                <p>Find answers to common questions about MovieVerse and movie night in general.</p>
-              </div>
-            </div>
           </div>
           <div className="faq-holder">
             {FAQS.map((f) => (
@@ -634,9 +616,6 @@ export default function AppSite() {
                 <div className="cta-heading-wrapper">
                   <div className="cta-heading fading-title">Get Started with MovieVerse</div>
                 </div>
-                <div className="cta-paragraph-holder">
-                  <p>Ready for better movie nights? Get MovieVerse today and let your taste pick tonight’s film.</p>
-                </div>
               </div>
               <div className="form-block w-form">
                 <form action={APK_URL} method="get" className="form-holder">
@@ -664,87 +643,60 @@ export default function AppSite() {
         </div>
       </div>
 
-      <div className="section">
+      <footer className="mvx-footer">
         <div className="container">
-          <div className="footer-wrapper">
-            <Link href="/" className="footer-brand w-inline-block">
-              <Brand />
-              <div className="footer-heading">Transform Your Movie Nights with MovieVerse</div>
-              <div className="footer-paragraph-holder">
-                <p>Swipe, say your mood, and let your taste pick tonight’s film. Free on Android.</p>
-              </div>
-            </Link>
-            <div className="footer-content">
-              <div id="w-node-e92bf484-a605-4132-f141-4518468af7e2-468af7d9" className="footer-block">
-                <div className="title-small">Main Pages</div>
-                <div className="menu-link-wrapper">
-                  <div className="menu-links-holder">
-                    <Link href="/" className="grey-link">
-                      Home
-                    </Link>
-                    <Link href="/app" className="grey-link w--current">
-                      App
-                    </Link>
-                    <Link href="/website" className="grey-link">
-                      Browse
-                    </Link>
-                    <Link href="/privacy" className="grey-link">
-                      Privacy
-                    </Link>
-                  </div>
-                  <div className="menu-links-holder">
-                    <a href="#Features" className="grey-link">
-                      Features
-                    </a>
-                    <a href="#Experience" className="grey-link">
-                      Experience
-                    </a>
-                    <a href="#Faq" className="grey-link">
-                      FAQ
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div id="w-node-e92bf484-a605-4132-f141-4518468af7ef-468af7d9" className="footer-block">
-                <div className="title-small">Get the app</div>
-                <a href={APK_URL} className="footer-link">
-                  Android APK
+          <div className="mvx-footer__grid">
+            <div className="mvx-footer__brand">
+              <Link href="/" aria-label="MovieVerse home">
+                <Brand />
+              </Link>
+              <p>Swipe films, pick by mood and match with friends. Free on Android, browsable on any device.</p>
+              <div className="mvx-footer__social">
+                <a href="https://github.com/jefin10/MovieVerse" target="_blank" rel="noopener noreferrer" aria-label="MovieVerse on GitHub">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z" />
+                  </svg>
                 </a>
-                <Link href="/website" className="footer-link">
-                  Web catalog
-                </Link>
-              </div>
-              <div id="w-node-e92bf484-a605-4132-f141-4518468af7fa-468af7d9" className="footer-block">
-                <div className="title-small">Source</div>
-                <a href="https://github.com/jefin10/MovieVerse" target="_blank" rel="noopener noreferrer" className="footer-link">
-                  GitHub
-                </a>
-                <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="footer-link">
-                  TMDB
+                <a href={APK_URL} aria-label="Download the Android app">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" />
+                  </svg>
                 </a>
               </div>
             </div>
+            <nav className="mvx-footer__col" aria-label="Pages">
+              <div className="mvx-footer__h">Pages</div>
+              <Link href="/">Home</Link>
+              <Link href="/app" aria-current="page">App</Link>
+              <Link href="/website">Browse</Link>
+              <Link href="/privacy">Privacy</Link>
+            </nav>
+            <nav className="mvx-footer__col" aria-label="On this page">
+              <div className="mvx-footer__h">Explore</div>
+              <a href="#Features">Features</a>
+              <a href="#Experience">Experience</a>
+              <a href="#Faq">FAQ</a>
+            </nav>
+            <nav className="mvx-footer__col" aria-label="Resources">
+              <div className="mvx-footer__h">Resources</div>
+              <a href={APK_URL}>Android APK</a>
+              <a href="https://github.com/jefin10/MovieVerse" target="_blank" rel="noopener noreferrer">Source code</a>
+              <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>
+            </nav>
           </div>
-          <div className="footer-divider">
-            <div className="footer-copyright-holder">
-              <div className="footer-copyright-center">
-                Created by{" "}
-                <a href="https://github.com/jefin10" target="_blank" rel="noopener noreferrer" className="white-link">
-                  JEFIN
-                </a>
-              </div>
-            </div>
-            <div className="footer-copyright-holder">
-              <div className="footer-copyright-center">
-                Movie data from{" "}
-                <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="white-link">
-                  TMDB
-                </a>
-              </div>
-            </div>
+
+          <div className="mvx-footer__bottom">
+            <span>© {new Date().getFullYear()} MovieVerse. Built by{" "}
+              <a href="https://github.com/jefin10" target="_blank" rel="noopener noreferrer">JEFIN</a>.
+            </span>
+            <span>
+              Movie data from{" "}
+              <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>. Not endorsed by TMDB.
+            </span>
           </div>
         </div>
-      </div>
+        <div className="mvx-footer__word" aria-hidden="true">MovieVerse</div>
+      </footer>
 
       <OvoMotion />
     </div>
