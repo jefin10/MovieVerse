@@ -3,7 +3,7 @@ import WebsiteExperience from "./WebsiteExperience";
 import "./website.css";
 
 export const metadata: Metadata = {
-  title: "MovieVerse | Browse Movies & Discover What to Watch",
+  title: "Browse Movies & Discover What to Watch",
   description:
     "Explore trending titles, browse the catalog, and find your next movie night pick on MovieVerse.",
   alternates: { canonical: "/website" },
