@@ -9,7 +9,7 @@ type MovieCardProps = {
 };
 
 export default function MovieCard({ movie }: MovieCardProps) {
-  const ratingLabel = movie.rating > 0 ? movie.rating.toFixed(1) : "—";
+  const ratingLabel = movie.rating > 0 ? movie.rating.toFixed(1) : "N/A";
 
   return (
     <article className="web-movie-card">

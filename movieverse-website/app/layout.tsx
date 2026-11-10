@@ -18,7 +18,7 @@ const siteUrl = "https://movieverse.jefin.xyz";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MovieVerse — Discover Movies. Swipe. Watch.",
+    default: "MovieVerse | Discover Movies. Swipe. Watch.",
     template: "%s | MovieVerse",
   },
   description:
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "MovieVerse",
-    title: "MovieVerse — Discover Movies. Swipe. Watch.",
+    title: "MovieVerse | Discover Movies. Swipe. Watch.",
     description:
       "Browse the movie catalog on web, or download the app for swipe discovery, mood AI, and personalized picks.",
     images: [
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "MovieVerse — Discover Movies. Swipe. Watch.",
+    title: "MovieVerse | Discover Movies. Swipe. Watch.",
     description:
       "Browse movies on web. Download the app for swipe discovery and mood-based recommendations.",
     images: ["/MVV.png"],

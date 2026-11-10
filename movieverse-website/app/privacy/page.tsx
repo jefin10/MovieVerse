@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
             At <strong>MovieVerse</strong>, your privacy is fundamental to how we
             build our platform. This policy explains what information we collect
             when you use the MovieVerse website, download the Android APK, or
-            interact with any of our services — and how we protect it.
+            interact with any of our services, and how we protect it.
           </p>
           <p>
             MovieVerse is a movie discovery platform that combines a web
@@ -53,8 +53,8 @@ export default function PrivacyPolicyPage() {
 
           <h4 className="privacy-sub">2.3 Device & Technical Data</h4>
           <p>
-            When you use MovieVerse — whether on the web or through the Android
-            app — we may automatically collect non-personal technical data
+            When you use MovieVerse, whether on the web or through the Android
+            app, we may automatically collect non-personal technical data
             such as your device type, operating system version, browser type,
             screen resolution, IP address, and approximate location derived
             from your IP. This helps us debug issues, improve performance, and
@@ -97,28 +97,28 @@ export default function PrivacyPolicyPage() {
           <p>We use the information we collect for the following purposes:</p>
           <ul>
             <li>
-              <strong>Account Management</strong> — Authenticate your identity,
+              <strong>Account Management</strong>: Authenticate your identity,
               sync your watchlists and taste profile across devices, and let
               you access your saved movies from anywhere.
             </li>
             <li>
-              <strong>Mood & Taste Recommendations</strong> — Our lightweight
+              <strong>Mood & Taste Recommendations</strong>: Our lightweight
               machine-learning model uses your mood selections and swipe
               history to rank movies from the catalog that match your current
               vibe.
             </li>
             <li>
-              <strong>Service Improvement</strong> — Aggregate usage patterns
+              <strong>Service Improvement</strong>: Aggregate usage patterns
               help us identify bugs, optimize loading times, and decide which
               features to build next.
             </li>
             <li>
-              <strong>Security & Abuse Prevention</strong> — Technical data like
+              <strong>Security & Abuse Prevention</strong>: Technical data like
               IP addresses helps us detect and prevent fraudulent activity,
               scraping, and abuse of our API.
             </li>
             <li>
-              <strong>Communication</strong> — We may email you about critical
+              <strong>Communication</strong>: We may email you about critical
               account updates, security notices, or major product changes. We
               do not send marketing emails, and you will never receive spam
               from MovieVerse.
@@ -140,8 +140,8 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             We retain your account data for as long as your account is active.
-            If you delete your account, all associated personal data — including
-            your watchlist, taste profile, swipe history, and mood records —
+            If you delete your account, all associated personal data (including
+            your watchlist, taste profile, swipe history, and mood records)
             is permanently deleted from our servers within 30 days. Anonymized,
             aggregated usage metrics may be retained indefinitely for
             analytical purposes.
@@ -169,18 +169,18 @@ export default function PrivacyPolicyPage() {
           </p>
           <ul>
             <li>
-              <strong>TMDB API</strong> — Only non-personal metadata requests
+              <strong>TMDB API</strong>: Only non-personal metadata requests
               are sent to TMDB to fetch movie posters, ratings, cast, and
               trailers. No user identifiers are transmitted.
             </li>
             <li>
-              <strong>Hosting & Infrastructure</strong> — Our servers are
+              <strong>Hosting & Infrastructure</strong>: Our servers are
               hosted on cloud infrastructure providers (e.g., Hetzner,
               Railway, or similar). These providers have industry-standard
               security certifications.
             </li>
             <li>
-              <strong>Legal Obligations</strong> — We may disclose information
+              <strong>Legal Obligations</strong>: We may disclose information
               if required by law, subpoena, or court order. We will notify
               affected users unless legally prohibited from doing so.
             </li>
@@ -200,23 +200,23 @@ export default function PrivacyPolicyPage() {
           </p>
           <ul>
             <li>
-              <strong>Access</strong> — Request a copy of all personal data
+              <strong>Access</strong>: Request a copy of all personal data
               we hold about you.
             </li>
             <li>
-              <strong>Correction</strong> — Update inaccurate or incomplete
+              <strong>Correction</strong>: Update inaccurate or incomplete
               personal information tied to your account.
             </li>
             <li>
-              <strong>Deletion</strong> — Request deletion of your account
+              <strong>Deletion</strong>: Request deletion of your account
               and all associated personal data.
             </li>
             <li>
-              <strong>Portability</strong> — Receive your data in a
+              <strong>Portability</strong>: Receive your data in a
               structured, machine-readable format.
             </li>
             <li>
-              <strong>Opt-Out</strong> — You can browse the MovieVerse catalog
+              <strong>Opt-Out</strong>: You can browse the MovieVerse catalog
               without an account. Creating an account is entirely optional.
             </li>
           </ul>
@@ -266,11 +266,11 @@ export default function PrivacyPolicyPage() {
           </p>
           <ul>
             <li>
-              <strong>Internet Access</strong> — Required to fetch movie
+              <strong>Internet Access</strong>: Required to fetch movie
               metadata from our backend API and TMDB.
             </li>
             <li>
-              <strong>Storage (optional)</strong> — May be used to cache
+              <strong>Storage (optional)</strong>: May be used to cache
               poster images for offline browsing. You can deny this
               permission and continue using the app.
             </li>
@@ -301,8 +301,8 @@ export default function PrivacyPolicyPage() {
           <p>
             The MovieVerse backend, website, and Android app are fully
             open-source under the MIT license. You can inspect every line of
-            code — including how we handle authentication,
-            process mood data, and make API calls — at our{" "}
+            code, including how we handle authentication,
+            process mood data, and make API calls, at our{" "}
             <a
               href="https://github.com/jefin10/MovieVerse"
               target="_blank"

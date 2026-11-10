@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCatalog, fetchCatalogByGenre, searchCatalog, type Movie } from "@/lib/api";
+import SiteNav from "@/components/SiteNav";
 import MovieCard from "./MovieCard";
 import MovieCardSkeleton from "./MovieCardSkeleton";
 import SliderArrow from "./SliderArrow";
@@ -37,7 +38,6 @@ export default function WebsiteExperience() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
-  const [navOpen, setNavOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [genre, setGenre] = useState<BrowseGenre>("All");
   const trendingRef = useRef<HTMLDivElement>(null);
@@ -105,14 +105,6 @@ export default function WebsiteExperience() {
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    if (!navOpen) return;
-    const close = () => setNavOpen(false);
-    window.addEventListener("resize", close);
-    return () => window.removeEventListener("resize", close);
-  }, [navOpen]);
-
-  const closeNav = () => setNavOpen(false);
 
   const shiftHero = (direction: -1 | 1) => {
     setHeroIndex((i) => (i + direction + FEATURED_SLIDES.length) % FEATURED_SLIDES.length);
@@ -130,37 +122,17 @@ export default function WebsiteExperience() {
 
   return (
     <div className="web-page">
-      <header className={`web-nav${navOpen ? " is-open" : ""}`}>
-        <Link href="/website" className="web-nav-brand" onClick={closeNav}>
-          MOVIEVERSE
-        </Link>
-
-        <div className="web-nav-glass">
-          <button
-            type="button"
-            className="web-nav-menu-btn"
-            aria-expanded={navOpen}
-            aria-controls="web-nav-links"
-            onClick={() => setNavOpen((v) => !v)}
-          >
-            Menu
-          </button>
-          <nav
-            id="web-nav-links"
-            className="web-nav-links"
-            aria-label="Website"
-            onClick={closeNav}
-          >
-            <a href="#home">Home</a>
-            <a href="#trending">Trending</a>
-            <a href="#browse">Browse</a>
-            <a href="#download">Download</a>
-          </nav>
-          <Link href="/app" className="web-nav-cta" onClick={closeNav}>
-            Get App
-          </Link>
-        </div>
-      </header>
+      <SiteNav
+        brandHref="/website"
+        label="Website"
+        links={[
+          { href: "#home", label: "Home" },
+          { href: "#trending", label: "Trending" },
+          { href: "#browse", label: "Browse" },
+          { href: "#download", label: "Download" },
+        ]}
+        cta={{ href: "/app", label: "Get App" }}
+      />
 
       {error && (
         <div className="web-error" role="alert">
@@ -368,7 +340,7 @@ export default function WebsiteExperience() {
         <div className="web-download-copy">
           <h2>Your Movie Adventure Starts Here!</h2>
           <p>
-            Your favorite movies, your way — watch anytime, explore new releases, and take the
+            Your favorite movies, your way. Watch anytime, explore new releases, and take the
             cinema with you. Entertainment, fully reimagined.
           </p>
           <Link href="/app" className="web-download-link">

@@ -57,7 +57,7 @@ export const FEATURED_SLIDES: FeaturedSlide[] = [
     runtime: "2h 36min",
     genres: ["Sci-Fi", "Adventure"],
     synopsis:
-      "An amnesiac astronaut wakes alone aboard an interstellar spacecraft and must solve an impossible problem — with an unexpected alien ally — to save Earth from extinction.",
+      "An amnesiac astronaut wakes alone aboard an interstellar spacecraft and must solve an impossible problem, with an unexpected alien ally, to save Earth from extinction.",
   },
 ];
 
@@ -92,7 +92,7 @@ export const TEMP_MOVIES: Record<string, TempMovie> = {
     director: "",
     cast: [],
     trailerUrl: "https://www.youtube.com/results?search_query=Obsession+2026+movie+trailer",
-    trailerName: "Obsession — Official Trailer",
+    trailerName: "Obsession | Official Trailer",
   },
   "peaky-blinders": {
     id: "peaky-blinders",
@@ -103,11 +103,11 @@ export const TEMP_MOVIES: Record<string, TempMovie> = {
     runtime: "1h 52min",
     genres: ["Crime", "Drama"],
     synopsis:
-      "Set during the 1940 Birmingham Blitz, Tommy Shelby is lured out of self-imposed isolation when a Nazi plot to flood Britain with counterfeit currency threatens the country — and his son Duke, now leading the Peaky Blinders. A muddy, bloody, big-screen send-off for Tommy Shelby and the gang.",
+      "Set during the 1940 Birmingham Blitz, Tommy Shelby is lured out of self-imposed isolation when a Nazi plot to flood Britain with counterfeit currency threatens the country, and his son Duke, now leading the Peaky Blinders. A muddy, bloody, big-screen send-off for Tommy Shelby and the gang.",
     director: "Tom Harper",
     cast: ["Cillian Murphy", "Barry Keoghan"],
     trailerUrl: "https://www.youtube.com/results?search_query=Peaky+Blinders+The+Immortal+Man+trailer",
-    trailerName: "Peaky Blinders: The Immortal Man — Official Trailer",
+    trailerName: "Peaky Blinders: The Immortal Man | Official Trailer",
   },
   "project-hail-mary": {
     id: "project-hail-mary",
@@ -118,11 +118,11 @@ export const TEMP_MOVIES: Record<string, TempMovie> = {
     runtime: "2h 36min",
     genres: ["Sci-Fi", "Adventure"],
     synopsis:
-      "Ryland Grace wakes from a coma aboard the interstellar spacecraft Hail Mary with no memory of who he is — the sole survivor of a last-ditch mission to stop a stellar catastrophe that threatens all life on Earth. With the help of an unexpected alien ally, he must use science, ingenuity and hope to save two worlds.",
+      "Ryland Grace wakes from a coma aboard the interstellar spacecraft Hail Mary with no memory of who he is. He is the sole survivor of a last-ditch mission to stop a stellar catastrophe that threatens all life on Earth. With the help of an unexpected alien ally, he must use science, ingenuity and hope to save two worlds.",
     director: "Phil Lord & Christopher Miller",
     cast: ["Ryan Gosling", "Sandra Hüller"],
     trailerUrl: "https://www.youtube.com/results?search_query=Project+Hail+Mary+official+trailer",
-    trailerName: "Project Hail Mary — Official Trailer",
+    trailerName: "Project Hail Mary | Official Trailer",
   },
 };
 
@@ -162,11 +162,11 @@ export function toWebMovie(movie: Movie): WebMovie {
     title: movie.title,
     poster: getPoster(movie.poster_url),
     rating: getMovieRating(movie),
-    year: movie.release_date?.slice(0, 4) ?? "—",
+    year: movie.release_date?.slice(0, 4) ?? "TBA",
     genres: movie.genres ?? [],
     synopsis:
       movie.description?.trim().slice(0, 200) ||
-      "Explore this title on MovieVerse — posters, ratings, cast, and more.",
+      "Explore this title on MovieVerse: posters, ratings, cast and more.",
   };
 }
 

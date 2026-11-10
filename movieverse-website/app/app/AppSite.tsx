@@ -8,16 +8,17 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { DetailDemo, HeroDemo, MoodDemo, PickDemo, RoomDemo, SwipeDemo } from "./Mockups";
 import OvoMotion from "./OvoMotion";
+import { MoodCard, RoomCard, SwipePanel, TonightPanel, WatchlistCard } from "./Panels";
 import { Icon, LogoMark, Sprites } from "./Sprites";
 import { POSTERS, tmdb } from "./films";
 
-const APK_URL = "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
+export const APK_URL = "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
 const A = "/app-ovo";
 
 const GENRES = ["Drama", "Sci-Fi", "Thriller", "Comedy", "Romance", "Animation", "Mystery", "Adventure"];
-const ROW_1 = [POSTERS.interstellar, POSTERS.coco, POSTERS.matrix, POSTERS.up, POSTERS.whiplash, POSTERS.joker, POSTERS.budapest];
-const ROW_2 = [POSTERS.inception, POSTERS.toyStory, POSTERS.darkKnight, POSTERS.insideOut, POSTERS.bladeRunner, POSTERS.coco, POSTERS.up];
-const SLIDES = [POSTERS.interstellar, POSTERS.budapest, POSTERS.coco, POSTERS.whiplash, POSTERS.inception, POSTERS.up];
+const ROW_1 = [POSTERS.interstellar, POSTERS.spiritedAway, POSTERS.matrix, POSTERS.up, POSTERS.whiplash, POSTERS.joker, POSTERS.budapest];
+const ROW_2 = [POSTERS.inception, POSTERS.toyStory, POSTERS.darkKnight, POSTERS.wallE, POSTERS.bladeRunner, POSTERS.spiritedAway, POSTERS.up];
+const SLIDES = [POSTERS.interstellar, POSTERS.budapest, POSTERS.spiritedAway, POSTERS.whiplash, POSTERS.inception, POSTERS.up];
 
 const TABS: { icon: string; strong: string; rest: string; demo: ReactNode }[] = [
   { icon: "icon-connect.svg", strong: "Swipe and save ", rest: "your next favourite", demo: <SwipeDemo /> },
@@ -109,55 +110,8 @@ export default function AppSite() {
       />
       <Sprites />
 
-      <div role="banner" className="navbar w-nav" data-collapse="medium" data-ovo-nav>
-        <div className="container navbar-container">
-          <div className="navbar-holder">
-            <div className="navbar-container">
-              <div className="brand-holder">
-                <Link href="/" className="brand w-nav-brand" aria-label="MovieVerse home">
-                  <Brand />
-                </Link>
-              </div>
-              <nav role="navigation" className="nav-menu w-nav-menu">
-                <div className="nav-menu-link-holder">
-                  <div className="nav-menu-link-container">
-                    <div className="nav-links">
-                      <a href="#top" className="nav-link w-nav-link w--current">
-                        Home
-                      </a>
-                      <a href="#Features" className="nav-link w-nav-link">
-                        Features
-                      </a>
-                      <a href="#Experience" className="nav-link w-nav-link">
-                        Experience
-                      </a>
-                      <Link href="/website" className="nav-link w-nav-link">
-                        Browse
-                      </Link>
-                      <a href="#Faq" className="nav-link w-nav-link">
-                        FAQ
-                      </a>
-                      <Link href="/privacy" className="nav-link w-nav-link">
-                        Privacy
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </nav>
-              <div className="menu-cart-holder">
-                <button type="button" className="menu-button w-nav-button" aria-label="Menu" data-ovo-menu>
-                  <div className="w-icon-nav-menu"></div>
-                </button>
-                <div className="nav-menu-button-holder">
-                  <a href={APK_URL} className="button navbar-button w-button">
-                    Download
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Keeps the hero where the template's 70px in-flow navbar left it. */}
+      <div className="mvx-navspace" aria-hidden="true" />
 
       <div className="section hero-section">
         <div className="container">
@@ -166,7 +120,7 @@ export default function AppSite() {
               <div className="animate-on-load-01">
                 <div className="hero-section-news-holder">
                   <a href={APK_URL} className="hero-section-news-container w-inline-block">
-                    <div>Free on Android — Download now -&gt;</div>
+                    <div>Free on Android. Download now -&gt;</div>
                   </a>
                 </div>
               </div>
@@ -218,7 +172,7 @@ export default function AppSite() {
       <div className="trusted-by">
         <div className="center-text">
           <div className="fade-in-on-scroll">
-            <p>661 films across 21 genres, ready to swipe</p>
+            <p>284 hand-picked films across 17 genres, ready to swipe</p>
           </div>
         </div>
         <div className="fade-in-on-scroll">
@@ -261,24 +215,7 @@ export default function AppSite() {
                 <div className="features-card-image-container-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img loading="lazy" src={`${A}/bg-gradient-card.jpg`} alt="" className="featured-card-background-iamge-2" />
-                  <div className="mvx-sheet mvx-cardui">
-                    <div className="mvx-sheet__label">
-                      <span>⌄ Your watchlist</span>
-                      <span>+</span>
-                    </div>
-                    <div className="mvx-row">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={tmdb(POSTERS.interstellar, "w92")} alt="" />
-                      <div className="mvx-row__txt">
-                        <b>Interstellar</b>
-                        <small>Added tonight</small>
-                      </div>
-                      <div className="mvx-row__end">
-                        <span className="mvx-gold">★ 8.6</span>
-                        <small>Sci-Fi</small>
-                      </div>
-                    </div>
-                  </div>
+                  <WatchlistCard />
                   <div className="card-gradient"></div>
                 </div>
                 <div className="card-title-center-holder">
@@ -290,17 +227,7 @@ export default function AppSite() {
                 <div className="features-card-image-container-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img loading="lazy" src={`${A}/bg-gradient-card.jpg`} alt="" className="featured-card-background-iamge-2" />
-                  <div className="mvx-sheet mvx-cardui">
-                    <div className="mvx-sheet__label">
-                      <span>How are you feeling?</span>
-                    </div>
-                    <div className="mvx-moods">
-                      <span className="mvx-mood">Happy</span>
-                      <span className="mvx-mood mvx-mood--on">Romantic</span>
-                      <span className="mvx-mood mvx-mood--on">Adventurous</span>
-                      <span className="mvx-mood">Lonely</span>
-                    </div>
-                  </div>
+                  <MoodCard />
                   <div className="card-gradient"></div>
                 </div>
                 <div className="card-title-center-holder">
@@ -312,28 +239,7 @@ export default function AppSite() {
                 <div className="features-card-image-container-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img loading="lazy" src={`${A}/bg-gradient-card.jpg`} alt="" className="featured-card-background-iamge-2" />
-                  <div className="mvx-sheet mvx-cardui">
-                    <div className="mvx-tiles">
-                      <span className="mvx-tile">
-                        <span className="mvx-tile__ic" style={{ background: "#f4f19c" }}>
-                          <Icon name="users" size={16} />
-                        </span>
-                        Watch Together
-                      </span>
-                      <span className="mvx-tile">
-                        <span className="mvx-tile__ic" style={{ background: "#b9e3d2" }}>
-                          <Icon name="heart" size={16} />
-                        </span>
-                        Taste match
-                      </span>
-                      <span className="mvx-tile">
-                        <span className="mvx-tile__ic" style={{ background: "#d6c7f2" }}>
-                          <Icon name="bell" size={16} />
-                        </span>
-                        Tonight’s pick
-                      </span>
-                    </div>
-                  </div>
+                  <RoomCard />
                   <div className="card-gradient"></div>
                 </div>
                 <div className="card-title-center-holder">
@@ -378,12 +284,12 @@ export default function AppSite() {
                 </Link>
                 <div className="stats-holder">
                   <div className="stats-container">
-                    <div className="accent-text">661</div>
+                    <div className="accent-text">284</div>
                     <div className="grey-paragraph">Films in the catalog, with ratings, trailers and cast.</div>
                   </div>
                   <div className="stats-container">
-                    <div className="accent-text">21</div>
-                    <div className="grey-paragraph">Genres to explore, from Film-Noir to Sci-Fi.</div>
+                    <div className="accent-text">17</div>
+                    <div className="grey-paragraph">Genres to explore, from Animation to Western.</div>
                   </div>
                 </div>
               </div>
@@ -391,46 +297,7 @@ export default function AppSite() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${A}/bg-gradient.jpg`} alt="" loading="lazy" className="deploying-app-bg" />
                 <div className="deploying-app-screenshot-holder">
-                  <div className="deploying-app-screenshot mvx-sheet">
-                    <div className="mvx-sheet__label">
-                      <span>Your watchlist</span>
-                      <span>Sort ⌄</span>
-                    </div>
-                    <div className="mvx-sheet__label">
-                      <span>Today</span>
-                    </div>
-                    {[
-                      { p: POSTERS.interstellar, t: "Interstellar", g: "Adventure · Sci-Fi", r: "8.6" },
-                      { p: POSTERS.darkKnight, t: "The Dark Knight", g: "Action · Crime", r: "9.0" },
-                    ].map((m) => (
-                      <div key={m.t} className="mvx-row">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={tmdb(m.p, "w92")} alt="" />
-                        <div className="mvx-row__txt">
-                          <b>{m.t}</b>
-                          <small>{m.g}</small>
-                        </div>
-                        <div className="mvx-row__end mvx-gold">★ {m.r}</div>
-                      </div>
-                    ))}
-                    <div className="mvx-sheet__label">
-                      <span>Last week</span>
-                    </div>
-                    {[
-                      { p: POSTERS.coco, t: "Coco", g: "Animation · Family", r: "8.4" },
-                      { p: POSTERS.whiplash, t: "Whiplash", g: "Drama · Music", r: "8.5" },
-                    ].map((m) => (
-                      <div key={m.t} className="mvx-row">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={tmdb(m.p, "w92")} alt="" />
-                        <div className="mvx-row__txt">
-                          <b>{m.t}</b>
-                          <small>{m.g}</small>
-                        </div>
-                        <div className="mvx-row__end mvx-gold">★ {m.r}</div>
-                      </div>
-                    ))}
-                  </div>
+                  <SwipePanel />
                 </div>
               </div>
             </div>
@@ -439,50 +306,7 @@ export default function AppSite() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${A}/bg-gradient.jpg`} alt="" loading="lazy" className="deploying-app-bg" />
                 <div className="deploying-app-screenshot-holder">
-                  <div className="deploying-app-screenshot mvx-sheet">
-                    <div className="mvx-sheet__label">
-                      <span>⌄ Tonight’s pick</span>
-                      <span>+</span>
-                    </div>
-                    <div className="mvx-row">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={tmdb(POSTERS.inception, "w92")} alt="" />
-                      <div className="mvx-row__txt">
-                        <b>Inception</b>
-                        <small>Picked for your taste</small>
-                      </div>
-                      <div className="mvx-row__end">
-                        <span className="mvx-gold">★ 8.8</span>
-                        <small>7:30 pm</small>
-                      </div>
-                    </div>
-                    <div className="mvx-toast">
-                      <span className="mvx-toast__ic">
-                        <Icon name="tv" size={15} />
-                      </span>
-                      <span>
-                        <b>Now on your services!</b>
-                        <small>Coco just arrived on a service you pay for</small>
-                      </span>
-                    </div>
-                    <div className="mvx-sheet__label">
-                      <span>⌄ Where to watch</span>
-                    </div>
-                    <div className="mvx-table">
-                      <span>Country</span>
-                      <span>Stream</span>
-                      <span>Rent</span>
-                      <span>India</span>
-                      <span>✓</span>
-                      <span>✓</span>
-                      <span>United States</span>
-                      <span>✓</span>
-                      <span>—</span>
-                      <span>United Kingdom</span>
-                      <span>—</span>
-                      <span>✓</span>
-                    </div>
-                  </div>
+                  <TonightPanel />
                 </div>
               </div>
               <div className="deploying-app-content">
@@ -833,10 +657,6 @@ export default function AppSite() {
                       <SwipeDemo />
                     </Bare>
                   </div>
-                </div>
-                <div className="card-image-on-app-holder">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/landing-movies/project hailmary.jpg" loading="lazy" alt="" className="card-image-on-app-cta mvx-still" />
                 </div>
               </div>
             </div>

@@ -218,10 +218,10 @@ function HomeScreen({ typing }: { typing?: { text: string; start: number; tapOth
 }
 
 const MOOD_TILES = [
-  { v: "lifeboat", t: "Lifeboat" },
-  { v: "coco", t: "Coco" },
+  { v: "titanic", t: "Titanic" },
+  { v: "spiritedAway", t: "Spirited Away" },
   { v: "up", t: "Up" },
-  { v: "steps39", t: "The 39 Steps" },
+  { v: "forrestGump", t: "Forrest Gump" },
   { v: "whiplash", t: "Whiplash" },
   { v: "inception", t: "Inception" },
 ];
@@ -305,12 +305,12 @@ const DECK = [
     g: "Action · Crime · Drama",
   },
   {
-    v: "coco",
-    t: "Coco",
-    d: "Despite his family’s generations-old ban on music, Miguel dreams…",
-    imdb: "8.4",
-    ours: "8.7",
-    g: "Animation · Adventure · Family",
+    v: "spiritedAway",
+    t: "Spirited Away",
+    d: "A young girl, Chihiro, becomes trapped in a strange new world of spirits…",
+    imdb: "8.6",
+    ours: "8.9",
+    g: "Animation · Family · Fantasy",
   },
 ];
 
@@ -593,7 +593,7 @@ export function PickDemo() {
             <p className="mv-lock__date">Saturday, 8 November</p>
             <p className="mv-lock__time">7:30</p>
             <div className="mv-lock__stack">
-              <Notif n={2} title="Now on your services" body="Coco just arrived on a service you pay for." poster="coco" />
+              <Notif n={2} title="Now on your services" body="Spirited Away just arrived on a service you pay for." poster="spiritedAway" />
               <Notif n={1} title="Tonight’s pick: Interstellar" body="Picked for your taste." poster="interstellar" />
             </div>
             <div className="mv-lock__dock">
@@ -811,8 +811,8 @@ export function MomentRating() {
       <Phone label="Rating a film: five stars fill in, then a ‘Thank You!’ dialog appears.">
         <div className="mv-layer mv-layer--full">
           <div className="mv-rate">
-            <Poster film="steps39" className="mv-rate__img" />
-            <p className="mv-rate__t">The 39 Steps</p>
+            <Poster film="forrestGump" className="mv-rate__img" />
+            <p className="mv-rate__t">Forrest Gump</p>
             <p className="mv-detail__q">How would you rate this movie?</p>
             <Stars tapAt="1.75s" />
           </div>

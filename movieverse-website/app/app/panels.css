@@ -1,0 +1,593 @@
+/* Animated app panels on /app (Panels.tsx). Each panel loops one story over
+   --d; only transform, opacity and a few small heights change. */
+
+.ovo .pn {
+  overflow: hidden;
+}
+
+.ovo .pn,
+.ovo .pn * {
+  animation-duration: var(--d);
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+/* Shared pieces ------------------------------------------------------------ */
+
+.ovo .pn-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ovo .pn-row {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.ovo .pn-row .mvx-row__txt b,
+.ovo .pn-row .mvx-row__txt small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ovo .pn-roll {
+  display: inline-block;
+  height: 1.25em;
+  overflow: hidden;
+  vertical-align: bottom;
+  line-height: 1.25em;
+}
+
+.ovo .pn-roll__in {
+  display: flex;
+  flex-direction: column;
+}
+
+.ovo .pn-roll__in i {
+  font-style: normal;
+  text-align: right;
+}
+
+/* Two stacked pages in a fixed-height window; the track slides between them. */
+.ovo .pn-view {
+  height: 116px;
+  overflow: hidden;
+}
+
+.ovo .pn-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 116px;
+}
+
+/* 1. Watchlist card -------------------------------------------------------- */
+
+.ovo .pn-wl {
+  --d: 6s;
+}
+
+.ovo .pn-wl__new {
+  animation-name: pn-wl-row;
+}
+
+.ovo .pn-wl__new .pn-row__img {
+  animation-name: pn-fly-in;
+}
+
+.ovo .pn-wl__count {
+  animation-name: pn-roll-2;
+}
+
+@keyframes pn-wl-row {
+  0%, 14% { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; transform: translateX(-24px); }
+  28% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 1; transform: none; background: #ffffff38; }
+  48%, 86% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 1; transform: none; background: #ffffff0d; }
+  92% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 0; }
+  100% { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; }
+}
+
+@keyframes pn-fly-in {
+  0%, 12% { transform: translate(150px, -40px) rotate(16deg) scale(1.7); opacity: 0; }
+  28%, 100% { transform: none; opacity: 1; }
+}
+
+@keyframes pn-roll-2 {
+  0%, 22% { transform: none; }
+  30%, 88% { transform: translateY(-50%); }
+  96%, 100% { transform: none; }
+}
+
+/* 2. Mood card ------------------------------------------------------------- */
+
+.ovo .pn-md {
+  --d: 7s;
+}
+
+.ovo .pn-md__track {
+  animation-name: pn-page-flip;
+}
+
+.ovo .pn-md__pick {
+  position: relative;
+  animation-name: pn-md-pick;
+}
+
+.ovo .pn-tap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: #ffffff59;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+  animation-name: pn-tap;
+}
+
+.ovo .pn-shelf {
+  display: flex;
+  gap: 6px;
+}
+
+.ovo .pn-shelf img {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 2 / 3;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+  animation-name: pn-pop;
+  animation-delay: calc(var(--i) * 0.09s);
+}
+
+@keyframes pn-page-flip {
+  0%, 40% { transform: none; }
+  48%, 86% { transform: translateY(-50%); }
+  94%, 100% { transform: none; }
+}
+
+@keyframes pn-md-pick {
+  0%, 27% { background: #ffffff12; color: #fff; transform: none; }
+  29% { transform: scale(0.94); }
+  32%, 90% { background: #fff; color: #000; transform: none; }
+  96%, 100% { background: #ffffff12; color: #fff; }
+}
+
+@keyframes pn-tap {
+  0%, 6% { transform: translate(-90px, 40px); opacity: 0; }
+  12% { opacity: 1; }
+  24% { transform: none; opacity: 1; }
+  29% { transform: scale(0.7); opacity: 1; }
+  36%, 100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes pn-pop {
+  0%, 44% { transform: translateY(14px) scale(0.86); opacity: 0; }
+  56%, 88% { transform: none; opacity: 1; }
+  96%, 100% { transform: none; opacity: 0; }
+}
+
+/* 3. Room card ------------------------------------------------------------- */
+
+.ovo .pn-rm {
+  --d: 7s;
+}
+
+.ovo .pn-rm__track {
+  animation-name: pn-page-flip;
+}
+
+.ovo .pn-code {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  letter-spacing: 0.04em;
+}
+
+.ovo .pn-avatars {
+  display: flex;
+  gap: 10px;
+}
+
+.ovo .pn-av {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation-name: pn-av;
+  animation-delay: calc(var(--i) * 0.35s);
+}
+
+.ovo .pn-av b {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff1f;
+  border: 1px solid #ffffff38;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ovo .pn-av:first-child b {
+  background: #fff;
+  color: #000;
+}
+
+.ovo .pn-av small {
+  color: #ffffff99;
+  font-size: 10.5px;
+}
+
+.ovo .pn-rm__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffffb3;
+  font-size: 12px;
+}
+
+.ovo .pn-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.ovo .pn-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: pn-dot 1s infinite;
+}
+
+.ovo .pn-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ovo .pn-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.ovo .pn-rm__match {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.ovo .pn-rm__match img {
+  width: 64px;
+  height: 96px;
+  border-radius: 10px;
+  object-fit: cover;
+  animation-name: pn-match-img;
+}
+
+.ovo .pn-rm__match b {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  animation-name: pn-match-txt;
+}
+
+.ovo .pn-rm__match small {
+  display: block;
+  margin: 2px 0 8px;
+  color: #ffffffa6;
+  font-size: 12px;
+}
+
+.ovo .pn-stack {
+  display: flex;
+}
+
+.ovo .pn-stack i {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: -6px;
+  border-radius: 50%;
+  background: #2a2a2e;
+  border: 1.5px solid #18181b;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+@keyframes pn-av {
+  0%, 4% { transform: scale(0.4); opacity: 0; }
+  12%, 88% { transform: none; opacity: 1; }
+  96%, 100% { transform: none; opacity: 0; }
+}
+
+@keyframes pn-dot {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes pn-match-img {
+  0%, 44% { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+  56% { transform: scale(1.06) rotate(2deg); opacity: 1; }
+  62%, 100% { transform: none; opacity: 1; }
+}
+
+@keyframes pn-match-txt {
+  0%, 50% { transform: translateY(8px); opacity: 0; }
+  60%, 100% { transform: none; opacity: 1; }
+}
+
+/* 4. Swipe panel ----------------------------------------------------------- */
+
+.ovo .pn-sw {
+  --d: 10s;
+}
+
+.ovo .pn-deck {
+  position: relative;
+  height: 232px;
+  margin-bottom: 6px;
+}
+
+.ovo .pn-card {
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  width: 128px;
+  height: 192px;
+  margin-left: -64px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #111;
+  box-shadow: 0 14px 30px #0008;
+  transform-origin: 50% 100%;
+}
+
+.ovo .pn-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ovo .pn-card__meta {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 26px 10px 9px;
+  background: linear-gradient(transparent, #000d);
+}
+
+.ovo .pn-card__meta b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ovo .pn-card__meta small {
+  color: #ffffffb3;
+  font-size: 10px;
+}
+
+.ovo .pn-card--0 {
+  z-index: 3;
+  animation-name: pn-c0;
+}
+
+.ovo .pn-card--1 {
+  z-index: 2;
+  animation-name: pn-c1;
+}
+
+.ovo .pn-card--2 {
+  z-index: 1;
+  animation-name: pn-c2;
+}
+
+.ovo .pn-stamp {
+  position: absolute;
+  top: 12px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0;
+}
+
+.ovo .pn-stamp--save {
+  left: 10px;
+  background: #fff;
+  color: #000;
+  transform: rotate(-10deg);
+}
+
+.ovo .pn-stamp--skip {
+  right: 10px;
+  background: #000;
+  color: #fff;
+  box-shadow: inset 0 0 0 1.5px #fff;
+  transform: rotate(10deg);
+}
+
+.ovo .pn-card--0 .pn-stamp {
+  animation-name: pn-stamp-0;
+}
+
+.ovo .pn-card--1 .pn-stamp {
+  animation-name: pn-stamp-1;
+}
+
+.ovo .pn-card--2 .pn-stamp {
+  animation-name: pn-stamp-2;
+}
+
+/* Two rows tall; new saves push the older rows down. */
+.ovo .pn-sw__list {
+  height: 148px;
+  overflow: hidden;
+}
+
+.ovo .pn-sw__new1 {
+  animation-name: pn-sw-row1;
+}
+
+.ovo .pn-sw__new2 {
+  animation-name: pn-sw-row2;
+}
+
+.ovo .pn-sw__count {
+  animation-name: pn-roll-3;
+}
+
+/* Stack ranks: 0 is the front card; 1 and 2 peek out above it. */
+@keyframes pn-c0 {
+  0%, 8% { transform: none; opacity: 1; }
+  17% { transform: translateX(60px) rotate(9deg); opacity: 1; }
+  25% { transform: translateX(330px) rotate(24deg); opacity: 0; }
+  26%, 93% { transform: translateY(-24px) scale(0.96); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes pn-c1 {
+  0%, 18% { transform: translateY(-28px) scale(0.93); opacity: 1; }
+  27%, 36% { transform: none; opacity: 1; }
+  45% { transform: translateX(-60px) rotate(-9deg); opacity: 1; }
+  53% { transform: translateX(-330px) rotate(-24deg); opacity: 0; }
+  54%, 88% { transform: translateY(-40px) scale(0.93); opacity: 0; }
+  94%, 100% { transform: translateY(-28px) scale(0.93); opacity: 1; }
+}
+
+@keyframes pn-c2 {
+  0%, 18% { transform: translateY(-55px) scale(0.86); opacity: 1; }
+  27%, 46% { transform: translateY(-28px) scale(0.93); opacity: 1; }
+  55%, 62% { transform: none; opacity: 1; }
+  70% { transform: translateX(60px) rotate(9deg); opacity: 1; }
+  77% { transform: translateX(330px) rotate(24deg); opacity: 0; }
+  78%, 86% { transform: translateY(-67px) scale(0.86); opacity: 0; }
+  92%, 100% { transform: translateY(-55px) scale(0.86); opacity: 1; }
+}
+
+@keyframes pn-stamp-0 {
+  0%, 9% { opacity: 0; }
+  15%, 25% { opacity: 1; }
+  26%, 100% { opacity: 0; }
+}
+
+@keyframes pn-stamp-1 {
+  0%, 37% { opacity: 0; }
+  43%, 53% { opacity: 1; }
+  54%, 100% { opacity: 0; }
+}
+
+@keyframes pn-stamp-2 {
+  0%, 63% { opacity: 0; }
+  68%, 77% { opacity: 1; }
+  78%, 100% { opacity: 0; }
+}
+
+/* New rows fade out first, then close, so nothing squashes. */
+@keyframes pn-sw-row1 {
+  0%, 22% { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; transform: translateX(40px); }
+  31% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 1; transform: none; background: #ffffff38; }
+  44%, 90% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 1; transform: none; background: #ffffff0d; }
+  94% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 0; }
+  100% { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; }
+}
+
+@keyframes pn-sw-row2 {
+  0%, 74% { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; transform: translateX(40px); }
+  82% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 1; transform: none; background: #ffffff38; }
+  88%, 90% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 1; transform: none; background: #ffffff0d; }
+  94% { max-height: 72px; padding-block: 10px; margin-bottom: 8px; opacity: 0; }
+  100% { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; }
+}
+
+@keyframes pn-roll-3 {
+  0%, 24% { transform: none; }
+  30%, 76% { transform: translateY(-33.333%); }
+  82%, 92% { transform: translateY(-66.667%); }
+  98%, 100% { transform: none; }
+}
+
+/* 5. Tonight panel --------------------------------------------------------- */
+
+.ovo .pn-tn {
+  --d: 9s;
+}
+
+.ovo .pn-tn__clock {
+  animation-name: pn-roll-2;
+}
+
+.ovo .pn-tn__pick {
+  animation-name: pn-drop;
+}
+
+.ovo .pn-bar {
+  display: block;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: #ffffff1f;
+  overflow: hidden;
+}
+
+.ovo .pn-bar i {
+  display: block;
+  width: 94%;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  transform-origin: left;
+  animation-name: pn-bar;
+}
+
+.ovo .pn-tn__toast {
+  animation-name: pn-slide-in;
+}
+
+.ovo .pn-cell {
+  animation-name: pn-cell;
+  animation-delay: calc(var(--r) * 0.3s);
+}
+
+.ovo .pn-check,
+.ovo .pn-no {
+  display: inline-block;
+}
+
+.ovo .pn-no {
+  color: #ffffff59;
+}
+
+@keyframes pn-drop {
+  0%, 10% { transform: translateY(-18px) scale(0.97); opacity: 0; }
+  18% { transform: translateY(3px); opacity: 1; }
+  22%, 92% { transform: none; opacity: 1; }
+  98%, 100% { opacity: 0; }
+}
+
+@keyframes pn-bar {
+  0%, 20% { transform: scaleX(0); }
+  38%, 100% { transform: none; }
+}
+
+@keyframes pn-slide-in {
+  0%, 38% { transform: translateX(48px); opacity: 0; }
+  46% { transform: translateX(-4px); opacity: 1; }
+  50%, 92% { transform: none; opacity: 1; }
+  98%, 100% { opacity: 0; }
+}
+
+@keyframes pn-cell {
+  0%, 54% { transform: translateY(6px); opacity: 0; }
+  62%, 92% { transform: none; opacity: 1; }
+  98%, 100% { opacity: 0; }
+}

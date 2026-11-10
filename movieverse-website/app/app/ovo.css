@@ -1705,7 +1705,7 @@
   --colors--page-color: #010101;
   --fonts--main-font: Inter, sans-serif;
   --fonts--heading-font: "DM Sans", sans-serif;
-  --colors--brand-color: #7668c7;
+  --colors--brand-color: #fff;
   --colors--elements-stroke: #2f2f2f;
   --colors--elements-bg: #19191b;
   --colors--hoved-color: #131316;
@@ -4656,7 +4656,7 @@
 }
 .ovo .pricing.middle{
   border-color: var(--colors--brand-color);
-  background-image: radial-gradient(circle at 50% 0, #7668c752, #0e0f1100 45%);
+  background-image: radial-gradient(circle at 50% 0, #ffffff52, #0e0f1100 45%);
 }
 .ovo .price{
   font-family: var(--fonts--heading-font);
@@ -7840,7 +7840,7 @@
 }
 
 .ovo .mvx-gold {
-  color: #ffd700;
+  color: #fff;
 }
 
 .ovo .mvx-toast {
@@ -7849,7 +7849,7 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #e9f1ee, #c9d8f2);
+  background: linear-gradient(135deg, #fff, #d4d4d4);
   color: #111;
 }
 
@@ -7861,7 +7861,7 @@
   height: 30px;
   border-radius: 8px;
   background: #111;
-  color: #ffd700;
+  color: #fff;
 }
 
 .ovo .mvx-toast b {
@@ -8111,17 +8111,6 @@
   transition: transform 0.5s ease;
 }
 
-/* Mobile menu (Webflow's nav script is not loaded). */
-@media screen and (max-width: 991px) {
-  .ovo .navbar.is-open .nav-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    display: block;
-  }
-}
-
 .ovo .demo-paused,
 .ovo .demo-paused * {
   animation-play-state: paused !important;
@@ -8134,4 +8123,14 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Monochrome: the brand colour is white, so its buttons take black text. */
+.ovo .submit-button {
+  color: #000;
+}
+
+/* Room for the floating site navbar (components/SiteNav). */
+.ovo .mvx-navspace {
+  height: 70px;
 }

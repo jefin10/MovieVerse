@@ -53,9 +53,9 @@ export function Sprites() {
     <svg className="mv-sprite" width="0" height="0" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="mvg-gold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#fff1a1" />
-          <stop offset=".5" stopColor="#ffd700" />
-          <stop offset="1" stopColor="#b8920a" />
+          <stop offset="0" stopColor="#fff" />
+          <stop offset=".5" stopColor="#d9d9d9" />
+          <stop offset="1" stopColor="#8f8f8f" />
         </linearGradient>
       </defs>
       {Object.entries(ICONS).map(([name, body]) => (

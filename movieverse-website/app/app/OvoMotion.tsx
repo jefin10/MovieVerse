@@ -1,9 +1,9 @@
 "use client";
 
 /*
- * Behaviour for the /app clone, standing in for Webflow's script: mobile menu,
- * tabs, FAQ accordion, the two sliders, scroll fade-ins (fallback), fitting app
- * screens into the template's photo slots, and pausing off-screen demos.
+ * Behaviour for the /app clone, standing in for Webflow's script: tabs, FAQ
+ * accordion, the two sliders, scroll fade-ins (fallback), fitting app screens
+ * into the template's photo slots, and pausing off-screen demos.
  */
 import { useEffect } from "react";
 
@@ -16,11 +16,6 @@ export default function OvoMotion() {
       el.addEventListener(type, fn as EventListener);
       off.push(() => el.removeEventListener(type, fn as EventListener));
     };
-
-    // Mobile menu.
-    const nav = root.querySelector<HTMLElement>("[data-ovo-nav]");
-    const menu = root.querySelector<HTMLElement>("[data-ovo-menu]");
-    if (nav && menu) on(menu, "click", () => nav.classList.toggle("is-open"));
 
     // Fit app screens into their slots: zoom to the slot width, fill its height.
     const fit = (el: HTMLElement) => {
