@@ -198,7 +198,7 @@ export default function AppSite() {
       <div className="trusted-by">
         <div className="center-text">
           <div className="fade-in-on-scroll">
-            <p>579 hand-picked films across 17 genres, ready to swipe</p>
+            <p>2,998 films across 17 genres, ready to swipe</p>
           </div>
         </div>
         <div className="fade-in-on-scroll">
@@ -294,7 +294,7 @@ export default function AppSite() {
                 </Link>
                 <div className="stats-holder">
                   <div className="stats-container">
-                    <div className="accent-text">579</div>
+                    <div className="accent-text">2,998</div>
                     <div className="grey-paragraph">Films in the catalog, with ratings, trailers and cast.</div>
                   </div>
                   <div className="stats-container">

@@ -7,6 +7,8 @@ import { createGunzip } from 'node:zlib';
 //
 // The catalog is:
 //   - IMDb's most-voted feature films (500 by default; --top N to change)
+//   - then the next most-voted English-language films, i.e. Hollywood
+//     (2500 by default; --hollywood N to change)
 //   - every film directed by Christopher Nolan, Denis Villeneuve and Steven Spielberg
 //   - the big franchises: Star Wars, Marvel (MCU plus the Spider-Man, X-Men,
 //     Deadpool, Wolverine, Venom and Spider-Verse films), DC (live action since
@@ -16,13 +18,14 @@ import { createGunzip } from 'node:zlib';
 //
 // Ratings and vote counts come from IMDb's public dataset; everything else from TMDB.
 //   curl -O https://datasets.imdbws.com/title.ratings.tsv.gz
-//   TMDB_API_KEY=... npx tsx src/scripts/build-catalog.ts title.ratings.tsv.gz [--top 500]
+//   TMDB_API_KEY=... npx tsx src/scripts/build-catalog.ts title.ratings.tsv.gz [--top 500] [--hollywood 2500]
 
 const KEY = process.env.TMDB_API_KEY ?? '';
 const TMDB = 'https://api.themoviedb.org/3';
 const TODAY = new Date().toISOString().slice(0, 10);
 const OUT = 'prisma/data/movies.json';
 const MOST_VOTED = 'IMDb most voted';
+const HOLLYWOOD = 'Hollywood most voted';
 
 const DIRECTORS = ['Christopher Nolan', 'Denis Villeneuve', 'Steven Spielberg'];
 
@@ -179,6 +182,9 @@ async function main() {
   const topIdx = args.indexOf('--top');
   const TOP = topIdx >= 0 ? Number(args[topIdx + 1]) : 500;
   if (!Number.isInteger(TOP) || TOP < 1) throw new Error('--top needs a whole number');
+  const hwIdx = args.indexOf('--hollywood');
+  const HW = hwIdx >= 0 ? Number(args[hwIdx + 1]) : 2500;
+  if (!Number.isInteger(HW) || HW < 0) throw new Error('--hollywood needs a whole number');
   if (!KEY) throw new Error('Set TMDB_API_KEY');
   if (!file) throw new Error('Pass the path to title.ratings.tsv.gz');
 
@@ -192,22 +198,31 @@ async function main() {
     picked.get(id)!.add(why);
   };
 
-  // 1. IMDb's most-voted films. The dataset mixes in TV, so /find keeps films only.
+  // 1. IMDb's most-voted films, then the next most-voted English-language ones.
+  // The dataset mixes in TV, so /find keeps films only.
   const byVotes = [...imdb.entries()].sort((a, b) => b[1].votes - a[1].votes);
   let top = 0;
-  for (let i = 0; top < TOP && i < byVotes.length; i += 20) {
-    const batch = byVotes.slice(i, i + 20);
+  let hollywood = 0;
+  for (let i = 0; (top < TOP || hollywood < HW) && i < byVotes.length; i += 40) {
+    const batch = byVotes.slice(i, i + 40);
     const found = await pool(batch, 10, ([imdbId]) =>
-      tmdb<{ movie_results: { id: number }[] }>(`/find/${imdbId}`, { external_source: 'imdb_id' }),
+      tmdb<{ movie_results: { id: number; original_language?: string }[] }>(`/find/${imdbId}`, {
+        external_source: 'imdb_id',
+      }),
     );
     for (const f of found) {
-      if (top < TOP && f.movie_results[0]) {
-        add(f.movie_results[0].id, MOST_VOTED);
+      const film = f.movie_results[0];
+      if (!film) continue;
+      if (top < TOP) {
+        add(film.id, MOST_VOTED);
         top += 1;
+      } else if (hollywood < HW && film.original_language === 'en') {
+        add(film.id, HOLLYWOOD);
+        hollywood += 1;
       }
     }
   }
-  console.log(`top by votes: ${top}`);
+  console.log(`top by votes: ${top}, Hollywood after that: ${hollywood}`);
 
   // 2. Directors.
   for (const name of DIRECTORS) {
@@ -276,7 +291,7 @@ async function main() {
     // Films only here as a director's work need a real audience; franchise
     // films need a big one unless they are brand new.
     const onlyDirector = why.every((w) => DIRECTORS.includes(w));
-    const minVotes = why.includes(MOST_VOTED)
+    const minVotes = why.includes(MOST_VOTED) || why.includes(HOLLYWOOD)
       ? 0
       : onlyDirector
         ? 100
