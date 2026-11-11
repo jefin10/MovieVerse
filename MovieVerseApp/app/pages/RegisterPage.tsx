@@ -79,7 +79,6 @@ const RegisterScreen = () => {
           <Feather name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Pick a username</Text>
-        <Text style={styles.sub}>It’s how friends find you. Your email stays private.</Text>
 
         <View style={[styles.field, !!hint && styles.fieldBad, available === true && styles.fieldGood]}>
           <Text style={styles.at}>@</Text>
@@ -117,7 +116,6 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#000', paddingHorizontal: 22 },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 26 },
   title: { color: '#fff', fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
-  sub: { color: '#a3a3a3', fontSize: 15, lineHeight: 22, marginTop: 8 },
   field: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 28, paddingHorizontal: 16, height: 58, borderRadius: 16, backgroundColor: '#161616', borderWidth: 1.5, borderColor: '#2a2a2a' },
   fieldGood: { borderColor: '#fff' },
   fieldBad: { borderColor: '#ff6b6b' },

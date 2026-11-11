@@ -54,7 +54,7 @@ const Index = () => {
   };
 
   const goToProfile = () => {
-    router.push('/pages/ProfilePage');
+    router.push('/(tabs)/profile' as any);
   }
   const getGreeting = () => {
     const currentHour = new Date().getHours();
@@ -208,7 +208,7 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity
                   style={styles.profileButton}
-                  onPress={() => router.push('/pages/NotificationsPage' as any)}
+                  onPress={() => router.push('/(tabs)/notifications' as any)}
                   accessibilityLabel={unread ? `Notifications, ${unread} unread` : 'Notifications'}
                 >
                   <Feather name="bell" size={22} color="#fff" />
@@ -325,7 +325,7 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flex: 1, backgroundColor: '#1a1a1a', borderRadius: 18, padding: 14 }}
-                onPress={() => router.push('/pages/FriendsPage' as any)}
+                onPress={() => router.push('/(tabs)/friends' as any)}
               >
                 <Feather name="heart" size={20} color="#fff" />
                 <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Friends</Text>

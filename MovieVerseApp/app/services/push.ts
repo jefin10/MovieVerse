@@ -89,5 +89,5 @@ export const unregisterFromPush = async () => {
 export const routeForNotification = (data: any) => {
   if (data?.movieId) return { pathname: '/pages/MovieDetailPage', params: { movieId: String(data.movieId) } };
   if (data?.username) return { pathname: '/pages/UserProfilePage', params: { username: String(data.username) } };
-  return { pathname: '/pages/NotificationsPage', params: {} };
+  return { pathname: '/(tabs)/notifications', params: {} };
 };

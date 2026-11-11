@@ -1,3 +1,4 @@
+import { useDockSpace } from '@/components/DockTabBar';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -12,6 +13,7 @@ import { routeForNotification } from '../services/push';
 import { s, timeAgo } from '../services/ui';
 
 export default function NotificationsPage() {
+  const dockSpace = useDockSpace();
   const router = useRouter();
   const { refresh } = useNotifications();
   const [items, setItems] = useState<any[] | null>(null);
@@ -43,7 +45,7 @@ export default function NotificationsPage() {
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
+      <SafeAreaView style={s.page} edges={['top']}>
         <PageHeader
           title="Notifications"
           right={
@@ -60,7 +62,7 @@ export default function NotificationsPage() {
           <FlatList
             data={items}
             keyExtractor={(n) => String(n.id)}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: dockSpace }}
             ListEmptyComponent={<Text style={s.empty}>Nothing yet. Your first pick arrives this evening.</Text>}
             renderItem={({ item }) => (
               <TouchableOpacity style={[s.card, s.rowCard, !item.read && s.cardUnread]} onPress={() => open(item)}>

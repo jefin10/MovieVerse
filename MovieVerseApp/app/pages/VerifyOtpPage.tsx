@@ -95,14 +95,12 @@ const VerifyOtpPage = () => {
   return (
     <SafeAreaView style={styles.page}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <TouchableOpacity style={styles.back} onPress={() => router.replace('/pages/LoginPage')} accessibilityLabel="Back">
+        <TouchableOpacity style={styles.back} onPress={() => router.replace('/pages/EmailLoginPage' as any)} accessibilityLabel="Back">
           <Feather name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
 
         <Text style={styles.title}>Check your email</Text>
-        <Text style={styles.sub}>
-          We sent a 6-digit code to{'\n'}<Text style={styles.email}>{email}</Text>
-        </Text>
+        <Text style={styles.sub}><Text style={styles.email}>{email}</Text></Text>
 
         <Pressable onPress={() => input.current?.focus()} accessibilityLabel="Enter your 6-digit code">
           <Animated.View style={[styles.boxes, { transform: [{ translateX: shake }] }]}>
@@ -143,9 +141,8 @@ const VerifyOtpPage = () => {
             <TouchableOpacity onPress={resend}><Text style={styles.link}>Resend code</Text></TouchableOpacity>
           )}
           <Text style={styles.muted}>  ·  </Text>
-          <TouchableOpacity onPress={() => router.replace('/pages/LoginPage')}><Text style={styles.link}>Change email</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/pages/EmailLoginPage' as any)}><Text style={styles.link}>Change email</Text></TouchableOpacity>
         </View>
-        <Text style={styles.hint}>Can’t find it? Check your spam folder.</Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -170,7 +167,6 @@ const styles = StyleSheet.create({
   resendRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   muted: { color: '#8a8a8a', fontSize: 14 },
   link: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  hint: { color: '#6f6f6f', fontSize: 13, marginTop: 10 },
 });
 
 export default VerifyOtpPage;

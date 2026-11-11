@@ -2,7 +2,6 @@ import { Feather } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /*
  * Floating frosted-glass dock that replaces the default tab bar.
  * Swipe (the "tinder" tab) is the raised round button in the middle, and
- * Profile sits at the end; it opens the profile page.
+ * Profile sits at the end. Hidden tabs (settings, friends, notifications) get
+ * no button of their own; while one is open, Profile stays highlighted.
  * Screens scroll underneath, so each tab screen pads its content with useDockSpace().
  */
 
@@ -23,6 +23,14 @@ const ICONS: Record<string, keyof typeof Feather.glyphMap> = {
   watchlist: 'bookmark',
   tinder: 'layers',
   mood: 'smile',
+  profile: 'user',
+};
+
+// Hidden tabs and the dock button that stays lit while they are open.
+const PARENT: Record<string, string> = {
+  settings: 'profile',
+  friends: 'profile',
+  notifications: 'profile',
 };
 
 /** Bottom padding a tab screen needs so its last item clears the dock. */
@@ -125,7 +133,6 @@ function CenterButton({
 
 export default function DockTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   // Keep the dock out of the way while typing.
@@ -140,15 +147,18 @@ export default function DockTabBar({ state, descriptors, navigation }: BottomTab
 
   if (keyboardOpen) return null;
 
-  const items = state.routes.map((route, index) => {
+  const current = state.routes[state.index]?.name;
+  const lit = PARENT[current] ?? current;
+
+  const items = state.routes.filter((route) => route.name in ICONS).map((route) => {
     const { options } = descriptors[route.key];
-    const focused = state.index === index;
+    const focused = route.name === lit;
     const label = typeof options.title === 'string' ? options.title : route.name;
     const icon = ICONS[route.name] ?? 'circle';
 
     const onPress = () => {
       const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-      if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+      if (route.name !== current && !event.defaultPrevented) navigation.navigate(route.name, route.params);
     };
     const onLongPress = () => navigation.emit({ type: 'tabLongPress', target: route.key });
 
@@ -158,10 +168,6 @@ export default function DockTabBar({ state, descriptors, navigation }: BottomTab
       <DockItem key={route.key} label={label} icon={icon} focused={focused} onPress={onPress} onLongPress={onLongPress} />
     );
   });
-
-  items.push(
-    <DockItem key="profile" label="Profile" icon="user" focused={false} onPress={() => router.push('/pages/ProfilePage')} />,
-  );
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + DOCK_GAP }]}>

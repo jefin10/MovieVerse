@@ -1,3 +1,4 @@
+import { useDockSpace } from '@/components/DockTabBar';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -14,6 +15,7 @@ const Avatar = ({ name }: { name: string }) => (
 );
 
 export default function FriendsPage() {
+  const dockSpace = useDockSpace();
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [failed, setFailed] = useState(false);
@@ -37,9 +39,9 @@ export default function FriendsPage() {
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
+      <SafeAreaView style={s.page} edges={['top']}>
         <PageHeader title="Friends" />
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: dockSpace }} keyboardShouldPersistTaps="handled">
           <TextInput
             style={s.input}
             placeholder="Find people by username"

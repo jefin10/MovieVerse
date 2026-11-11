@@ -113,7 +113,6 @@ export default function OnboardingPage() {
         {step === 'taste' ? (
           <>
             <Text style={styles.title}>What do you love?</Text>
-            <Text style={styles.sub}>Tap at least {MIN_PICKS} films, and we’ll learn your taste from them.</Text>
             {!movies ? (
               <ActivityIndicator color="#fff" style={{ marginTop: 50 }} />
             ) : (
@@ -145,7 +144,6 @@ export default function OnboardingPage() {
         {step === 'services' ? (
           <>
             <Text style={styles.title}>What do you pay for?</Text>
-            <Text style={styles.sub}>We’ll show where each film is streaming, and tell you when your watchlist arrives.</Text>
             <ScrollView style={{ flex: 1, marginTop: 16 }} showsVerticalScrollIndicator={false}>
               <View style={styles.providerWrap}>
                 {providers.map((p) => {
@@ -179,7 +177,6 @@ export default function OnboardingPage() {
         {step === 'alerts' ? (
           <>
             <Text style={styles.title}>One good pick a night</Text>
-            <Text style={styles.sub}>No spam. Just tonight’s film, and a heads-up when your watchlist reaches your services.</Text>
             <View style={styles.preview}>
               <View style={styles.previewIcon}><Feather name="moon" size={18} color="#000" /></View>
               <View style={{ flex: 1 }}>
@@ -202,7 +199,6 @@ export default function OnboardingPage() {
         {step === 'done' ? (
           <>
             <Text style={styles.title}>You’re in{name ? `, ${name}` : ''}.</Text>
-            <Text style={styles.sub}>{picks.length ? 'We already have a few films for you.' : 'Start swiping and your picks will show up here.'}</Text>
             <View style={styles.grid}>
               {picks.map((m) => (
                 <View key={m.id} style={styles.posterCell}>
@@ -230,7 +226,6 @@ const styles = StyleSheet.create({
   barOn: { backgroundColor: '#fff' },
   body: { flex: 1, paddingHorizontal: 20, paddingTop: 24 },
   title: { color: '#fff', fontSize: 30, fontWeight: '700', letterSpacing: -0.6, lineHeight: 36 },
-  sub: { color: '#a3a3a3', fontSize: 15, lineHeight: 22, marginTop: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5, paddingBottom: 12, marginTop: 10 },
   posterCell: { width: '33.33%', padding: 5 },
   poster: { aspectRatio: 2 / 3, borderRadius: 12, overflow: 'hidden', backgroundColor: '#1a1a1a', borderWidth: 2, borderColor: 'transparent' },

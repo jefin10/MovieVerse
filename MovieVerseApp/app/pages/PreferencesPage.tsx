@@ -1,21 +1,21 @@
+import { useDockSpace } from '@/components/DockTabBar';
+import { Card, Divider, Header, IconBadge, ListRow, Screen, SectionHeader, Text, Touchable, color, gutter, radius, space, type IconName } from '@/ui';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import api from '../auth/api';
 import ProtectedRoute from '../auth/protectedRoute';
 import Image from '../components/CachedImage';
-import PageHeader from '../components/PageHeader';
-import { s } from '../services/ui';
 
 const REGION_NAMES: Record<string, string> = { IN: 'India', US: 'United States', GB: 'United Kingdom' };
 
-const ALERTS = [
-  { key: 'daily_pick', title: "Tonight's pick", body: 'One movie chosen for you each evening' },
-  { key: 'provider_alerts', title: 'Streaming alerts', body: 'When a watchlist movie reaches your services' },
-  { key: 'social_alerts', title: 'Friends', body: 'When someone follows you' },
+const ALERTS: { key: string; title: string; icon: IconName }[] = [
+  { key: 'daily_pick', title: 'Tonight’s pick', icon: 'moon' },
+  { key: 'provider_alerts', title: 'Streaming alerts', icon: 'tv' },
+  { key: 'social_alerts', title: 'Friends', icon: 'users' },
 ];
 
 export default function PreferencesPage() {
+  const dockSpace = useDockSpace();
   const [prefs, setPrefs] = useState<any>(null);
   const [providers, setProviders] = useState<any[]>([]);
   const [failed, setFailed] = useState(false);
@@ -44,61 +44,98 @@ export default function PreferencesPage() {
 
   return (
     <ProtectedRoute>
-      <SafeAreaView style={s.page}>
-        <PageHeader title="Services & alerts" />
-        {failed ? (
-          <Text style={s.empty}>Connect to the internet to change these settings.</Text>
-        ) : !prefs ? (
-          <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
-        ) : (
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
-            <Text style={s.sectionTitle}>Notifications</Text>
-            {ALERTS.map((a) => (
-              <View key={a.key} style={[s.card, s.rowCard]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.cardTitle}>{a.title}</Text>
-                  <Text style={s.cardBody}>{a.body}</Text>
+      <Screen>
+        <ScrollView contentContainerStyle={{ paddingBottom: dockSpace }} showsVerticalScrollIndicator={false}>
+          <Header back title="Settings" />
+          <View style={styles.body}>
+            {failed ? (
+              <Text tone="secondary">Connect to the internet to change these settings.</Text>
+            ) : !prefs ? (
+              <ActivityIndicator color={color.text} style={{ marginTop: space.xl }} />
+            ) : (
+              <>
+                <View>
+                  <SectionHeader title="Notifications" />
+                  {ALERTS.map((a, i) => (
+                    <View key={a.key}>
+                      {i > 0 ? <Divider /> : null}
+                      <ListRow
+                        leading={<IconBadge name={a.icon} />}
+                        title={a.title}
+                        trailing={
+                          <Switch
+                            value={!!prefs[a.key]}
+                            onValueChange={(v) => save({ [a.key]: v })}
+                            trackColor={{ true: '#fff', false: '#333' }}
+                            thumbColor={prefs[a.key] ? '#000' : '#999'}
+                            accessibilityLabel={a.title}
+                          />
+                        }
+                      />
+                    </View>
+                  ))}
                 </View>
-                <Switch
-                  value={prefs[a.key]}
-                  onValueChange={(v) => save({ [a.key]: v })}
-                  trackColor={{ true: '#fff', false: '#333' }}
-                  thumbColor={prefs[a.key] ? '#000' : '#999'}
-                />
-              </View>
-            ))}
 
-            <Text style={s.sectionTitle}>Country</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {prefs.regions.map((r: string) => (
-                <TouchableOpacity key={r} style={[s.pill, prefs.region !== r && s.pillOff]} onPress={() => save({ region: r })}>
-                  <Text style={[s.pillText, prefs.region !== r && s.pillOffText]}>{REGION_NAMES[r] ?? r}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                <View>
+                  <SectionHeader title="Country" />
+                  <View style={styles.wrap}>
+                    {prefs.regions.map((r: string) => {
+                      const on = prefs.region === r;
+                      return (
+                        <Touchable
+                          key={r}
+                          onPress={() => save({ region: r })}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected: on }}
+                          style={[styles.pill, on && styles.pillOn]}
+                        >
+                          <Text variant="label" bold style={{ color: on ? '#000' : color.text }}>
+                            {REGION_NAMES[r] ?? r}
+                          </Text>
+                        </Touchable>
+                      );
+                    })}
+                  </View>
+                </View>
 
-            <Text style={s.sectionTitle}>Services you pay for</Text>
-            {providers.length === 0 ? <Text style={s.cardBody}>Streaming services aren’t available yet.</Text> : null}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {providers.map((p) => {
-                const on = prefs.providers.includes(p.id);
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    onPress={() => toggleProvider(p.id)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on }}
-                    style={[{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 7, paddingRight: 12, borderRadius: 13, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: on ? '#fff' : 'transparent' }]}
-                  >
-                    {p.logo_url ? <Image source={{ uri: p.logo_url }} style={{ width: 28, height: 28, borderRadius: 7 }} /> : null}
-                    <Text style={{ color: '#fff', fontSize: 13 }}>{p.name}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
-        )}
-      </SafeAreaView>
+                <View>
+                  <SectionHeader title="Services you pay for" />
+                  {providers.length === 0 ? <Text tone="secondary">Streaming services aren’t available yet.</Text> : null}
+                  <View style={styles.wrap}>
+                    {providers.map((p) => {
+                      const on = prefs.providers.includes(p.id);
+                      return (
+                        <Touchable
+                          key={p.id}
+                          onPress={() => toggleProvider(p.id)}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: on }}
+                          style={[styles.provider, on && styles.providerOn]}
+                        >
+                          {p.logo_url ? <Image source={{ uri: p.logo_url }} style={styles.logo} /> : null}
+                          <Text variant="label" numberOfLines={1} style={{ color: on ? '#000' : color.text }}>
+                            {p.name}
+                          </Text>
+                        </Touchable>
+                      );
+                    })}
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </Screen>
     </ProtectedRoute>
   );
 }
+
+const styles = StyleSheet.create({
+  body: { paddingHorizontal: gutter, gap: space.xxl },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  pill: { paddingVertical: space.sm, paddingHorizontal: space.lg, borderRadius: 999, backgroundColor: color.surface },
+  pillOn: { backgroundColor: '#fff' },
+  provider: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: 7, paddingRight: space.md, borderRadius: radius.container, backgroundColor: color.surface },
+  providerOn: { backgroundColor: '#fff' },
+  logo: { width: 28, height: 28, borderRadius: 7 },
+});

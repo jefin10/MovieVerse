@@ -22,6 +22,7 @@ import {
   space,
   type IconName,
 } from '@/ui';
+import { useDockSpace } from '@/components/DockTabBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -51,6 +52,7 @@ const ProfilePage = () => {
   const [rated, setRated] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const dockSpace = useDockSpace();
 
   const load = useCallback(async (forceRefresh = false) => {
     const name = await AsyncStorage.getItem('username');
@@ -90,23 +92,23 @@ const ProfilePage = () => {
   };
 
   const links: { icon: IconName; title: string; route: string; count?: number }[] = [
-    { icon: 'users', title: 'Friends', route: '/pages/FriendsPage' },
+    { icon: 'users', title: 'Friends', route: '/(tabs)/friends' },
     { icon: 'film', title: 'Watch together', route: '/pages/WatchTogetherPage' },
-    { icon: 'bell', title: 'Notifications', route: '/pages/NotificationsPage', count: unread },
-    { icon: 'tv', title: 'Services and alerts', route: '/pages/PreferencesPage' },
+    { icon: 'bell', title: 'Notifications', route: '/(tabs)/notifications', count: unread },
+    { icon: 'settings', title: 'Settings', route: '/(tabs)/settings' },
   ];
 
   return (
     <ProtectedRoute>
-      <Screen edges={['top', 'bottom']}>
+      <Screen>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={{ paddingBottom: dockSpace }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.text} colors={[color.inverse]} progressBackgroundColor={color.text} />
           }
         >
-          <Header back title="Profile" />
+          <Header title="Profile" />
           <View style={styles.body}>
             <Reveal style={styles.identity}>
               <Avatar name={username || '?'} large />
@@ -127,9 +129,9 @@ const ProfilePage = () => {
               <View style={styles.statDivider} />
               <Stat value={stats?.ratings ?? null} label="Ratings" onPress={() => router.push('/(tabs)/tinder')} />
               <View style={styles.statDivider} />
-              <Stat value={stats?.followers ?? null} label="Followers" onPress={() => router.push('/pages/FriendsPage' as any)} />
+              <Stat value={stats?.followers ?? null} label="Followers" onPress={() => router.push('/(tabs)/friends' as any)} />
               <View style={styles.statDivider} />
-              <Stat value={stats?.following ?? null} label="Following" onPress={() => router.push('/pages/FriendsPage' as any)} />
+              <Stat value={stats?.following ?? null} label="Following" onPress={() => router.push('/(tabs)/friends' as any)} />
             </Card>
 
             <View>
@@ -181,7 +183,6 @@ const ProfilePage = () => {
 };
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: space.xxl },
   body: { paddingHorizontal: gutter, gap: space.xxl },
   identity: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   identityText: { flex: 1, gap: space.xs },
