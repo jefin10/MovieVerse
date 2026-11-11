@@ -12,7 +12,7 @@ import { MoodCard, RoomCard, SwipePanel, TonightPanel, WatchlistCard } from "./P
 import { Icon, LogoMark, Sprites } from "./Sprites";
 import { POSTERS, tmdb } from "./films";
 
-export const APK_URL = "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
+export const APK_URL = "/download/movieverse.apk";
 const A = "/app-ovo";
 
 const GENRES = ["Drama", "Sci-Fi", "Thriller", "Comedy", "Romance", "Animation", "Mystery", "Adventure"];

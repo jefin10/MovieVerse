@@ -17,8 +17,7 @@ import {
   type FeaturedSlide,
 } from "./website-data";
 
-const APK_URL =
-  "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
+const APK_URL = "/download/movieverse.apk";
 
 const HERO_INTERVAL_MS = 7000;
 

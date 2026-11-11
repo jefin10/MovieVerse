@@ -7,8 +7,7 @@ import { fetchMovieDetails } from "@/lib/api";
 import { getPoster, getTempMovie, type TempMovie } from "@/app/website/website-data";
 import "./movie-detail.css";
 
-const APK_URL =
-  "https://github.com/jefin10/movieverse/releases/latest/download/movieverse.apk";
+const APK_URL = "/download/movieverse.apk";
 
 type MovieDetail = Awaited<ReturnType<typeof fetchMovieDetails>>;
 

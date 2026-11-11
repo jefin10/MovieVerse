@@ -32,8 +32,9 @@ export default function SiteNav({
   }, [open]);
 
   const close = () => setOpen(false);
-  // In-page anchors and external URLs stay plain links; site routes use Link.
-  const isRoute = (href: string) => href.startsWith("/");
+  // In-page anchors, external URLs and file downloads stay plain links; site
+  // pages use Link (client-side navigation would break a download).
+  const isRoute = (href: string) => href.startsWith("/") && !href.endsWith(".apk");
 
   return (
     <header className={`web-nav${open ? " is-open" : ""}`}>

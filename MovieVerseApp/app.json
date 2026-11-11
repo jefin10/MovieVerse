@@ -22,6 +22,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.movie.verse",
+      "versionCode": 3,
       "permissions": []
     },
     "web": {
