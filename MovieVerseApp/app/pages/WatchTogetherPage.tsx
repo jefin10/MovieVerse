@@ -35,10 +35,7 @@ export default function WatchTogetherPage() {
           <View style={[s.iconCircle, { width: 64, height: 64, borderRadius: 32, marginBottom: 18 }]}>
             <Feather name="users" size={28} color="#000" />
           </View>
-          <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 32 }}>Can’t agree on a movie?</Text>
-          <Text style={[s.cardBody, { fontSize: 15, lineHeight: 22, marginTop: 8, marginBottom: 28 }]}>
-            Everyone swipes the same movies on their own phone. You only see the ones you all liked.
-          </Text>
+          <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 32, marginBottom: 28 }}>Can’t agree on a movie?</Text>
 
           <TouchableOpacity style={s.button} disabled={busy} onPress={() => run(() => api.post('api/rooms/', {}))}>
             {busy ? <ActivityIndicator color="#000" /> : <Text style={s.buttonText}>Start a room</Text>}

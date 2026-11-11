@@ -26,6 +26,8 @@ export default function RoomPage() {
   const [showMatches, setShowMatches] = useState(false);
   const pop = useRef(new Animated.Value(0.8)).current;
   const index = useRef(0);
+  // A match can arrive twice (live event and the swipe's own reply); show it once.
+  const celebrated = useRef(new Set<number>());
 
   const refresh = useCallback(async () => {
     try {
@@ -41,6 +43,8 @@ export default function RoomPage() {
 
   const celebrate = useCallback(
     (movie: any) => {
+      if (!movie || celebrated.current.has(movie.id)) return;
+      celebrated.current.add(movie.id);
       setMatch(movie);
       pop.setValue(0.8);
       Animated.spring(pop, { toValue: 1, damping: 11, stiffness: 180, useNativeDriver: true }).start();
@@ -97,7 +101,21 @@ export default function RoomPage() {
     const movie = cards?.[index.current];
     index.current += 1;
     if (!movie) return;
-    api.post(`api/rooms/${code}/swipes/`, { movie_id: movie.id, liked }).catch(() => {});
+    // Retry a few times so a swipe on a patchy connection isn't lost. If this
+    // swipe made the match, celebrate even if the live connection is down.
+    const send = (attempt: number) =>
+      api
+        .post(`api/rooms/${code}/swipes/`, { movie_id: movie.id, liked })
+        .then(({ data }) => {
+          if (data?.matched) {
+            celebrate(movie);
+            refresh();
+          }
+        })
+        .catch(() => {
+          if (attempt < 3) setTimeout(() => send(attempt + 1), 1500 * (attempt + 1));
+        });
+    send(0);
   };
 
   const invite = () =>
@@ -164,8 +182,7 @@ export default function RoomPage() {
             <Animated.View style={{ alignItems: 'center', transform: [{ scale: pop }] }}>
               <Text style={{ color: '#fff', fontSize: 34, fontWeight: '800', marginBottom: 18 }}>It’s a match!</Text>
               {match ? <Image source={{ uri: match.poster_url }} style={{ width: 210, height: 315, borderRadius: 20, backgroundColor: '#222' }} /> : null}
-              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>{match?.title}</Text>
-              <Text style={[s.cardBody, { marginTop: 4, marginBottom: 22 }]}>You all liked this one.</Text>
+              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600', marginTop: 16, marginBottom: 22, textAlign: 'center' }}>{match?.title}</Text>
               <TouchableOpacity style={s.button} onPress={() => setMatch(null)}><Text style={s.buttonText}>Keep swiping</Text></TouchableOpacity>
               <TouchableOpacity
                 style={{ padding: 14 }}

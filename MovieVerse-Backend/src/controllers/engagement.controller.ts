@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { prisma } from '../config/prisma.js';
@@ -412,9 +413,10 @@ const loadRoom = async (rawCode: unknown) => {
 };
 
 async function roomState(room: Awaited<ReturnType<typeof loadRoom>>, userId: number) {
-  const [movies, swipes] = await Promise.all([
+  const [movies, swipes, saved] = await Promise.all([
     prisma.movie.findMany({ where: { id: { in: room.deck } }, include: movieInclude }),
     prisma.roomSwipe.findMany({ where: { roomId: room.id } }),
+    prisma.roomMatch.findMany({ where: { roomId: room.id }, orderBy: { matchedAt: 'asc' } }),
   ]);
   const byId = new Map(movies.map((m) => [m.id, m]));
   const memberIds = room.members.map((m) => m.userId);
@@ -424,10 +426,10 @@ async function roomState(room: Awaited<ReturnType<typeof loadRoom>>, userId: num
     if (!likes.has(s.movieId)) likes.set(s.movieId, new Set());
     likes.get(s.movieId)!.add(s.userId);
   }
-  const matches =
-    memberIds.length < 2
-      ? []
-      : room.deck.filter((id) => memberIds.every((m) => likes.get(id)?.has(m)));
+  // Saved matches stay matches when someone joins later. Rooms from before
+  // matches were saved fall back to "everyone in the room liked it".
+  const live = memberIds.length < 2 ? [] : room.deck.filter((id) => memberIds.every((m) => likes.get(id)?.has(m)));
+  const matches = [...new Set([...saved.map((m) => m.movieId), ...live])];
 
   return {
     code: room.code,
@@ -505,7 +507,18 @@ export const roomSwipe = asyncHandler(async (req, res) => {
   let matched = false;
   if (liked && !before?.liked && room.members.length >= 2) {
     const likes = await prisma.roomSwipe.count({ where: { roomId: room.id, movieId, liked: true } });
-    if (likes === room.members.length) {
+    // Saving the match is what claims it: if two final likes race, only one
+    // insert wins, so the match is announced once.
+    const claimed =
+      likes === room.members.length &&
+      (await prisma.roomMatch
+        .create({ data: { roomId: room.id, movieId } })
+        .then(() => true)
+        .catch((err) => {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return false;
+          throw err;
+        }));
+    if (claimed) {
       matched = true;
       const movie = await prisma.movie.findUnique({ where: { id: movieId }, include: movieInclude });
       broadcast(room.id, { type: 'match', movie: serializeMovie(movie!) });

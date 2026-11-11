@@ -127,6 +127,7 @@ model Movie {
   swipes      Swipe[]
   providers   MovieProvider[]
   roomSwipes  RoomSwipe[]
+  roomMatches RoomMatch[]
 
   @@index([popularity, tmdbVoteAverage, voteCount])
   @@map("movies")
@@ -271,6 +272,7 @@ model Room {
   expiresAt DateTime @map("expires_at")
   members   RoomMember[]
   swipes    RoomSwipe[]
+  matches   RoomMatch[]
 
   @@index([expiresAt])
   @@map("rooms")
@@ -299,4 +301,17 @@ model RoomSwipe {
   @@id([roomId, userId, movieId])
   @@index([roomId, movieId])
   @@map("room_swipes")
+}
+
+// A film everyone in the room liked, saved when it happens so it stays a match
+// even if someone joins the room later.
+model RoomMatch {
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId    Int      @map("room_id")
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movieId   Int      @map("movie_id")
+  matchedAt DateTime @default(now()) @map("matched_at")
+
+  @@id([roomId, movieId])
+  @@map("room_matches")
 }
