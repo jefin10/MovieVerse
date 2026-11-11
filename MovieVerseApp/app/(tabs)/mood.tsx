@@ -125,7 +125,6 @@ const Mood = () => {
               <View style={moodStyles.moodResultContainer}>
                 <View style={moodStyles.resultHeaderContainer}>
                   <Text style={moodStyles.moodResultTitle}>You're in the mood for {predictedGenre}</Text>
-                  <Text style={moodStyles.moodResultSubtitle}>Here are our suggestions</Text>
                 </View>
                 
                 {error ? (
@@ -148,7 +147,6 @@ const Mood = () => {
               <>
                 <View style={moodStyles.headerSection}>
                   <Text style={moodStyles.moodTitle}>How are you feeling today?</Text>
-                  <Text style={moodStyles.moodSubtitle}>Get movies personalized for your mood</Text>
                 </View>
                 
                 <View style={moodStyles.moodSelector}>

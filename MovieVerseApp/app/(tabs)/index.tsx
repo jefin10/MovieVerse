@@ -246,7 +246,6 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
             {/* Mood Selector */}
             <View style={styles.moodSelector}>
               <Text style={styles.moodTitle}>How are you feeling today?</Text>
-              <Text style={styles.moodSubtitle}>Get movies personalized for your mood</Text>
               
               {/* Mood Buttons */}
               {/* ... existing mood buttons code ... */}
@@ -321,7 +320,6 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
               >
                 <Feather name="users" size={20} color="#000" />
                 <Text style={{ color: '#000', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Watch Together</Text>
-                <Text style={{ color: '#444', fontSize: 12, marginTop: 2 }}>Swipe with friends</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flex: 1, backgroundColor: '#1a1a1a', borderRadius: 18, padding: 14 }}
@@ -329,7 +327,6 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
               >
                 <Feather name="heart" size={20} color="#fff" />
                 <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700', marginTop: 8 }}>Friends</Text>
-                <Text style={{ color: '#999', fontSize: 12, marginTop: 2 }}>Your taste match</Text>
               </TouchableOpacity>
             </View>
 
@@ -408,7 +405,6 @@ const fetchRecommendations = async (username: string, forceRefresh = false) => {
             <TouchableOpacity onPress={()=>{router.push('/(tabs)/tinder')}} style={styles.weekendBanner}>
               <View>
                 <Text style={styles.weekendTitle}>Free Weekend?</Text>
-                <Text style={styles.weekendSubtitle}>Populate your watchlist for bingewatching</Text>
               </View>
               <View style={styles.arrowContainer}>
                 <Text style={styles.swipeText}>Swipe right to find your matches</Text>

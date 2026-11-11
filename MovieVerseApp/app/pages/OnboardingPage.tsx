@@ -181,7 +181,6 @@ export default function OnboardingPage() {
               <View style={styles.previewIcon}><Feather name="moon" size={18} color="#000" /></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.previewTitle}>Tonight’s pick: Interstellar</Text>
-                <Text style={styles.previewBody}>Picked for your taste.</Text>
               </View>
             </View>
             <View style={{ flex: 1 }} />
@@ -246,5 +245,4 @@ const styles = StyleSheet.create({
   preview: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, padding: 14, borderRadius: 20, backgroundColor: '#1c1c1c', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
   previewIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   previewTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  previewBody: { color: '#aaa', fontSize: 13, marginTop: 2 },
 });
