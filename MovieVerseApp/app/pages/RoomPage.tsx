@@ -129,8 +129,13 @@ export default function RoomPage() {
         <PageHeader
           title="Watch Together"
           right={
-            <TouchableOpacity style={[s.pill, !room?.matches.length && s.pillOff]} onPress={() => setShowMatches(true)}>
-              <Text style={[s.pillText, !room?.matches.length && s.pillOffText]}>♥ {room?.matches.length ?? 0}</Text>
+            <TouchableOpacity
+              style={[s.pill, !room?.matches.length && s.pillOff, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}
+              onPress={() => setShowMatches(true)}
+              accessibilityLabel={`${room?.matches.length ?? 0} matches`}
+            >
+              <Feather name="heart" size={14} color={room?.matches.length ? '#000' : '#fff'} />
+              <Text style={[s.pillText, !room?.matches.length && s.pillOffText]}>{room?.matches.length ?? 0}</Text>
             </TouchableOpacity>
           }
         />
