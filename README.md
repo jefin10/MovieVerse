@@ -21,14 +21,15 @@
   <p>
     Website: <a href="https://movieverse.jefin.xyz">movieverse.jefin.xyz</a> •
     Backend API: <a href="https://movieversebackend.jefin.xyz">movieversebackend.jefin.xyz</a> •
-    Mobile APK: <a href="https://github.com/jefin10/MovieVerse/releases/download/v1.0.0/movieverse.apk">Download</a>
+    Mobile APK: <a href="https://movieverse.jefin.xyz/download/movieverse.apk">Download</a>
   </p>
 
   <p>
-    <img src="media/Screenshot_20260418-215929_MovieVerseApp.jpg" alt="MovieVerse home feed screenshot" width="19%" />
-    <img src="media/Screenshot_20260418-215936_MovieVerseApp.jpg" alt="MovieVerse mood discovery screenshot" width="19%" />
-    <img src="media/Screenshot_20260418-215951_MovieVerseApp.jpg" alt="MovieVerse movie details screenshot" width="19%" />
-    <img src="media/Screenshot_20260418-220332_MovieVerseApp.jpg" alt="MovieVerse watchlist screenshot" width="19%" />
+    <img src="media/screenshots/home.jpg" alt="MovieVerse home screen" width="19%" />
+    <img src="media/screenshots/swipe.jpg" alt="MovieVerse swipe discovery" width="19%" />
+    <img src="media/screenshots/movie.jpg" alt="MovieVerse movie details" width="19%" />
+    <img src="media/screenshots/mood.jpg" alt="MovieVerse mood picks" width="19%" />
+    <img src="media/screenshots/watch-together.jpg" alt="MovieVerse Watch Together match" width="19%" />
   </p>
 </div>
 
@@ -136,7 +137,7 @@ MovieVerse/
 ├─ MovieVerseBackend/    # Django API, PostgreSQL integration, Docker deployment files
 │  └─ backend/           # Django apps: api, users, ai, and project settings
 ├─ MovieverseAI/         # Model training scripts, datasets, and feature generation
-└─ media/                # README assets (logo and screenshots)
+└─ media/                # README assets (logo, screenshots/)
 ~~~
 
 ## Roadmap
